@@ -53,11 +53,11 @@ const navLinks = [
 ];
 
 const services = [
-  { icon: "💬", title: "Consultation & Counseling", description: "Our advisors help you set academic goals, understand career paths, and explore programs that align with your future aspirations." },
-  { icon: "🎓", title: "University Admissions", description: "We work closely with partner universities in India to facilitate smooth admissions — from application preparation to meeting deadlines." },
-  { icon: "🏆", title: "Scholarships & Financial Aid", description: "We connect you with scholarship opportunities that ease financial burdens, making world-class education more accessible." },
-  { icon: "🛡️", title: "Visa Assistance", description: "Step-by-step guidance on visa applications including document preparation and interview training for a smooth process." },
-  { icon: "🤝", title: "Pre-Departure & Post-Arrival Support", description: "From travel orientation and cultural tips to post-arrival assistance — we help you settle in comfortably in India." },
+  { icon: "💬", title: "Consultation & Counseling", description: "We talk with you — via WhatsApp or call — to understand your situation, your results, and which programs actually fit your goals." },
+  { icon: "🎓", title: "University Admissions", description: "We handle the paperwork and talk directly to the university on your behalf. No missed deadlines, no guessing — we know what each school needs." },
+  { icon: "🏆", title: "Scholarships & Financial Aid", description: "Most of our partner universities offer partial scholarships to students we refer. We make sure you get every reduction you qualify for." },
+  { icon: "🛡️", title: "Visa Assistance", description: "The visa step trips most students up. We've been through it dozens of times — we tell you exactly what to prepare and what to expect." },
+  { icon: "🤝", title: "Pre-Departure & Post-Arrival Support", description: "We don't disappear once your visa is approved. We help with flight planning, meet you at the airport, and stay in touch while you settle in." },
 ];
 
 const steps = [
@@ -79,11 +79,11 @@ const visaSteps = [
 
 const faqs = [
   { q: "What services does Scollarly offer?", a: "Scollarly offers guidance on university selection, scholarship opportunities, application and admission support, visa assistance, and post-admission assistance for African students interested in studying in India." },
-  { q: "How can I apply for a scholarship through Scollarly?", a: "Contact Scollarly to explore available scholarships. We help identify options based on your academic background and assist with the complete application process. Our services are completely free of charge." },
+  { q: "How can I apply for a scholarship through Scollarly?", a: "Share your grades with us and we'll check what's available based on your results. We handle the full application — everything is free." },
   { q: "What are the requirements for studying in India?", a: "Requirements vary by program but typically include academic transcripts (O-level and A-level), a valid passport, bank statements with sufficient balance, and identification documents." },
-  { q: "How does Scollarly assist with the admission process?", a: "We streamline the entire admission journey — from filling out applications and organizing required documents to tracking your application status and communicating with universities on your behalf." },
+  { q: "How does Scollarly assist with the admission process?", a: "We handle everything — applications, documents, follow-ups with the university. You share your results and paperwork with us, and we take it from there." },
   { q: "What universities and programs are available?", a: "Scollarly partners with 9+ top Indian universities offering programs in engineering, business, healthcare, IT, and more." },
-  { q: "Is there a cost for Scollarly's services?", a: "No! Scollarly offers all services free of charge. Our mission is to assist students in reaching India to study." },
+  { q: "Is there a cost for Scollarly's services?", a: "Nothing. The university pays us after you enroll — so you never pay us anything at any point. That's the whole model." },
   { q: "Can I connect with current students for advice?", a: "Yes! Scollarly can connect you with current students or alumni for insights and firsthand experiences." },
   { q: "What support does Scollarly provide after admission?", a: "Post-admission, we help with accommodation, orientation, airport pickup, campus orientation, and any other support you need." },
   { q: "Is India safe for African students?", a: "Yes. Cities like Mohali, Chandigarh, Bangalore, and Ludhiana have established African student communities, and our partner universities have international student support offices. We provide a cultural orientation before you depart and stay reachable after you arrive." },
@@ -315,7 +315,7 @@ export default function Home() {
               Live Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-white hero-gradient-text">Dream</span>
             </h1>
             <p className="hero-subtitle text-lg sm:text-xl text-neutral-300 mb-8 leading-relaxed max-w-lg">
-              Your gateway to world-class education in India. We provide the guidance, scholarships, and support you need to turn your academic aspirations into reality.
+              We connect African students with real universities in India — and we only get paid when you actually land there. Free guidance, real scholarships, zero upfront costs.
             </p>
             <div className="hero-buttons flex flex-col sm:flex-row gap-4">
               <a href="#process" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5">Start Your Journey →</a>
@@ -345,7 +345,7 @@ export default function Home() {
                 Universities in India pay Scollarly a placement fee when a student we introduce successfully enrolls. <strong className="text-white">Students and their families pay us nothing — ever.</strong>
               </p>
               <p className="text-neutral-400 leading-relaxed">
-                This model means our interests are completely aligned with yours. We don't make money unless you succeed. There is no incentive for us to give you bad advice or push you toward the wrong university.
+                This model means our interests are completely aligned with yours. We don't profit unless you succeed, get valid admissions and fulfill your goal. There is no incentive for us to give you bad advice or push you toward the wrong university.
               </p>
               <p className="text-neutral-400 leading-relaxed">
                 It's the same model used by international student recruitment agencies worldwide — the difference is we're transparent about it.
@@ -458,8 +458,49 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* ─── WHY SCOLLARLY ─── */}
+      <Section id="why-us" badge="The Difference" title="Why Scollarly Beats Local Agencies" subtitle="Most education agents in Africa charge upfront fees and disappear. We built the opposite model — and the difference is not small.">
+        <div className="grid sm:grid-cols-2 gap-6">
+          {[
+            {
+              icon: "💸",
+              title: "You never pay us — not once",
+              desc: "Most local agents charge €200–€1,000 before you've even seen an offer letter. With Scollarly, the university pays us only after you successfully enroll. You hand over no money at any stage — not during, not after.",
+            },
+            {
+              icon: "✅",
+              title: "Your admission will be real",
+              desc: "Because we only profit when you actually enroll at a real university, fake or invalid offer letters earn us nothing. We have every financial reason to make sure your admission is genuine and from an accredited institution.",
+            },
+            {
+              icon: "🛣️",
+              title: "We stay with you until you land",
+              desc: "Most agents help with the application and then vanish when visa time comes. We guide you through every step — from choosing your university to the airport pickup in India. One team, the whole journey.",
+            },
+            {
+              icon: "🔒",
+              title: "Zero risk on your side",
+              desc: "If for any reason things don't work out, you've lost nothing — no money, no time you can't recover. The financial risk sits entirely with us, which is exactly why we work hard to make it work.",
+            },
+          ].map((item, i) => (
+            <AnimDiv key={i} delay={i * 120} direction="up" className="flex gap-5 p-6 bg-white border border-neutral-200 rounded-2xl hover:border-blue-300 hover:shadow-lg transition-all duration-300">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl shrink-0">{item.icon}</div>
+              <div>
+                <h3 className="font-bold text-neutral-900 mb-2">{item.title}</h3>
+                <p className="text-neutral-600 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            </AnimDiv>
+          ))}
+        </div>
+        <div className="mt-10 p-6 bg-blue-50 border border-blue-200 rounded-2xl">
+          <p className="text-blue-900 text-sm leading-relaxed text-center max-w-2xl mx-auto">
+            <strong>The short version:</strong> We only make money when you succeed — so misleading you, rushing you into the wrong university, or cutting corners on your visa isn&apos;t just bad service, it costs us directly. Our interests and yours are one and the same.
+          </p>
+        </div>
+      </Section>
+
       {/* ─── ABOUT ─── */}
-      <Section id="about" badge="About Us" title="Who We Are" subtitle="Creating opportunities for African students to receive world-class education, gain global exposure, and build a foundation for successful careers.">
+      <Section id="about" badge="About Us" title="Who We Are" subtitle="We've helped hundreds of students from across Africa make it to India. Here's who we are and why we started.">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <AnimDiv className="relative" direction="left">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
@@ -479,12 +520,12 @@ export default function Home() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-bold text-neutral-900 mb-3">Our Mission</h3>
-                <p className="text-neutral-600 leading-relaxed">Scollarly&apos;s mission is to empower African students with the resources, guidance, and support needed to study in India. We connect students with top institutions and secure scholarships, ensuring they achieve their academic and career aspirations.</p>
+                <p className="text-neutral-600 leading-relaxed">Scollarly started because too many African students were getting exploited by paid agents — or giving up entirely because they didn&apos;t know where to begin. We built the free alternative. Our goal is simple: if you want to study in India and you put in the effort, we make sure nothing stops you.</p>
               </div>
               {[
-                { icon: "⭐", title: "Commitment", desc: "Supporting each student's unique goals and needs with personalized attention." },
-                { icon: "👥", title: "Inclusivity", desc: "Embracing students from all backgrounds and providing equal opportunities." },
-                { icon: "✅", title: "Quality", desc: "Providing accurate information and excellent service throughout your journey." },
+                { icon: "⭐", title: "Commitment", desc: "We don't just send you a university list and move on. We stay with you until you actually land in India." },
+                { icon: "👥", title: "Inclusivity", desc: "Francophone, Anglophone, East African, West African — every student gets the same full service, no exceptions." },
+                { icon: "✅", title: "Honesty", desc: "We tell you the truth, even when it's not what you want to hear. That's the only kind of advice that actually helps." },
               ].map((v, i) => (
                 <AnimDiv key={i} delay={400 + i * 150} className="flex items-start gap-4 p-4 rounded-xl hover:bg-blue-50/50 transition-colors">
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0 text-lg">{v.icon}</div>
@@ -651,7 +692,7 @@ export default function Home() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
           <AnimDiv direction="left">
             <div className="space-y-6 mb-10">
-              <p className="text-neutral-600 leading-relaxed">We&apos;re excited to be part of your journey to study abroad and achieve your dreams. At Scollarly, we believe in creating opportunities for African students to receive a world-class education.</p>
+              <p className="text-neutral-600 leading-relaxed">Got questions? Fill in the form and we&apos;ll follow up on WhatsApp within 24 hours. Or skip the form entirely and message us directly — we respond the same day.</p>
               <div className="space-y-4">
                 {[
                   { icon: "📞", label: "Phone / WhatsApp", value: "+237 6 51 23 23 01", href: "https://wa.me/237651232301" },
