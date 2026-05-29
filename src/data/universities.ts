@@ -1,0 +1,190 @@
+export interface UniversityProgram {
+  name: string;
+  duration: string;
+  fees?: string;
+}
+
+export interface University {
+  slug: string;
+  name: string;
+  location: string;
+  logo: string;
+  website: string;
+  overview?: string;
+  naacGrade?: string;
+  programs: UniversityProgram[];
+}
+
+export const universities: University[] = [
+  {
+    slug: "chandigarh-university",
+    name: "Chandigarh University",
+    location: "Mohali, Punjab",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Chandigarh_University_Seal.png",
+    website: "https://www.cuchd.in",
+    naacGrade: "A+",
+    overview: "Chandigarh University is a NAAC A+ ranked private university consistently ranked among India's top 25 universities. With 900+ industry partnerships and a vibrant campus of 30,000+ students, it offers a world-class experience with strong placement outcomes.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Communication Engineering", duration: "4 years" },
+      { name: "MBA (Master of Business Administration)", duration: "2 years" },
+      { name: "BBA (Bachelor of Business Administration)", duration: "3 years" },
+      { name: "MCA (Master of Computer Applications)", duration: "2 years" },
+      { name: "B.Pharm (Bachelor of Pharmacy)", duration: "4 years" },
+      { name: "B.Sc Nursing", duration: "4 years" },
+      { name: "B.Com (Bachelor of Commerce)", duration: "3 years" },
+    ],
+  },
+  {
+    slug: "cgc-university",
+    name: "CGC University",
+    location: "Mohali, Punjab",
+    logo: "https://www.cgcuniversity.in/frontend/images/common-images/cgcu-logo.webp",
+    website: "https://www.cgcuniversity.in",
+    overview: "Chandigarh Group of Colleges (CGC) University is a leading institution in the Chandigarh tricity area with a strong emphasis on technical education, industry internships, and entrepreneurship. Its campuses host students from over 25 countries.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electrical Engineering", duration: "4 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "B.Com", duration: "3 years" },
+      { name: "BCA (Bachelor of Computer Applications)", duration: "3 years" },
+    ],
+  },
+  {
+    slug: "swami-vivekanand-group",
+    name: "Swami Vivekanand Group of Institutions",
+    location: "Chandigarh",
+    logo: "https://vivekanandgroup.com/frontends/collage_front/images/logo.png",
+    website: "https://vivekanandgroup.com",
+    overview: "Swami Vivekanand Group of Institutions is a well-established education group in Chandigarh with multiple campuses. The institution is known for its practical, industry-oriented curriculum and strong faculty with deep professional experience.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Communication Engineering", duration: "4 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "B.Com", duration: "3 years" },
+      { name: "BCA", duration: "3 years" },
+    ],
+  },
+  {
+    slug: "jain-university",
+    name: "Jain Deemed-to-be University",
+    location: "Bangalore, Karnataka",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/9/98/Jain-University-Bangalore-India-Logo.png",
+    website: "https://www.jainuniversity.ac.in",
+    naacGrade: "A",
+    overview: "Jain University is a NAAC A-accredited deemed university in Bangalore — India's Silicon Valley. Its location gives students direct access to the country's largest tech ecosystem and a thriving startup culture, making it ideal for students targeting careers in technology and business.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Electrical Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "B.Com", duration: "3 years" },
+      { name: "BCA", duration: "3 years" },
+      { name: "B.Sc Psychology", duration: "3 years" },
+    ],
+  },
+  {
+    slug: "karnataka-university",
+    name: "Karnataka University",
+    location: "Dharwad, Karnataka",
+    logo: "https://kud.ac.in/images/kud-logo-new.png",
+    website: "https://kud.ac.in",
+    naacGrade: "A",
+    overview: "Karnataka University Dharwad is one of India's oldest public universities, founded in 1949. A NAAC A-rated institution, it offers a broad range of undergraduate and postgraduate programs with a strong research culture and highly affordable fees, making it one of the best value-for-money options for international students.",
+    programs: [
+      { name: "B.Sc (Science)", duration: "3 years" },
+      { name: "B.Com", duration: "3 years" },
+      { name: "B.A. (Arts)", duration: "3 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "M.Sc", duration: "2 years" },
+      { name: "M.Com", duration: "2 years" },
+      { name: "LLB (Bachelor of Law)", duration: "3 years" },
+      { name: "B.Ed (Bachelor of Education)", duration: "2 years" },
+    ],
+  },
+  {
+    slug: "kalinga-university",
+    name: "Kalinga University",
+    location: "Raipur, Chhattisgarh",
+    logo: "https://upload.wikimedia.org/wikipedia/en/b/be/Kalinga_University_Logo.png",
+    website: "https://kalingauniversity.ac.in",
+    overview: "Kalinga University is a modern private university in Raipur with a strong technology focus and a multicultural campus community. It offers scholarships to meritorious international students and provides dedicated support for visa and accommodation arrangements.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Communication Engineering", duration: "4 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "BCA", duration: "3 years" },
+      { name: "B.Pharm", duration: "4 years" },
+      { name: "B.Sc Computer Science", duration: "3 years" },
+    ],
+  },
+  {
+    slug: "rayat-bahra-university",
+    name: "Rayat-Bahra University",
+    location: "Mohali, Punjab",
+    logo: "https://upload.wikimedia.org/wikipedia/en/thumb/d/d9/Rayat-Bahra_University_logo.svg/250px-Rayat-Bahra_University_logo.svg.png",
+    website: "https://www.rayatbahra.com",
+    overview: "Rayat-Bahra University is a private university located in Mohali near Chandigarh with a strong reputation in engineering, pharmacy, and business. The university's international cell provides dedicated support to African students including airport pick-up, hostel allocation, and cultural orientation.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Communication Engineering", duration: "4 years" },
+      { name: "B.Pharm", duration: "4 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "BCA", duration: "3 years" },
+    ],
+  },
+  {
+    slug: "aditya-university",
+    name: "Aditya University",
+    location: "Surampalem, Andhra Pradesh",
+    logo: "https://www.adityauniversity.in/public/frontend/assets/images/site-logo.svg",
+    website: "https://www.adityauniversity.in",
+    naacGrade: "A+",
+    overview: "Aditya University is a NAAC A+ rated institution in Andhra Pradesh with an exceptional track record in engineering and applied sciences. Its state-of-the-art labs, strong industry partnerships, and dedicated placement cell make it a top choice for students targeting technical careers.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Electrical & Electronics Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Communication Engineering", duration: "4 years" },
+      { name: "M.Tech", duration: "2 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "B.Pharm", duration: "4 years" },
+    ],
+  },
+  {
+    slug: "ct-university",
+    name: "CT University",
+    location: "Ludhiana, Punjab",
+    logo: "https://ctuniversity.in/images/ct-logo.png",
+    website: "https://ctuniversity.in",
+    overview: "CT University in Ludhiana is a dynamic private university known for its industry-connected curriculum and strong alumni network across Punjab's industrial belt. It offers merit scholarships to international students and has a dedicated international student office.",
+    programs: [
+      { name: "B.Tech Computer Science & Engineering", duration: "4 years" },
+      { name: "B.Tech Mechanical Engineering", duration: "4 years" },
+      { name: "B.Tech Civil Engineering", duration: "4 years" },
+      { name: "B.Tech Electronics & Communication Engineering", duration: "4 years" },
+      { name: "MBA", duration: "2 years" },
+      { name: "BBA", duration: "3 years" },
+      { name: "B.Com", duration: "3 years" },
+      { name: "B.Pharm", duration: "4 years" },
+      { name: "BCA", duration: "3 years" },
+    ],
+  },
+];

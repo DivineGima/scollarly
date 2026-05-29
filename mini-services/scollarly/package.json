@@ -1,0 +1,8 @@
+{
+  "name": "scollarly-flask",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "python app.py"
+  }
+}
