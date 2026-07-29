@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Scollarly",
+  title: "Privacy Policy, Scollarly",
   description: "How Scollarly collects, uses, and protects your personal information.",
 };
 
@@ -21,18 +21,18 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">Who we are</h2>
             <p>Scollarly is an education consulting agency that helps African students apply to partner universities in India. Our services are provided free of charge to students. We are funded by universities when students we refer successfully enroll.</p>
-            <p className="mt-3">Contact: <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> · WhatsApp: +237 651 232 301 · Mohali, India</p>
+            <p className="mt-3">Contact: <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> · WhatsApp: +91 98157 25968 · Mohali, India</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">What data we collect</h2>
             <p>When you submit an inquiry through our contact form, we collect:</p>
             <ul className="mt-3 list-disc list-inside space-y-1.5 pl-2">
-              <li><strong>Full name</strong> — to address you correctly in communications</li>
-              <li><strong>Email address</strong> — to send you a confirmation and follow-up guidance</li>
-              <li><strong>Phone / WhatsApp number</strong> (optional) — to contact you via WhatsApp if you prefer</li>
-              <li><strong>Country</strong> (optional) — to understand where our students come from</li>
-              <li><strong>Message</strong> — to understand your academic goals and provide relevant guidance</li>
+              <li><strong>Full name</strong>, to address you correctly in communications</li>
+              <li><strong>Email address</strong>, to send you a confirmation and follow-up guidance</li>
+              <li><strong>Phone / WhatsApp number</strong> (optional), to contact you via WhatsApp if you prefer</li>
+              <li><strong>Country</strong> (optional), to understand where our students come from</li>
+              <li><strong>Message</strong>, to understand your academic goals and provide relevant guidance</li>
             </ul>
             <p className="mt-4">We also collect standard web analytics data (page views, session duration) through Google Analytics 4. This data is anonymized and does not personally identify you.</p>
           </section>
@@ -78,7 +78,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">Contact</h2>
-            <p>Questions about this policy? Reach us at <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> or on WhatsApp at <a href="https://wa.me/237651232301" className="text-blue-600 hover:underline">+237 651 232 301</a>.</p>
+            <p>Questions about this policy? Reach us at <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> or on WhatsApp at <a href="https://wa.me/919815725968" className="text-blue-600 hover:underline">+91 98157 25968</a>.</p>
           </section>
         </div>
 

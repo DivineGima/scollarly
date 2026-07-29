@@ -60,10 +60,10 @@ const navLinks = [
 ];
 
 const services = [
-  { icon: "💬", title: "Consultation & Counseling", description: "We talk with you — via WhatsApp or call — to understand your situation, your results, and which programs actually fit your goals." },
-  { icon: "🎓", title: "University Admissions", description: "We handle the paperwork and talk directly to the university on your behalf. No missed deadlines, no guessing — we know what each school needs." },
+  { icon: "💬", title: "Consultation & Counseling", description: "We talk with you, via WhatsApp or call, to understand your situation, your results, and which programs actually fit your goals." },
+  { icon: "🎓", title: "University Admissions", description: "We handle the paperwork and talk directly to the university on your behalf. No missed deadlines, no guessing, we know what each school needs." },
   { icon: "🏆", title: "Scholarships & Financial Aid", description: "Most of our partner universities offer partial scholarships to students we refer. We make sure you get every reduction you qualify for." },
-  { icon: "🛡️", title: "Visa Assistance", description: "The visa step trips most students up. We've been through it dozens of times — we tell you exactly what to prepare and what to expect." },
+  { icon: "🛡️", title: "Visa Assistance", description: "The visa step trips most students up. We've been through it dozens of times, we tell you exactly what to prepare and what to expect." },
   { icon: "🤝", title: "Pre-Departure & Post-Arrival Support", description: "We don't disappear once your visa is approved. We help with flight planning, meet you at the airport, and stay in touch while you settle in." },
 ];
 
@@ -77,7 +77,7 @@ const steps = [
 ];
 
 const visaSteps = [
-  { step: "1", title: "Admission Confirmation", desc: "Receive your official acceptance letter from the Indian institution — a critical document for your visa application." },
+  { step: "1", title: "Admission Confirmation", desc: "Receive your official acceptance letter from the Indian institution, a critical document for your visa application." },
   { step: "2", title: "Collect Documents", desc: "Gather passport, photos, proof of admission, financial proof, health certificate, birth certificate, and proof of residence." },
   { step: "3", title: "Submit Application", desc: "Complete the online application and pay the visa fee (USD $83). Your Scollarly agent will guide you through the entire process." },
   { step: "4", title: "Processing", desc: "Visa processing takes 3-5 working days. We'll keep you updated on the status throughout." },
@@ -86,16 +86,16 @@ const visaSteps = [
 
 const faqs = [
   { q: "What services does Scollarly offer?", a: "Scollarly offers guidance on university selection, scholarship opportunities, application and admission support, visa assistance, and post-admission assistance for African students interested in studying in India." },
-  { q: "How can I apply for a scholarship through Scollarly?", a: "Share your grades with us and we'll check what's available based on your results. We handle the full application — everything is free." },
+  { q: "How can I apply for a scholarship through Scollarly?", a: "Share your grades with us and we'll check what's available based on your results. We handle the full application, everything is free." },
   { q: "What are the requirements for studying in India?", a: "Requirements vary by program but typically include academic transcripts (O-level and A-level), a valid passport, bank statements with sufficient balance, and identification documents." },
-  { q: "How does Scollarly assist with the admission process?", a: "We handle everything — applications, documents, follow-ups with the university. You share your results and paperwork with us, and we take it from there." },
+  { q: "How does Scollarly assist with the admission process?", a: "We handle everything, applications, documents, follow-ups with the university. You share your results and paperwork with us, and we take it from there." },
   { q: "What universities and programs are available?", a: "Scollarly partners with 9+ top Indian universities offering programs in engineering, business, healthcare, IT, and more." },
-  { q: "Is there a cost for Scollarly's services?", a: "Nothing. The university pays us after you enroll — so you never pay us anything at any point. That's the whole model." },
+  { q: "Is there a cost for Scollarly's services?", a: "Nothing. The university pays us after you enroll, so you never pay us anything at any point. That's the whole model." },
   { q: "Can I connect with current students for advice?", a: "Yes! Scollarly can connect you with current students or alumni for insights and firsthand experiences." },
   { q: "What support does Scollarly provide after admission?", a: "Post-admission, we help with accommodation, orientation, airport pickup, campus orientation, and any other support you need." },
   { q: "Is India safe for African students?", a: "Yes. Cities like Mohali, Chandigarh, Bangalore, and Ludhiana have established African student communities, and our partner universities have international student support offices. We provide a cultural orientation before you depart and stay reachable after you arrive." },
   { q: "Will my Indian degree be recognized back home?", a: "Indian universities accredited by NAAC (grades A, A+) are internationally recognized. Degrees can be evaluated by organizations like WES (World Education Services) for use in applications in Europe, North America, and other countries." },
-  { q: "How do I know Scollarly is not a scam?", a: "Scollarly never asks for money. Our model is simple: universities pay us when students they receive through us successfully enroll — so we get paid only when you succeed. You can verify this directly: WhatsApp us, speak to current students we've placed, and meet our team in the #team section above." },
+  { q: "How do I know Scollarly is not a scam?", a: "Scollarly never asks for money. Our model is simple: universities pay us when students they receive through us successfully enroll, so we get paid only when you succeed. You can verify this directly: WhatsApp us, speak to current students we've placed, and meet our team in the #team section above." },
   { q: "How long does the full process take?", a: "Typically 3-5 months from first contact to arriving in India. Getting an offer letter takes 4-8 weeks. Visa processing after admission confirmation takes 6-12 weeks. We'll give you a realistic timeline based on your specific situation." },
 ];
 
@@ -129,7 +129,7 @@ const testimonials = [
     university: "Kalinga University",
     year: 2023,
     verified: true,
-    quote: "My visa was my biggest fear — everyone said it was complicated. They told me exactly what documents to prepare. I was approved on the first attempt.",
+    quote: "My visa was my biggest fear, everyone said it was complicated. They told me exactly what documents to prepare. I was approved on the first attempt.",
   },
   {
     name: "Mariam C.",
@@ -149,7 +149,7 @@ const testimonials = [
     university: "Rayat-Bahra University",
     year: 2023,
     verified: true,
-    quote: "I'm now in my second year. There's a big African community on campus — I found Senegalese students in my faculty within the first week.",
+    quote: "I'm now in my second year. There's a big African community on campus, I found Senegalese students in my faculty within the first week.",
   },
 ];
 
@@ -317,7 +317,7 @@ export default function Home() {
               Live Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-white hero-gradient-text">Dream</span>
             </h1>
             <p className="hero-subtitle text-lg sm:text-xl text-neutral-300 mb-8 leading-relaxed max-w-lg">
-              We connect African students with real universities in India — and we only get paid when you actually land there. Free guidance, real scholarships, zero upfront costs.
+              We connect African students with real universities in India, and we only get paid when you actually land there. Free guidance, real scholarships, zero upfront costs.
             </p>
             <div className="hero-buttons flex flex-col sm:flex-row gap-4">
               <a href="#process" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5">Start Your Journey →</a>
@@ -333,56 +333,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── WHY WE'RE FREE ─── */}
+      {/* ─── ABOUT SCOLLARLY ─── */}
       <section id="why-free" className="bg-neutral-950 py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <span className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide uppercase mb-4 bg-blue-500/20 text-blue-300">Our Model</span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">Why Is This Free?</h2>
-            <p className="max-w-2xl mx-auto text-lg text-neutral-400">A fair question — and you deserve a straight answer.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <AnimDiv direction="left" className="space-y-6">
-              <p className="text-neutral-300 text-lg leading-relaxed">
-                Universities in India pay Scollarly a placement fee when a student we introduce successfully enrolls. <strong className="text-white">Students and their families pay us nothing — ever.</strong>
-              </p>
-              <p className="text-neutral-400 leading-relaxed">
-                This model means our interests are completely aligned with yours. We don't profit unless you succeed, get valid admissions and fulfill your goal. There is no incentive for us to give you bad advice or push you toward the wrong university.
-              </p>
-              <p className="text-neutral-400 leading-relaxed">
-                It's the same model used by international student recruitment agencies worldwide — the difference is we're transparent about it.
-              </p>
-              <div className="flex flex-wrap gap-3 pt-2">
-                {["100% Free for Students", "No Hidden Fees", "University-Verified Partner"].map((badge) => (
-                  <span key={badge} className="px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/25 rounded-full text-sm font-semibold">✓ {badge}</span>
-                ))}
-              </div>
-            </AnimDiv>
-            <AnimDiv direction="right" delay={200}>
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
-                <p className="text-neutral-500 text-sm font-semibold uppercase tracking-widest mb-6">How it works</p>
-                <div className="space-y-4">
-                  {[
-                    { icon: "👤", label: "You", desc: "Submit your inquiry — completely free" },
-                    { icon: "🤝", label: "Scollarly", desc: "Guides you, handles your application, supports your visa" },
-                    { icon: "🎓", label: "University", desc: "Accepts you, then pays Scollarly a referral fee" },
-                    { icon: "✅", label: "Result", desc: "You study in India. We get paid. Everyone wins." },
-                  ].map((item, i, arr) => (
-                    <div key={i}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center shrink-0 text-lg">{item.icon}</div>
-                        <div>
-                          <div className="font-semibold text-white text-sm">{item.label}</div>
-                          <div className="text-neutral-400 text-sm mt-0.5">{item.desc}</div>
-                        </div>
-                      </div>
-                      {i < arr.length - 1 && <div className="ml-5 mt-2 w-px h-4 bg-blue-600/30" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </AnimDiv>
-          </div>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-lg sm:text-xl text-neutral-300 leading-relaxed">
+            Scollarly is an agency that helps African students fulfill their quest to obtain the highest level of education in recognized Indian universities.
+          </p>
         </div>
       </section>
 
@@ -408,7 +364,7 @@ export default function Home() {
       <AdmissionTicker stats={admissionStats} />
 
       {/* ─── STUDENT STORIES ─── */}
-      <Section id="stories" badge="Student Stories" title="Students Just Like You — Already Living Their Dream" subtitle="These are real students we've helped. Read their stories before you decide.">
+      <Section id="stories" badge="Student Stories" title="Students Just Like You, Already Living Their Dream" subtitle="These are real students we've helped. Read their stories before you decide.">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial, i) => (
             <AnimDiv key={i} delay={i * 100} direction="up">
@@ -453,13 +409,13 @@ export default function Home() {
       </Section>
 
       {/* ─── WHY SCOLLARLY ─── */}
-      <Section id="why-us" badge="The Difference" title="Why Scollarly Beats Local Agencies" subtitle="Most education agents in Africa charge upfront fees and disappear. We built the opposite model — and the difference is not small.">
+      <Section id="why-us" badge="The Difference" title="Why Scollarly Beats Local Agencies" subtitle="Most education agents in Africa charge upfront fees and disappear. We built the opposite model, and the difference is not small.">
         <div className="grid sm:grid-cols-2 gap-6">
           {[
             {
               icon: "💸",
-              title: "You never pay us — not once",
-              desc: "Most local agents charge €200–€1,000 before you've even seen an offer letter. With Scollarly, the university pays us only after you successfully enroll. You hand over no money at any stage — not during, not after.",
+              title: "You never pay us, not once",
+              desc: "Most local agents charge €200–€1,000 before you've even seen an offer letter. With Scollarly, the university pays us only after you successfully enroll. You hand over no money at any stage, not during, not after.",
             },
             {
               icon: "✅",
@@ -469,12 +425,12 @@ export default function Home() {
             {
               icon: "🛣️",
               title: "We stay with you until you land",
-              desc: "Most agents help with the application and then vanish when visa time comes. We guide you through every step — from choosing your university to the airport pickup in India. One team, the whole journey.",
+              desc: "Most agents help with the application and then vanish when visa time comes. We guide you through every step, from choosing your university to the airport pickup in India. One team, the whole journey.",
             },
             {
               icon: "🔒",
               title: "Zero risk on your side",
-              desc: "If for any reason things don't work out, you've lost nothing — no money, no time you can't recover. The financial risk sits entirely with us, which is exactly why we work hard to make it work.",
+              desc: "If for any reason things don't work out, you've lost nothing, no money, no time you can't recover. The financial risk sits entirely with us, which is exactly why we work hard to make it work.",
             },
           ].map((item, i) => (
             <AnimDiv key={i} delay={i * 120} direction="up" className="flex gap-5 p-6 bg-white border border-neutral-200 rounded-2xl hover:border-blue-300 hover:shadow-lg transition-all duration-300">
@@ -488,7 +444,7 @@ export default function Home() {
         </div>
         <div className="mt-10 p-6 bg-blue-50 border border-blue-200 rounded-2xl">
           <p className="text-blue-900 text-sm leading-relaxed text-center max-w-2xl mx-auto">
-            <strong>The short version:</strong> We only make money when you succeed — so misleading you, rushing you into the wrong university, or cutting corners on your visa isn&apos;t just bad service, it costs us directly. Our interests and yours are one and the same.
+            <strong>The short version:</strong> We only make money when you succeed, so misleading you, rushing you into the wrong university, or cutting corners on your visa isn&apos;t just bad service, it costs us directly. Our interests and yours are one and the same.
           </p>
         </div>
       </Section>
@@ -516,11 +472,11 @@ export default function Home() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-bold text-neutral-900 mb-3">Our Mission</h3>
-                <p className="text-neutral-600 leading-relaxed">Scollarly started because too many African students were getting exploited by paid agents — or giving up entirely because they didn&apos;t know where to begin. We built the free alternative. Our goal is simple: if you want to study in India and you put in the effort, we make sure nothing stops you.</p>
+                <p className="text-neutral-600 leading-relaxed">Scollarly started because too many African students were getting exploited by paid agents, or giving up entirely because they didn&apos;t know where to begin. We built the free alternative. Our goal is simple: if you want to study in India and you put in the effort, we make sure nothing stops you.</p>
               </div>
               {[
                 { icon: "⭐", title: "Commitment", desc: "We don't just send you a university list and move on. We stay with you until you actually land in India." },
-                { icon: "👥", title: "Inclusivity", desc: "Francophone, Anglophone, East African, West African — every student gets the same full service, no exceptions." },
+                { icon: "👥", title: "Inclusivity", desc: "Francophone, Anglophone, East African, West African, every student gets the same full service, no exceptions." },
                 { icon: "✅", title: "Honesty", desc: "We tell you the truth, even when it's not what you want to hear. That's the only kind of advice that actually helps." },
               ].map((v, i) => (
                 <AnimDiv key={i} delay={400 + i * 150} className="flex items-start gap-4 p-4 rounded-xl hover:bg-blue-50/50 transition-colors">
@@ -557,7 +513,7 @@ export default function Home() {
       </Section>
 
       {/* ─── PROCESS ─── */}
-      <Section id="process" badge="How It Works" title="Your Journey in 6 Simple Steps" subtitle="From your first inquiry to arriving in India — we guide you through every stage of the process.">
+      <Section id="process" badge="How It Works" title="Your Journey in 6 Simple Steps" subtitle="From your first inquiry to arriving in India, we guide you through every stage of the process.">
         <div className="relative">
           <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-neutral-200 via-blue-400 to-neutral-200" />
           <div className="space-y-8 lg:space-y-12">
@@ -599,7 +555,7 @@ export default function Home() {
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-semibold text-white text-sm leading-tight mb-1 group-hover:text-blue-300 transition-colors">{u.name}</h3>
-                      <p className="text-neutral-500 text-xs">📍 {u.location}</p>
+                      <p className="text-neutral-400 text-xs">📍 {u.location}</p>
                       {u.naacGrade && <span className="inline-block mt-1 px-2 py-0.5 bg-green-500/15 text-green-400 text-xs font-bold rounded-full">NAAC {u.naacGrade}</span>}
                     </div>
                   </div>
@@ -609,13 +565,13 @@ export default function Home() {
                     {preview.map((p, j) => (
                       <div key={j} className="flex items-center justify-between text-xs">
                         <span className="text-neutral-400 truncate pr-2">{p.name}</span>
-                        <span className="text-neutral-600 shrink-0">{p.duration}</span>
+                        <span className="text-neutral-400 shrink-0">{p.duration}</span>
                       </div>
                     ))}
                     {expanded && rest.map((p, j) => (
                       <div key={`r-${j}`} className="flex items-center justify-between text-xs">
                         <span className="text-neutral-400 truncate pr-2">{p.name}</span>
-                        <span className="text-neutral-600 shrink-0">{p.duration}</span>
+                        <span className="text-neutral-400 shrink-0">{p.duration}</span>
                       </div>
                     ))}
                   </div>
@@ -631,7 +587,7 @@ export default function Home() {
                         {expanded ? "Hide Programs ▲" : `View All ${u.programs.length} Programs ▼`}
                       </button>
                     )}
-                    <Link href={`/universities/${u.slug}`} className="text-xs text-neutral-500 hover:text-blue-300 transition-colors ml-auto">
+                    <Link href={`/universities/${u.slug}`} className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors ml-auto">
                       Full Profile →
                     </Link>
                   </div>
@@ -689,10 +645,10 @@ export default function Home() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
           <AnimDiv direction="left">
             <div className="space-y-6 mb-10">
-              <p className="text-neutral-600 leading-relaxed">Got questions? Fill in the form and we&apos;ll follow up on WhatsApp within 24 hours. Or skip the form entirely and message us directly — we respond the same day.</p>
+              <p className="text-neutral-600 leading-relaxed">Got questions? Fill in the form and we&apos;ll follow up on WhatsApp within 24 hours. Or skip the form entirely and message us directly, we respond the same day.</p>
               <div className="space-y-4">
                 {[
-                  { icon: "📞", label: "Phone / WhatsApp", value: "+237 6 51 23 23 01", href: WHATSAPP_BASE_URL },
+                  { icon: "📞", label: "Phone / WhatsApp", value: "+91 98157 25968", href: WHATSAPP_BASE_URL },
                   { icon: "📧", label: "Email", value: "info@scollarly.com", href: "mailto:info@scollarly.com" },
                   { icon: "🌐", label: "Website", value: "scollarly.vercel.app", href: "https://scollarly.vercel.app" },
                   { icon: "📍", label: "Office", value: "Mohali, India", href: "#" },
@@ -731,7 +687,7 @@ export default function Home() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-neutral-700 mb-1.5 block">Phone / WhatsApp</label>
-                    <input name="phone" type="tel" placeholder="+237 6XX XXX XXX" className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 transition-all" />
+                    <input name="phone" type="tel" placeholder="+91 98XXX XXXXX" className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 transition-all" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-neutral-700 mb-1.5 block">Country</label>
@@ -784,9 +740,9 @@ export default function Home() {
         <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl animate-morph-blob" style={{ animationDelay: "2s" }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center relative z-10">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">A Journey of a Thousand Miles Begins With One Step</h2>
-          <p className="text-neutral-400 text-lg mb-8 max-w-2xl mx-auto">Don&apos;t wait — your dream education in India is closer than you think. Let Scollarly guide you there.</p>
+          <p className="text-neutral-400 text-lg mb-8 max-w-2xl mx-auto">Don&apos;t wait, your dream education in India is closer than you think. Let Scollarly guide you there.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#contact" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5">Apply Now — It&apos;s Free →</a>
+            <a href="#contact" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5">Apply Now, It&apos;s Free →</a>
             <a href={WHATSAPP_BASE_URL} className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-semibold rounded-xl bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 transition-all duration-300">📞 WhatsApp Us</a>
           </div>
         </div>
@@ -801,7 +757,7 @@ export default function Home() {
                 <img src={FOOTER_LOGO} alt="Scollarly" className="w-24 h-24 object-contain" />
                 <img src={FOOTER_TEXT} alt="Scollarly" className="h-12 object-contain" />
               </div>
-              <p className="text-sm text-neutral-500 leading-relaxed mb-4">Empowering African students to achieve their dreams through world-class education in India.</p>
+              <p className="text-sm text-neutral-400 leading-relaxed mb-4">Empowering African students to achieve their dreams through world-class education in India.</p>
               <p className="text-sm font-semibold text-blue-400 tracking-wide text-shimmer">LIVE • YOUR • DREAM</p>
             </div>
             <div>
@@ -820,18 +776,18 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4 text-sm">Contact Us</h3>
               <ul className="space-y-3">
-                <li><a href={WHATSAPP_BASE_URL} className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📞 +237 6 51 23 23 01</a></li>
+                <li><a href={WHATSAPP_BASE_URL} className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📞 +91 98157 25968</a></li>
                 <li><a href="mailto:info@scollarly.com" className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📧 info@scollarly.com</a></li>
                 <li><span className="flex items-center gap-2 text-sm">📍 Mohali, India</span></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-neutral-800 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-neutral-600">© {new Date().getFullYear()} Scollarly. All rights reserved.</p>
-            <div className="flex items-center gap-4 text-xs text-neutral-600">
-              <Link href="/privacy-policy" className="hover:text-neutral-400 transition-colors">Privacy Policy</Link>
+            <p className="text-xs text-neutral-400">© {new Date().getFullYear()} Scollarly. All rights reserved.</p>
+            <div className="flex items-center gap-4 text-xs text-neutral-400">
+              <Link href="/privacy-policy" className="hover:text-blue-400 transition-colors">Privacy Policy</Link>
               <span>·</span>
-              <Link href="/terms-of-service" className="hover:text-neutral-400 transition-colors">Terms of Service</Link>
+              <Link href="/terms-of-service" className="hover:text-blue-400 transition-colors">Terms of Service</Link>
               <span>·</span>
               <span>Transparent firm. No cash accepted from clients.</span>
             </div>

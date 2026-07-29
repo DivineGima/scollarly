@@ -16,7 +16,7 @@ export function OfferLetterProof({ imageSrc, universityName }: OfferLetterProofP
       <div className="relative w-full aspect-[3/4] bg-neutral-100">
         <Image
           src={imageSrc}
-          alt={`Offer letter for a ${universityName} student — personal details blurred for privacy`}
+          alt={`Offer letter for a ${universityName} student, personal details blurred for privacy`}
           fill
           className="object-contain"
           loading="lazy"

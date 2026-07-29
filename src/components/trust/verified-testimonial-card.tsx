@@ -77,7 +77,7 @@ export function VerifiedTestimonialCard({
             {t('studying_at', { university, year })}
           </div>
           {verified && (
-            <Badge variant="outline" className="text-green-400 border-green-400 text-xs">
+            <Badge variant="outline" className="text-green-700 border-green-600 text-xs">
               {t('verified_badge')}
             </Badge>
           )}

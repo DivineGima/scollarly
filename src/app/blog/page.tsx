@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getAllPosts } from "@/lib/blog";
 
 export const metadata: Metadata = {
-  title: "Blog — Scollarly | Study in India from Africa",
+  title: "Blog, Scollarly | Study in India from Africa",
   description: "Guides, tips, and stories for African students planning to study in India. University reviews, visa guides, and student experiences.",
 };
 
@@ -20,7 +20,7 @@ export default function BlogPage() {
         <div className="mb-14">
           <span className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 mb-4">Our Blog</span>
           <h1 className="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Guides for Students Like You</h1>
-          <p className="text-lg text-neutral-600 max-w-2xl">Everything you need to know about studying in India — from choosing a university to getting your visa and settling in.</p>
+          <p className="text-lg text-neutral-600 max-w-2xl">Everything you need to know about studying in India, from choosing a university to getting your visa and settling in.</p>
         </div>
 
         {posts.length === 0 ? (
@@ -48,7 +48,7 @@ export default function BlogPage() {
 
         <div className="mt-20 bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center">
           <h3 className="text-xl font-bold text-neutral-900 mb-2">Ready to start your journey?</h3>
-          <p className="text-neutral-600 mb-6">Our counsellors are ready to help — for free.</p>
+          <p className="text-neutral-600 mb-6">Our counsellors are ready to help, for free.</p>
           <Link href="/#contact" className="inline-flex items-center justify-center gap-2 px-8 h-12 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 hover:-translate-y-0.5">
             Get Free Guidance →
           </Link>

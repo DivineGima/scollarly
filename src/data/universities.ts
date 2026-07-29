@@ -164,7 +164,7 @@ export const universities: University[] = [
     website: 'https://www.jainuniversity.ac.in',
     naacGrade: 'A',
     overview:
-      "Jain University is a NAAC A-accredited deemed university in Bangalore — India's Silicon Valley. Its location gives students direct access to the country's largest tech ecosystem and a thriving startup culture, making it ideal for students targeting careers in technology and business.",
+      "Jain University is a NAAC A-accredited deemed university in Bangalore, India's Silicon Valley. Its location gives students direct access to the country's largest tech ecosystem and a thriving startup culture, making it ideal for students targeting careers in technology and business.",
     programs: [
       { name: 'B.Tech Computer Science & Engineering', duration: '4 years' },
       { name: 'B.Tech Electronics & Electrical Engineering', duration: '4 years' },

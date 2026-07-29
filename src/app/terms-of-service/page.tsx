@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Scollarly",
+  title: "Terms of Service, Scollarly",
   description: "The terms governing your use of Scollarly's free education consulting services.",
 };
 
@@ -20,7 +20,7 @@ export default function TermsOfService() {
         <div className="space-y-10 text-neutral-700 leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">Our service</h2>
-            <p>Scollarly provides free education consulting services to African students who wish to study at partner universities in India. "Free" means that <strong>students and their families pay Scollarly nothing</strong> — no registration fees, no consultation fees, no placement fees.</p>
+            <p>Scollarly provides free education consulting services to African students who wish to study at partner universities in India. "Free" means that <strong>students and their families pay Scollarly nothing</strong>, no registration fees, no consultation fees, no placement fees.</p>
             <p className="mt-3">Scollarly is compensated directly by partner universities when a student we introduce successfully enrolls. This model aligns our interests with yours: we succeed only when you do.</p>
           </section>
 
@@ -39,9 +39,9 @@ export default function TermsOfService() {
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">No guarantee of admission or visa</h2>
             <p>While Scollarly does everything in its power to support your application, we cannot guarantee:</p>
             <ul className="mt-3 list-disc list-inside space-y-1.5 pl-2">
-              <li>University admission — final admission decisions rest solely with the university</li>
-              <li>Visa approval — visa decisions are made by the Indian Embassy or High Commission in your country</li>
-              <li>Scholarship availability — scholarships depend on the university's current offers and your eligibility</li>
+              <li>University admission, final admission decisions rest solely with the university</li>
+              <li>Visa approval, visa decisions are made by the Indian Embassy or High Commission in your country</li>
+              <li>Scholarship availability, scholarships depend on the university's current offers and your eligibility</li>
             </ul>
             <p className="mt-4">Scollarly is not liable for rejection of any university application or visa application, provided we have fulfilled our advisory role in good faith.</p>
           </section>
@@ -53,15 +53,15 @@ export default function TermsOfService() {
               <li>Provide accurate, complete, and truthful information in all applications and documents</li>
               <li>Promptly provide any additional documents requested by Scollarly or the university</li>
               <li>Notify Scollarly of any changes to your academic results, personal circumstances, or contact details</li>
-              <li>Pay all university fees directly to the university as instructed — Scollarly never handles student money</li>
+              <li>Pay all university fees directly to the university as instructed, Scollarly never handles student money</li>
             </ul>
             <p className="mt-4"><strong>Document fraud is a criminal offense.</strong> Submitting false academic transcripts or other fraudulent documents will result in immediate termination of our services and may be reported to relevant authorities.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">University fees</h2>
-            <p>Universities charge their own tuition fees, registration fees, and accommodation fees. These fees are paid directly to the university — not to Scollarly. Scollarly will always clearly communicate what fees are due to the university and when, so there are no surprises.</p>
-            <p className="mt-3">If anyone claiming to represent Scollarly asks you to pay money into a personal account, <strong>do not pay and contact us immediately</strong> at <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> or WhatsApp <a href="https://wa.me/237651232301" className="text-blue-600 hover:underline">+237 651 232 301</a>.</p>
+            <p>Universities charge their own tuition fees, registration fees, and accommodation fees. These fees are paid directly to the university, not to Scollarly. Scollarly will always clearly communicate what fees are due to the university and when, so there are no surprises.</p>
+            <p className="mt-3">If anyone claiming to represent Scollarly asks you to pay money into a personal account, <strong>do not pay and contact us immediately</strong> at <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> or WhatsApp <a href="https://wa.me/919815725968" className="text-blue-600 hover:underline">+91 98157 25968</a>.</p>
           </section>
 
           <section>
@@ -71,12 +71,12 @@ export default function TermsOfService() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">Governing law</h2>
-            <p>These terms are governed by the laws of India. Any disputes arising shall first be addressed through good-faith negotiation. Scollarly's liability is limited to the value of the services provided, which is zero — as our services are free.</p>
+            <p>These terms are governed by the laws of India. Any disputes arising shall first be addressed through good-faith negotiation. Scollarly's liability is limited to the value of the services provided, which is zero, as our services are free.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-4">Contact</h2>
-            <p>Questions? Email <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> or WhatsApp us at <a href="https://wa.me/237651232301" className="text-blue-600 hover:underline">+237 651 232 301</a>.</p>
+            <p>Questions? Email <a href="mailto:info@scollarly.com" className="text-blue-600 hover:underline">info@scollarly.com</a> or WhatsApp us at <a href="https://wa.me/919815725968" className="text-blue-600 hover:underline">+91 98157 25968</a>.</p>
           </section>
         </div>
 

@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = getPostBySlug(slug);
   if (!post) return {};
   return {
-    title: `${post.title} — Scollarly Blog`,
+    title: `${post.title}, Scollarly Blog`,
     description: post.excerpt,
   };
 }
@@ -46,7 +46,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
 
         <div className="mt-16 bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center">
           <h3 className="text-xl font-bold text-neutral-900 mb-2">Ready to apply?</h3>
-          <p className="text-neutral-600 mb-6">Scollarly guides you from application to landing in India — 100% free.</p>
+          <p className="text-neutral-600 mb-6">Scollarly guides you from application to landing in India, 100% free.</p>
           <Link href="/#contact" className="inline-flex items-center justify-center gap-2 px-8 h-12 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 hover:-translate-y-0.5">
             Start Your Application →
           </Link>

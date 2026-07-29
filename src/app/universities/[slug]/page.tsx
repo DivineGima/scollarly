@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const uni = universities.find((u) => u.slug === slug);
   if (!uni) return {};
   return {
-    title: `${uni.name} — Study via Scollarly`,
-    description: uni.overview ?? `${uni.name} in ${uni.location} — programs, fees, and application through Scollarly.`,
+    title: `${uni.name}, Study via Scollarly`,
+    description: uni.overview ?? `${uni.name} in ${uni.location}, programs, fees, and application through Scollarly.`,
   };
 }
 
@@ -87,9 +87,9 @@ export default async function UniversityPage({ params }: { params: Promise<{ slu
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Why Apply Through Scollarly?</h2>
               <ul className="space-y-3">
                 {[
-                  "Scollarly has an established relationship with this university — your application gets reviewed faster",
+                  "Scollarly has an established relationship with this university, your application gets reviewed faster",
                   "We prepare your documents to meet their exact requirements, reducing the chance of rejection",
-                  "Our service is 100% free — the university pays us when you enroll, not you",
+                  "Our service is 100% free, the university pays us when you enroll, not you",
                   "We stay with you from application to airport arrival",
                 ].map((point, i) => (
                   <li key={i} className="flex items-start gap-3 text-neutral-700">
@@ -122,7 +122,7 @@ export default async function UniversityPage({ params }: { params: Promise<{ slu
             {/* CTA card */}
             <div className="bg-neutral-950 text-white rounded-2xl p-6 sticky top-6">
               <h3 className="text-lg font-bold mb-2">Apply to {uni.name}</h3>
-              <p className="text-neutral-400 text-sm mb-6 leading-relaxed">Our team will review your academic results and guide you through the full application process — free.</p>
+              <p className="text-neutral-400 text-sm mb-6 leading-relaxed">Our team will review your academic results and guide you through the full application process, free.</p>
               <Link href="/#contact" className="block w-full text-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 hover:-translate-y-0.5">
                 Apply via Scollarly →
               </Link>

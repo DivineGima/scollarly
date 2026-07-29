@@ -67,9 +67,6 @@ export function StudentJourneyTimeline({ journey }: StudentJourneyTimelineProps)
                 className="flex-1 pr-3 last:pr-0"
                 style={{ maxWidth: `${100 / journey.steps.length}%` }}
               >
-                <div className="text-xs text-blue-600 font-semibold mb-0.5">
-                  {t('timeline_days_label', { day: step.day })}
-                </div>
                 <div className="font-semibold text-neutral-900 text-xs leading-snug mb-1">
                   {step.label}
                 </div>
@@ -99,9 +96,6 @@ export function StudentJourneyTimeline({ journey }: StudentJourneyTimelineProps)
                 )}
               </div>
               <div className="pb-6">
-                <div className="text-xs text-blue-600 font-semibold mb-0.5">
-                  {t('timeline_days_label', { day: step.day })}
-                </div>
                 <div className="font-semibold text-neutral-900 text-sm mb-1">
                   {step.label}
                 </div>
