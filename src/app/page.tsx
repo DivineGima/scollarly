@@ -10,6 +10,7 @@ import { AdmissionTicker } from "@/components/trust/admission-ticker";
 import { StudentJourneyTimeline } from "@/components/trust/student-journey-timeline";
 import { OfferLetterProof } from "@/components/trust/offer-letter-proof";
 import { VerifiedTestimonialCard } from "@/components/trust/verified-testimonial-card";
+import { ProductTour } from "@/components/ui/product-tour";
 
 /* ─── Animated Counter Hook ─── */
 function useCounter(end: number, duration = 2000, isActive = false) {
@@ -317,7 +318,7 @@ export default function Home() {
               Live Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-white hero-gradient-text">Dream</span>
             </h1>
             <p className="hero-subtitle text-lg sm:text-xl text-neutral-300 mb-8 leading-relaxed max-w-lg">
-              We connect African students with real universities in India, and we only get paid when you actually land there. Free guidance, real scholarships, zero upfront costs.
+              We connect African students with indian universites, making sure they obtain quality education and satisfy thier quest
             </p>
             <div className="hero-buttons flex flex-col sm:flex-row gap-4">
               <a href="#process" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5">Start Your Journey →</a>
@@ -776,7 +777,7 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4 text-sm">Contact Us</h3>
               <ul className="space-y-3">
-                <li><a href={WHATSAPP_BASE_URL} className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📞 +91 98157 25968</a></li>
+ 
                 <li><a href="mailto:info@scollarly.com" className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📧 info@scollarly.com</a></li>
                 <li><span className="flex items-center gap-2 text-sm">📍 Mohali, India</span></li>
               </ul>
@@ -794,6 +795,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <ProductTour />
     </div>
   );
 }

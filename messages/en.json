@@ -55,5 +55,29 @@
     "instagram_title": "Follow our student community",
     "instagram_handle": "@scollarly",
     "instagram_cta": "Follow us on Instagram"
+  },
+  "ProductTour": {
+    "trigger_button": "Take the Tour",
+    "step_label": "Step {current} of {total}",
+    "prev_button": "Back",
+    "next_button": "Next",
+    "done_button": "Got it",
+    "skip_button": "Skip tour",
+    "close_aria": "Close tour",
+    "step_1_title": "Welcome to Scollarly",
+    "step_1_body": "We'll show you exactly how to go from browsing to landing at an Indian university in a few quick steps.",
+    "step_2_title": "Your 6-step journey",
+    "step_2_body": "This is the full path from first inquiry to arriving in India. Every student who works with us follows these steps.",
+    "step_3_title": "Explore universities",
+    "step_3_body": "Browse our partner universities, compare programs, and click any card to see fees, campus life, and official resources.",
+    "step_4_title": "What we help with",
+    "step_4_body": "From application prep to visa support and arrival — see everything included in our free guidance.",
+    "step_5_title": "Real student outcomes",
+    "step_5_body": "These are verified stories from students who already made the journey — proof this actually works.",
+    "step_6_title": "Questions? We've got answers",
+    "step_6_body": "Check the FAQ for quick answers about costs, timelines, and eligibility.",
+    "step_7_title": "Start your journey",
+    "step_7_body": "Ready? Fill in the form or message us on WhatsApp — our team replies the same day.",
+    "restart_hint": "Need a refresher? Click \"Take the Tour\" again anytime."
   }
 }
