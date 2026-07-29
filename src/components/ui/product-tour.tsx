@@ -42,12 +42,13 @@ export function ProductTour() {
     if (!target) return;
 
     target.scrollIntoView({ behavior: "smooth", block: "start" });
-    measure();
+    const raf = requestAnimationFrame(measure);
 
     const timeout = setTimeout(measure, 450);
     window.addEventListener("scroll", measure, { passive: true });
     window.addEventListener("resize", measure);
     return () => {
+      cancelAnimationFrame(raf);
       clearTimeout(timeout);
       window.removeEventListener("scroll", measure);
       window.removeEventListener("resize", measure);
