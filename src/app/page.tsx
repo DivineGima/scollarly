@@ -280,13 +280,13 @@ export default function Home() {
                 Get Started
               </a>
             </div>
-            <button className="md:hidden p-2 rounded-lg hover:bg-neutral-100" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
+            <button className="md:hidden p-2 rounded-lg hover:bg-neutral-100 text-neutral-900 text-2xl leading-none" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
               {mobileOpen ? "✕" : "☰"}
             </button>
           </div>
         </div>
         {mobileOpen && (
-          <div className="md:hidden bg-white border-t border-neutral-100 shadow-lg p-4 space-y-1">
+          <div className="md:hidden w-full bg-white border-t border-neutral-100 shadow-lg p-4 space-y-1">
             {navLinks.map((l) => (
               <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="block px-4 py-3 text-neutral-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium">
                 {l.label}
