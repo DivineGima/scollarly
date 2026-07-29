@@ -57,3 +57,7 @@ server.log
 /db/
 /upload/
 /download/
+
+# Proof assets — only pre-blurred WebP may be committed (see design.md Section 6.3)
+/public/proof/*.jpg
+/public/proof/*.png

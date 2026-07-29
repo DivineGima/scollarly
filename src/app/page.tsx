@@ -3,6 +3,13 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { universities } from "@/data/universities";
+import { admissionStats, studentJourneys, proofAssets } from "@/data/trust-data";
+import { WHATSAPP_BASE_URL } from "@/lib/constants";
+import { UniversityWhatsAppCTA } from "@/components/ui/university-whatsapp-cta";
+import { AdmissionTicker } from "@/components/trust/admission-ticker";
+import { StudentJourneyTimeline } from "@/components/trust/student-journey-timeline";
+import { OfferLetterProof } from "@/components/trust/offer-letter-proof";
+import { VerifiedTestimonialCard } from "@/components/trust/verified-testimonial-card";
 
 /* ─── Animated Counter Hook ─── */
 function useCounter(end: number, duration = 2000, isActive = false) {
@@ -92,61 +99,56 @@ const faqs = [
   { q: "How long does the full process take?", a: "Typically 3-5 months from first contact to arriving in India. Getting an offer letter takes 4-8 weeks. Visa processing after admission confirmation takes 6-12 weeks. We'll give you a realistic timeline based on your specific situation." },
 ];
 
-// Mock testimonials — replace with real student stories before paid marketing
+// Testimonials — field-remapped for VerifiedTestimonialCard (see design.md Section 6.3)
 const testimonials = [
   {
     name: "Jean-Baptiste K.",
-    country: "🇨🇲",
-    countryName: "Cameroon",
-    program: "B.Tech Computer Science",
+    countryFlag: "🇨🇲",
+    country: "Cameroon",
+    course: "B.Tech Computer Science",
     university: "Chandigarh University",
-    year: "2024",
-    initials: "JB",
-    color: "bg-blue-600",
+    year: 2024,
+    verified: true,
     quote: "Got my offer letter in 3 weeks. I applied in January and was on my way to India by June. The process was faster than I expected.",
   },
   {
     name: "Aissatou D.",
-    country: "🇬🇳",
-    countryName: "Guinea",
-    program: "BBA",
+    countryFlag: "🇬🇳",
+    country: "Guinea",
+    course: "BBA",
     university: "Jain University",
-    year: "2024",
-    initials: "AD",
-    color: "bg-purple-600",
+    year: 2024,
+    verified: true,
     quote: "I tried two other agencies first. Both asked me for money upfront. Scollarly asked me for nothing and did more than the others promised to do.",
   },
   {
     name: "Kofi A.",
-    country: "🇬🇭",
-    countryName: "Ghana",
-    program: "B.Tech Mechanical Engineering",
+    countryFlag: "🇬🇭",
+    country: "Ghana",
+    course: "B.Tech Mechanical Engineering",
     university: "Kalinga University",
-    year: "2023",
-    initials: "KA",
-    color: "bg-green-600",
+    year: 2023,
+    verified: true,
     quote: "My visa was my biggest fear — everyone said it was complicated. They told me exactly what documents to prepare. I was approved on the first attempt.",
   },
   {
     name: "Mariam C.",
-    country: "🇨🇮",
-    countryName: "Ivory Coast",
-    program: "MBA",
+    countryFlag: "🇨🇮",
+    country: "Ivory Coast",
+    course: "MBA",
     university: "CT University",
-    year: "2025",
-    initials: "MC",
-    color: "bg-orange-600",
+    year: 2025,
+    verified: true,
     quote: "From my first WhatsApp message to landing in India: 4 months. And that includes the time I spent deciding which university to choose.",
   },
   {
     name: "Bachir N.",
-    country: "🇸🇳",
-    countryName: "Senegal",
-    program: "B.Pharm",
+    countryFlag: "🇸🇳",
+    country: "Senegal",
+    course: "B.Pharm",
     university: "Rayat-Bahra University",
-    year: "2023",
-    initials: "BN",
-    color: "bg-teal-600",
+    year: 2023,
+    verified: true,
     quote: "I'm now in my second year. There's a big African community on campus — I found Senegalese students in my faculty within the first week.",
   },
 ];
@@ -154,15 +156,15 @@ const testimonials = [
 // REPLACE with real team data before launch
 const team = [
   {
-    initials: "SO",
-    name: "Samuel O.",
+    initials: "AT",
+    name: "Asher T. Runesu",
     role: "Co-Founder & Student Relations",
     bio: "Based in Mohali, India. Has personally guided 60+ students from Cameroon and Nigeria through the full application and visa process since 2022.",
     color: "bg-blue-600",
   },
   {
-    initials: "AF",
-    name: "Aurelie F.",
+    initials: "DG",
+    name: "Divine G. Folabit",
     role: "Co-Founder & University Partnerships",
     bio: "Based in Douala, Cameroon. Manages our direct relationships with all 9 partner university admission offices and scholarship programs.",
     color: "bg-indigo-600",
@@ -403,33 +405,25 @@ export default function Home() {
         </div>
       </div>
 
+      <AdmissionTicker stats={admissionStats} />
+
       {/* ─── STUDENT STORIES ─── */}
       <Section id="stories" badge="Student Stories" title="Students Just Like You — Already Living Their Dream" subtitle="These are real students we've helped. Read their stories before you decide.">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.map((t, i) => (
-            <AnimDiv key={i} delay={i * 100} direction="up" className="bg-white border border-neutral-200 rounded-2xl p-6 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex flex-col">
-              <div className="flex items-center gap-4 mb-5">
-                <div className={`w-12 h-12 ${t.color} rounded-full flex items-center justify-center text-white font-bold text-base shrink-0`} aria-label={`${t.name} avatar`}>
-                  {t.initials}
-                </div>
-                <div>
-                  <div className="font-semibold text-neutral-900">{t.name}</div>
-                  <div className="text-xs text-neutral-500">{t.country} {t.countryName}</div>
-                </div>
-              </div>
-              <blockquote className="text-neutral-700 text-sm leading-relaxed flex-1 mb-5 italic">&ldquo;{t.quote}&rdquo;</blockquote>
-              <div className="pt-4 border-t border-neutral-100">
-                <div className="text-xs text-neutral-500">{t.program}</div>
-                <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                  Now studying at {t.university} · {t.year}
-                </div>
-              </div>
+          {testimonials.map((testimonial, i) => (
+            <AnimDiv key={i} delay={i * 100} direction="up">
+              <VerifiedTestimonialCard {...testimonial} />
             </AnimDiv>
           ))}
+          <AnimDiv delay={500} direction="up">
+            <OfferLetterProof
+              imageSrc={proofAssets.offerLetterSample}
+              universityName="Chandigarh University"
+            />
+          </AnimDiv>
         </div>
         <div className="mt-10 text-center">
-          <p className="text-neutral-500 text-sm">Want to speak to a current student directly? <a href="https://wa.me/237651232301" className="text-blue-600 font-semibold hover:underline">WhatsApp us →</a></p>
+          <p className="text-neutral-500 text-sm">Want to speak to a current student directly? <a href={WHATSAPP_BASE_URL} className="text-blue-600 font-semibold hover:underline">WhatsApp us →</a></p>
         </div>
       </Section>
 
@@ -452,7 +446,7 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-10 text-center">
-          <a href="https://wa.me/237651232301" className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-semibold text-sm transition-colors">
+          <a href={WHATSAPP_BASE_URL} className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-semibold text-sm transition-colors">
             📱 Message our team directly on WhatsApp →
           </a>
         </div>
@@ -498,6 +492,8 @@ export default function Home() {
           </p>
         </div>
       </Section>
+
+      <StudentJourneyTimeline journey={studentJourneys[0]} />
 
       {/* ─── ABOUT ─── */}
       <Section id="about" badge="About Us" title="Who We Are" subtitle="We've helped hundreds of students from across Africa make it to India. Here's who we are and why we started.">
@@ -650,6 +646,7 @@ export default function Home() {
         <AnimDiv delay={800} direction="up" className="mt-12 rounded-2xl overflow-hidden shadow-2xl">
           <img src="/scollarly/images/india-campus.png" alt="Indian campus" className="w-full h-auto object-cover" />
         </AnimDiv>
+        <UniversityWhatsAppCTA variant="homepage" />
       </Section>
 
       {/* ─── VISA ─── */}
@@ -695,7 +692,7 @@ export default function Home() {
               <p className="text-neutral-600 leading-relaxed">Got questions? Fill in the form and we&apos;ll follow up on WhatsApp within 24 hours. Or skip the form entirely and message us directly — we respond the same day.</p>
               <div className="space-y-4">
                 {[
-                  { icon: "📞", label: "Phone / WhatsApp", value: "+237 6 51 23 23 01", href: "https://wa.me/237651232301" },
+                  { icon: "📞", label: "Phone / WhatsApp", value: "+237 6 51 23 23 01", href: WHATSAPP_BASE_URL },
                   { icon: "📧", label: "Email", value: "info@scollarly.com", href: "mailto:info@scollarly.com" },
                   { icon: "🌐", label: "Website", value: "scollarly.vercel.app", href: "https://scollarly.vercel.app" },
                   { icon: "📍", label: "Office", value: "Mohali, India", href: "#" },
@@ -772,7 +769,7 @@ export default function Home() {
                     : "Send Message"}
                 </button>
 
-                <a href="https://wa.me/237651232301" className="flex items-center justify-center gap-2 w-full h-10 text-sm font-medium text-neutral-600 hover:text-green-600 transition-colors">
+                <a href={WHATSAPP_BASE_URL} className="flex items-center justify-center gap-2 w-full h-10 text-sm font-medium text-neutral-600 hover:text-green-600 transition-colors">
                   Or <span className="font-semibold text-green-600">chat on WhatsApp →</span>
                 </a>
               </form>
@@ -790,7 +787,7 @@ export default function Home() {
           <p className="text-neutral-400 text-lg mb-8 max-w-2xl mx-auto">Don&apos;t wait — your dream education in India is closer than you think. Let Scollarly guide you there.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="#contact" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5">Apply Now — It&apos;s Free →</a>
-            <a href="https://wa.me/237651232301" className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-semibold rounded-xl bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 transition-all duration-300">📞 WhatsApp Us</a>
+            <a href={WHATSAPP_BASE_URL} className="inline-flex items-center justify-center gap-2 px-8 h-14 text-base font-semibold rounded-xl bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 transition-all duration-300">📞 WhatsApp Us</a>
           </div>
         </div>
       </section>
@@ -823,7 +820,7 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4 text-sm">Contact Us</h3>
               <ul className="space-y-3">
-                <li><a href="https://wa.me/237651232301" className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📞 +237 6 51 23 23 01</a></li>
+                <li><a href={WHATSAPP_BASE_URL} className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📞 +237 6 51 23 23 01</a></li>
                 <li><a href="mailto:info@scollarly.com" className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors">📧 info@scollarly.com</a></li>
                 <li><span className="flex items-center gap-2 text-sm">📍 Mohali, India</span></li>
               </ul>

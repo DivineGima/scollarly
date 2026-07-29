@@ -1,0 +1,59 @@
+{
+  "Nav": {
+    "universities": "Universities",
+    "blog": "Blog",
+    "contact": "Contact"
+  },
+  "UniversityPage": {
+    "fee_structure_title": "Fee Structure",
+    "fee_tuition_label": "Tuition Fee",
+    "fee_hostel_label": "Hostel Fee",
+    "fee_registration_label": "Registration Fee (one-time)",
+    "fee_total_label": "Estimated Total",
+    "fee_scholarship_label": "Scholarship Available",
+    "fee_per_year": "per year",
+    "fee_for_full_course": "for full course duration",
+    "fee_disclaimer": "Fees shown are estimates for reference. International student fees may differ. Contact Scollarly for your personalised fee breakdown in USD.",
+    "fee_data_unavailable_title": "Fee information coming soon",
+    "fee_data_unavailable_body": "Contact us for a personalised fee breakdown in USD.",
+    "fee_data_unavailable_button": "Get Fee Details on WhatsApp",
+    "campus_experience_title": "Explore the Campus",
+    "campus_watch_button": "Watch Official Campus Tour",
+    "campus_explore_360_button": "Explore 360° Campus",
+    "campus_photos_request_title": "Campus Photos Available on Request",
+    "campus_photos_request_body": "We are preparing a virtual tour for this campus.",
+    "campus_photos_request_button": "Request Campus Photos",
+    "campus_photos_request_message": "Hi, can I get campus photos for {universityName}?",
+    "campus_youtube_fallback_link": "🎬 Watch {universityName} campus tour on YouTube →",
+    "official_resources_title": "Official Resources",
+    "download_prospectus_button": "Download Official Prospectus",
+    "request_course_details_button": "Request Course Details",
+    "request_course_details_message": "Hi, I'd like to receive detailed course information for {universityName}"
+  },
+  "WhatsAppCTA": {
+    "title": "Looking for a university not listed here?",
+    "body": "We work with a wider network of Indian institutions. Tell us your course and we'll find the right fit for you.",
+    "button": "Chat with us on WhatsApp →",
+    "default_message": "Hi, I'm looking for a university not listed on your site. Can you help?",
+    "sidebar_message": "Hi, I'd like to apply to {universityName} via Scollarly. Can you help?"
+  },
+  "Trust": {
+    "ticker_text": "🎓 {count} students admitted to Indian universities in {year}",
+    "ticker_subtext": "Across {countries}",
+    "timeline_title": "Students Journey",
+    "timeline_subtitle": "From first WhatsApp message to arriving in India",
+    "timeline_cta": "Your journey starts here",
+    "timeline_days_label": "Day {day}",
+    "results_badge": "Results",
+    "proof_offer_letter": "📄 Offer Letter",
+    "proof_visa": "🛂 Visa",
+    "proof_arrival": "✈️ Arrival",
+    "verified_badge": "✓ Verified Admission",
+    "studying_at": "Now studying at {university} · {year}",
+    "offer_letter_caption": "Real offer letter — personal details blurred for privacy",
+    "offer_letter_badge": "Verified Offer Letter",
+    "instagram_title": "Follow our student community",
+    "instagram_handle": "@scollarly",
+    "instagram_cta": "Follow us on Instagram"
+  }
+}

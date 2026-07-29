@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '../../messages/en.json'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,8 +53,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        {/* When French is activated: move this to app/[locale]/layout.tsx, read locale from params,
+            and dynamically import messages/${locale}.json so client components get the right strings. */}
+        <NextIntlClientProvider locale="en" messages={enMessages}>
+          {children}
+          <Toaster />
+        </NextIntlClientProvider>
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
             <Script

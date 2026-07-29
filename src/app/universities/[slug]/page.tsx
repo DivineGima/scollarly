@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { universities } from "@/data/universities";
+import { FeeStructureSection } from "@/components/university/fee-structure";
+import { CampusExperience } from "@/components/university/campus-experience";
+import { OfficialResources } from "@/components/university/official-resources";
+import { UniversityWhatsAppCTA } from "@/components/ui/university-whatsapp-cta";
+import { WHATSAPP_BASE_URL } from "@/lib/constants";
 
 export async function generateStaticParams() {
   return universities.map((u) => ({ slug: u.slug }));
@@ -94,6 +99,22 @@ export default async function UniversityPage({ params }: { params: Promise<{ slu
                 ))}
               </ul>
             </section>
+
+            {/* ── NEW SECTIONS ── */}
+            <FeeStructureSection
+              feeStructure={uni.feeStructure}
+              universityName={uni.name}
+            />
+
+            <CampusExperience
+              campusExperience={uni.campusExperience}
+              universityName={uni.name}
+            />
+
+            <OfficialResources
+              officialResources={uni.officialResources}
+              universityName={uni.name}
+            />
           </div>
 
           {/* Sidebar */}
@@ -105,7 +126,7 @@ export default async function UniversityPage({ params }: { params: Promise<{ slu
               <Link href="/#contact" className="block w-full text-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 hover:-translate-y-0.5">
                 Apply via Scollarly →
               </Link>
-              <a href="https://wa.me/237651232301" className="block w-full text-center px-6 py-3 mt-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl border border-white/20 transition-all duration-300 text-sm">
+              <a href={WHATSAPP_BASE_URL} className="block w-full text-center px-6 py-3 mt-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl border border-white/20 transition-all duration-300 text-sm">
                 📱 WhatsApp First
               </a>
             </div>
@@ -129,6 +150,9 @@ export default async function UniversityPage({ params }: { params: Promise<{ slu
                 ))}
               </div>
             </div>
+
+            {/* More options CTA */}
+            <UniversityWhatsAppCTA variant="sidebar" universityName={uni.name} />
           </aside>
         </div>
       </div>
