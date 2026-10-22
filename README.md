@@ -1,1 +1,1 @@
-# SCOLLARLY.co
+# SCOLLARLY
