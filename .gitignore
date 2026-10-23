@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+.open-next/
+.wrangler/
+out/
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+public/workbox-*.js
+*.tsbuildinfo
+next-env.d.ts
+
+# tests and reports
+coverage/
+playwright-report/
+test-results/
+.lighthouseci/
+
+# secrets (never committed)
+.dev.vars
+.env
+.env.*
+!.env.example
+!.dev.vars.example
+
+# generated at measurement time
+scripts/.generated/
+
+# OS and editor
+.DS_Store
+Thumbs.db

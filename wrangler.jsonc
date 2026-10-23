@@ -1,0 +1,43 @@
+{
+  // Stage 0 (proof of fit). Free plan only. IDs marked REPLACE_ME are created by the owner with
+  // `wrangler kv namespace create` and `wrangler d1 create` (see docs/stage-0-runbook.md).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scollarly",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+
+  // S0.7: Cron Trigger. Daily at 23:05 UTC (00:05 WAT), architecture 8.5.
+  "triggers": { "crons": ["5 23 * * *"] },
+
+  // S0.6: OpenNext cache bindings (see open-next.config.ts).
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "scollarly" }],
+  "kv_namespaces": [{ "binding": "NEXT_INC_CACHE_KV", "id": "REPLACE_ME_KV_NAMESPACE_ID" }],
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "scollarly-next-tag-cache",
+      "database_id": "REPLACE_ME_D1_DATABASE_ID"
+    }
+  ],
+
+  // S0.3 and S0.7: Durable Objects. The free plan only allows SQLite-backed classes.
+  "durable_objects": {
+    "bindings": [
+      { "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" },
+      { "name": "RATE_LIMITER", "class_name": "RateLimiter" },
+      { "name": "COLLECTOR", "class_name": "Collector" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler", "RateLimiter", "Collector"] }]
+
+  // Secrets are never in this file. Set them with `wrangler secret put` (see .dev.vars.example):
+  // DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+  // TURNSTILE_SECRET_KEY, RESEND_API_KEY, OWNER_EMAIL, PHASE0_PROBE_TOKEN,
+  // NEON_API_KEY and NEON_PROJECT_ID (optional, CU-hours probe).
+}
