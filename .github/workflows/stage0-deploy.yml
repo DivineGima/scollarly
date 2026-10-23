@@ -1,0 +1,167 @@
+name: Stage 0 deploy and measure
+
+# Manual only. Builds on Linux (OpenNext does not build reliably on Windows), deploys the Stage 0 slice to the
+# free workers.dev address, then runs the functional probes and the CPU measurement from architecture section 17.
+# Deploys run only from `main` after merge (architecture 13.3). Nothing here runs on a push or a pull request.
+#
+# Secrets used (repository secrets): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, PHASE0_DATABASE_URL (pooled),
+# PHASE0_MIGRATION_DATABASE_URL (direct), PHASE0_BETTER_AUTH_SECRET, PHASE0_PROBE_TOKEN, PHASE0_OWNER_EMAIL.
+on:
+  workflow_dispatch:
+    inputs:
+      cold_wait_seconds:
+        description: "Idle seconds before the Neon cold-start probe (Neon scales to zero after 5 minutes)"
+        required: false
+        default: "330"
+        type: string
+      run_cpu_measurement:
+        description: "Run the CPU measurement after the probes (adds about 15 minutes)"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage0-deploy
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  WORKER_NAME: scollarly
+
+jobs:
+  deploy-and-measure:
+    name: Deploy to workers.dev and measure
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+
+      - name: Check the Cloudflare token and all repository secrets exist
+        env:
+          HAVE_DB: ${{ secrets.PHASE0_DATABASE_URL != '' }}
+          HAVE_MIGRATION_DB: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL != '' }}
+          HAVE_AUTH_SECRET: ${{ secrets.PHASE0_BETTER_AUTH_SECRET != '' }}
+          HAVE_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN != '' }}
+          HAVE_OWNER_EMAIL: ${{ secrets.PHASE0_OWNER_EMAIL != '' }}
+        run: |
+          missing=0
+          for name in HAVE_DB HAVE_MIGRATION_DB HAVE_AUTH_SECRET HAVE_PROBE_TOKEN HAVE_OWNER_EMAIL; do
+            if [ "${!name}" != "true" ]; then echo "::error::A required PHASE0_* secret is missing ($name)"; missing=1; fi
+          done
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is missing"; missing=1; fi
+          [ "$missing" = "0" ] || exit 1
+          status=$(curl -s -o /tmp/verify.json -w "%{http_code}" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify)
+          echo "Token verify HTTP status: $status"
+          node -e 'const j=JSON.parse(require("fs").readFileSync("/tmp/verify.json","utf8")); console.log("token status:", j.result && j.result.status); process.exit(j.success && j.result && j.result.status==="active" ? 0 : 1)' \
+            || { echo "::error::The Cloudflare API token is not active. Recreate it (guide Part B) and update the secret."; exit 1; }
+
+      - name: Find or create the KV namespace and D1 database
+        id: provision
+        run: node scripts/ci/provision-cloudflare.mjs
+
+      - name: Find the workers.dev address
+        id: url
+        run: |
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" > /tmp/sub.json
+          node -e '
+            const j = JSON.parse(require("fs").readFileSync("/tmp/sub.json","utf8"));
+            const sub = j.result && j.result.subdomain;
+            if (!sub) { console.error("::error::This account has no workers.dev subdomain. Open Cloudflare, Workers and Pages, and register one once."); process.exit(1); }
+            const url = "https://" + process.env.WORKER_NAME + "." + sub + ".workers.dev";
+            console.log("Worker address: " + url);
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, "url=" + url + "\n");
+          '
+
+      - name: Apply database migrations to Neon (direct connection)
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
+        run: npm run db:migrate
+
+      - name: Store the 300 KB test image in Neon
+        id: seed
+        env:
+          DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
+        run: |
+          npm run phase0:seed-image | tee /tmp/seed.log
+          sha=$(grep -i '^sha256:' /tmp/seed.log | head -1 | awk '{print $2}')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Build the Worker
+        run: npx opennextjs-cloudflare build
+
+      - name: Worker size gate (at most 2.6 MiB compressed)
+        run: npm run size
+
+      - name: Deploy to Cloudflare (also fills the OpenNext cache stores)
+        run: npx opennextjs-cloudflare deploy
+
+      - name: Set the Worker secrets
+        env:
+          DATABASE_URL: ${{ secrets.PHASE0_DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.PHASE0_BETTER_AUTH_SECRET }}
+          OWNER_EMAIL: ${{ secrets.PHASE0_OWNER_EMAIL }}
+          PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
+          BETTER_AUTH_URL: ${{ steps.url.outputs.url }}
+        run: |
+          node -e '
+            const names = ["DATABASE_URL","BETTER_AUTH_SECRET","OWNER_EMAIL","PHASE0_PROBE_TOKEN","BETTER_AUTH_URL"];
+            const out = {};
+            for (const n of names) { if (!process.env[n]) { console.error("::error::" + n + " is empty"); process.exit(1); } out[n] = process.env[n]; }
+            // Cloudflare documents this always-pass test secret. It is used only so Stage 0 can call the lead endpoint with a dummy token.
+            out.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+            require("fs").writeFileSync("secrets.json", JSON.stringify(out));
+          '
+          npx wrangler secret bulk secrets.json
+          rm -f secrets.json
+
+      - name: Wait until the Worker answers
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.url.outputs.url }}/api/v1/health" || true)
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 5
+          done
+          echo "::error::The Worker did not answer 200 at /api/v1/health"; exit 1
+
+      - name: Stage 0 functional probes
+        env:
+          PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
+        run: >
+          node scripts/stage0-probes.mjs
+          --base "${{ steps.url.outputs.url }}"
+          --media "${{ steps.seed.outputs.sha }}"
+          --cold-wait "${{ inputs.cold_wait_seconds }}"
+
+      - name: CPU measurement (needs a fresh rate-limit window first)
+        if: ${{ inputs.run_cpu_measurement }}
+        continue-on-error: true
+        env:
+          PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
+        run: |
+          sleep 70
+          node scripts/measure-cpu.mjs --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" | tee /tmp/measure.txt
+          { echo; echo "### CPU measurement (milliseconds of Worker CPU, from wrangler tail)"; echo; echo '```'; cat /tmp/measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-reports
+          path: |
+            scripts/.generated/*.json
+            scripts/.generated/*.log
+          # The reports live in a hidden folder (scripts/.generated), which upload-artifact skips by default.
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
