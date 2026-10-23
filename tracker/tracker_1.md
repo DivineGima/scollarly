@@ -9,9 +9,9 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended pre-build 2026-10-23) |
 | Current architecture | `system_architecture_1.md` (amended pre-build 2026-10-23) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended pre-build 2026-10-23) |
-| Phase | Stage 0 (proof of fit) in progress. Code and local tests are written on the local branch `feature/stage-0-proof-of-fit` (nothing committed). Deployed measurements have not been taken. |
+| Phase | Stage 0 (proof of fit) in progress. The Stage 0 code and the documents were merged to `main` by the owner through PR #1 on 2026-10-23 (merge commit `393affe`), with all CI jobs green. The gates that need a deployed Worker have not been measured. |
 | Next stage | Stage 0: Proof of fit (hard gate) |
-| Blocked by | The deployed gates need the owner's accounts and secrets: Cloudflare login, a Neon project, and the secrets in `docs/stage-0-runbook.md`. Also open: H1 (vendor terms) and H7 (domain on Cloudflare, needed before the cache gates if the S0.1 probe shows the Cache API is a no-op on `workers.dev`). Stage 1 must not start until every gate has a measured result. |
+| Blocked by | The deployed gates need things only the owner can do: a Neon project and connection string, the Worker secrets, and (if the S0.1 probe fails on `workers.dev`) the domain on Cloudflare. Cloudflare is already logged in on the owner's PC. See `docs/stage-0-runbook.md` and Session 4 below. Also open: H1 (vendor terms) and H7 (domain on Cloudflare, needed before the cache gates if the S0.1 probe shows the Cache API is a no-op on `workers.dev`). Stage 1 must not start until every gate has a measured result. |
 
 ## Session log
 
@@ -93,6 +93,34 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 
 **How to continue:** follow `docs/stage-0-runbook.md`. When the owner commits, split the work into one branch and merge request per module (S0.1 to S0.9).
 
+### 2026-10-23: Session 4 (merge, CI evidence, capability check)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md` (all N = 1, aligned).
+
+**What happened**
+
+- The owner committed Stage 0 as one branch and one pull request (not one per module as the essentials file describes) and **merged PR #1 into `main` at 08:39 UTC** (merge commit `393affe`). Claude Code did not merge: its attempt was stopped by the permission check ("merge without review"), so the owner merged in the GitHub page. Tracker flag F4 (commit nothing until told) is resolved.
+- **CI found a real defect and it was fixed before the merge.** The first run failed every job: the lock file written on Windows with npm 11 lacked `@swc/helpers@0.5.23`, so `npm ci` failed on the Linux runner. Fixed by pinning `@swc/helpers` and regenerating the lock with npm 10 (commit `7d104f9`).
+- **First Linux CI evidence** (this is what the module tests now show; it is not the deployed measurement):
+
+| Check | Linux CI result |
+|---|---|
+| Lint, typecheck, unit tests | pass (90 tests) |
+| Integration tests on a real Postgres 16 service container | pass (36 tests) |
+| Playwright offline tests on a production build | pass (6 tests) |
+| Native OpenNext build and Worker size gate | **1.24 MiB compressed** (6.046 MiB raw), pass against 2.6 MiB |
+| Lighthouse CI, mobile, 3 runs | passed its assertions: performance at least 0.85 and first load under 200 KB. Exact scores are not printed when an assertion passes. |
+
+**Why module statuses stay `in-progress`:** CI is green, but the Stage 0 exit criteria are the architecture section 17 gates, and the ones that need a deployed Worker are still unmeasured. Stage 1 must not start.
+
+**Capability check (read-only, done this session)**
+
+- Cloudflare: Wrangler and the Cloudflare tool connection are logged in as the owner's account (Workers, KV, D1, Queues, Pages, secrets store, Turnstile widgets, SSL write; zone read). No KV namespace exists yet; there is an unrelated D1 database and Worker named `prob-bot`, which was not touched.
+- **`scollarly.co.in` is not a zone in this Cloudflare account** (zero zones). H7 is therefore still open and likely blocking if the Cache API probe fails on `workers.dev`.
+- **R2 is not enabled** on the account (Cloudflare answers "Please enable R2 through the Cloudflare Dashboard"). If KV proves unusable for the OpenNext incremental cache, enabling R2 is a dashboard action by the owner and may need a payment method (G6).
+- GitHub: Claude Code is logged in with admin rights through the `gh` CLI and the GitHub tool server. **Branch protection on `main` is not available** on this private repository without GitHub Pro (HTTP 403), see flag F8.
+- No Neon, Resend or Google Cloud access exists in Claude Code (no logged-in CLI, no connector). These are owner tasks.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -104,6 +132,8 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | F5 | `CLAUDE.md` says "No physical deletes in v1. Archive instead." Architecture ADR-029 now names three carve-outs (erasure, raw event purge after rollup, expired auth rows). | The two texts disagree. `CLAUDE.md` is the owner's file and was not edited. | **Open.** Owner decides whether to add the carve-out wording to `CLAUDE.md`. |
 | F6 | `src/server/db` (client factory, schema, migrations) imports Drizzle. `CLAUDE.md` says only `server/repositories` may. | Architecture section 5 lists `server/db/` as its own directory beside repositories and calls it part of the data layer, so it was read as the repository layer's internals. The ESLint rule and a source-scan test allow `server/repositories` and `server/db` only. | **Open.** Owner confirms this reading, or the files move under `server/repositories`. |
 | F7 | The proposed public JavaScript budget (100 KB gzip) is already exceeded by the Next.js baseline (about 104 kB). | See Session 3, finding 5. Affects the Lighthouse gate and S3.5. | **Open.** Owner chooses: raise the budget, or accept a lower Lighthouse score target. |
+| F8 | Architecture 13.8 and `CLAUDE.md` say `main` is protected by a branch protection rule. GitHub refuses to enable it on a private repository on the free plan (HTTP 403, "Upgrade to GitHub Pro or make this repository public"). | Today only discipline stops a push to `main`. Rulesets are also limited on free private repositories. | **Open.** Owner chooses: make the repository public, upgrade to GitHub Pro, or accept discipline-only protection and record it as an accepted risk. |
+| F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not enabled. | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 only if needed. |
 
 ## Stage status
 
@@ -204,18 +234,18 @@ One row per gate in architecture section 17. Any failed gate stops the build and
 
 | Gate | Pass when | Measured | Result |
 |---|---|---|---|
-| Worker size | At most 2.6 MiB compressed, with auth, Drizzle, next-intl and Zod | 1.212 MiB compressed (5.933 MiB raw) for the Stage 0 slice with Better Auth, Drizzle, Neon driver, next-intl and Zod. Built on Windows with a workaround; re-confirm on Linux CI | Pass (provisional) |
+| Worker size | At most 2.6 MiB compressed, with auth, Drizzle, next-intl and Zod | 1.24 MiB compressed (6.046 MiB raw) for the Stage 0 slice with Better Auth, Drizzle, Neon driver, next-intl and Zod, from the native Linux CI build (PR #1). The Windows build gave 1.212 MiB | Pass (Linux CI). Re-measure at each stage |
 | Public page CPU | Cached public page at most 5 ms per request | | Not measured |
 | Password sign-in CPU | At most 10 ms, no Error 1102 over 50 sign-ins. Three variants measured: Better Auth default, PBKDF2 through WebCrypto, passwordless path. | CPU not measured (needs a deployed Worker). Verified locally: all three variants sign in correctly | Not measured |
 | Authenticated admin page CPU | At most 8 ms on the fresh session lookup path (staff). The cookie-cache path (student) is recorded too. | CPU not measured (needs a deployed Worker). Pages built; fresh-lookup and cookie-cache paths tested for behaviour | Not measured |
 | Lead POST CPU | At most 8 ms (stub endpoint) | | Not measured |
 | Image serve (300 KB) | At most 8 ms CPU on a cache miss, no database access on a hit | CPU not measured (needs a deployed Worker). Verified locally: 300 KB bytea round trips byte-exact; a Cache API hit calls no database (unit test) | Not measured |
 | Neon cold start | First admin request after idle in about 2 s or less (record the value) | | Not measured |
-| Version pinning | Next.js, OpenNext, Serwist and next-intl build, run and pass offline tests | Next.js 15.5.28, OpenNext 1.20.13, Serwist 9.5.13 and next-intl 4.14.9 build; Playwright offline tests 6 of 6 pass on `next start`. Next.js 16 not evaluated. Linux CI and a deployed run still to do | Pass locally (provisional) |
+| Version pinning | Next.js, OpenNext, Serwist and next-intl build, run and pass offline tests | Next.js 15.5.28, OpenNext 1.20.13, Serwist 9.5.13 and next-intl 4.14.9 build and the Playwright offline tests pass 6 of 6 on Linux CI as well as locally. Next.js 16 not evaluated. A run on the deployed Worker is still to do | Pass on Linux CI; deployed run pending |
 | Revalidation | A publish updates a public page without a deploy. OpenNext cache bindings named; any payment-method requirement recorded. | | Not measured |
 | Cron and Durable Objects | Available on free and working (else ADR-003 fallback and DB rate limit) | Not measured. Scheduled handler and the SQLite-backed Collector and RateLimiter are written and configured | Not measured |
 | Better Auth features | Cookie cache, TOTP 2FA with recovery codes, 10-minute step-up, role field, email verification work with the Neon driver | On Postgres (PGlite): TOTP enrol and challenge, recovery code single use, 10-minute step-up and re-confirm, role field, mandatory email verification, fresh versus cached session lookup all pass (36 integration tests). Not yet run over the Neon driver | Pass on Postgres; Neon driver not yet verified |
-| Lighthouse | Mobile performance at least 85, first load under 200 KB | Performance 0.84 / 0.79 / 0.79 (gate 0.85). First load 108 KiB (gate 200 KB passes). Total Blocking Time 560 to 800 ms from the framework runtime. This machine's benchmark index is about 460 (reference about 1000), so scores are pessimistic here | Below the gate locally, inconclusive. Rerun on Linux CI and the deployed URL |
+| Lighthouse | Mobile performance at least 85, first load under 200 KB | Linux CI job passed its assertions (performance at least 0.85, first load under 200 KB; exact scores not printed on a pass). On the owner's slower PC: 0.84 / 0.79 / 0.79 and 108 KiB. Total Blocking Time from the framework runtime is the risk | Pass on Linux CI (home page only). Recheck on the deployed URL and as pages are added |
 | Cache API and purge | Work on the production hostname. If they are no-ops on `workers.dev`, H7 becomes blocking before the cache gates. | | Not measured |
 | Terms check | Owner confirms commercial-use terms for Cloudflare, Neon, Resend and Turnstile free plans | | Waiting on owner (human action) |
 | Info only (non-gating): Neon API CU-hours | Can Neon's API report CU-hours to a cron job? | | Not measured |
