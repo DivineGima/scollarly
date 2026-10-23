@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain .mjs helper with no type declarations
-import { D1_PLACEHOLDER, KV_PLACEHOLDER, markdownTable, parseSeedSha, patchWranglerConfig, quantile, workersDevUrl } from "../../scripts/ci/lib.mjs";
+import { cpuStats, D1_PLACEHOLDER, drainJsonObjects, KV_PLACEHOLDER, markdownTable, parseSeedSha, patchWranglerConfig, quantile, workersDevUrl } from "../../scripts/ci/lib.mjs";
 
 const KV_ID = "0123456789abcdef0123456789abcdef";
 const D1_ID = "11111111-2222-4333-8444-555555555555";
@@ -71,5 +71,49 @@ describe("quantile and markdownTable", () => {
     expect(lines[3]).toContain('{"n":1}');
     expect(lines[4]).toContain("info");
     expect(lines[4]).not.toContain("\n");
+  });
+});
+
+describe("drainJsonObjects (wrangler tail prints pretty-printed multi-line JSON)", () => {
+  const event = (n: number) => JSON.stringify({ cpuTime: n, event: { request: { url: "https://x/{not-a-brace}" } }, note: 'has "quotes" and } braces' }, null, 4);
+
+  it("extracts every complete object from pretty-printed output", () => {
+    const { objects, rest } = drainJsonObjects(`${event(1)}\n${event(2)}\n`);
+    expect(objects.map((o: string) => JSON.parse(o).cpuTime)).toEqual([1, 2]);
+    expect(rest).toBe("");
+  });
+
+  it("keeps an unfinished object for the next chunk and finishes it when the rest arrives", () => {
+    const whole = event(7);
+    const cut = Math.floor(whole.length / 2);
+    const first = drainJsonObjects(whole.slice(0, cut));
+    expect(first.objects).toEqual([]);
+    const second = drainJsonObjects(first.rest + whole.slice(cut));
+    expect(second.objects.map((o: string) => JSON.parse(o).cpuTime)).toEqual([7]);
+  });
+
+  it("is not fooled by braces and escaped quotes inside strings", () => {
+    const { objects } = drainJsonObjects('{"a":"}{\\"}","b":1}{"a":2}');
+    expect(objects).toHaveLength(2);
+    expect(JSON.parse(objects[0]).b).toBe(1);
+  });
+
+  it("ignores noise between objects and returns nothing for empty input", () => {
+    expect(drainJsonObjects(`Successfully created tail\n${event(3)}`).objects).toHaveLength(1);
+    expect(drainJsonObjects("").objects).toEqual([]);
+  });
+});
+
+describe("cpuStats", () => {
+  it("reports all samples and the samples after the warm-up separately", () => {
+    const s = cpuStats([200, 150, 120, 4, 5, 6, 7, 8], 3);
+    expect(s.all.n).toBe(8);
+    expect(s.all.max).toBe(200);
+    expect(s.warm.n).toBe(5);
+    expect(s.warm.max).toBe(8);
+    expect(s.warm.p50).toBe(6);
+  });
+  it("handles too few samples", () => {
+    expect(cpuStats([1, 2], 3).warm.p95).toBeNull();
   });
 });

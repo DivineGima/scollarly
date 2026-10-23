@@ -32,3 +32,4 @@ scripts/.generated/
 # OS and editor
 .DS_Store
 Thumbs.db
+.neon

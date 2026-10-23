@@ -1,18 +1,24 @@
 #!/usr/bin/env node
 /**
- * Stage 0 CPU measurement (S0.9). Drives a DEPLOYED Worker and reads the CPU time Cloudflare records
- * for each request from `wrangler tail`, then prints p50/p95/max per scenario against the architecture
- * section 17 thresholds. Wall-clock timings from a client are NOT CPU time, so they are never reported as such.
+ * Stage 0 CPU measurement (S0.9). Drives a DEPLOYED Worker and reads the CPU time Cloudflare records for each
+ * request from `wrangler tail`, then prints statistics per scenario against the architecture section 17 thresholds.
+ * Wall-clock time seen by a client is NOT CPU time and is never reported as such.
  *
  *   node scripts/measure-cpu.mjs --base https://scollarly.<you>.workers.dev --token $PHASE0_PROBE_TOKEN \
- *        [--worker scollarly] [--samples 50] [--only public,signin,admin,student,lead,media] [--staff-variant pbkdf2]
+ *        [--worker scollarly] [--samples 50] [--only public,signin,admin,student,lead,media] [--staff-variant pbkdf2] \
+ *        [--media <sha256>] [--warmup 3]
+ *
+ * Statistics are given twice: "all" (every request, including the first ones that pay the isolate start-up cost)
+ * and "warm" (after the first --warmup requests of the scenario). The gate verdict uses warm p95, and the worst
+ * request overall is shown beside it so a bad cold start is never hidden.
  *
  * Needs `wrangler login` (or CLOUDFLARE_API_TOKEN). Nothing here reads or prints a secret value.
- * The deployed Worker must use Turnstile's documented always-pass TEST secret during measurement
- * (1x0000000000000000000000000000000AA) so the lead POST can be exercised with a dummy token.
+ * The deployed Worker must use Turnstile's documented always-pass TEST secret during measurement.
  */
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { cpuStats, drainJsonObjects } from "./ci/lib.mjs";
 
 const args = Object.fromEntries(
   process.argv.slice(2).flatMap((a, i, all) => (a.startsWith("--") ? [[a.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : "true"]] : [])),
@@ -21,34 +27,36 @@ const base = (args.base ?? "").replace(/\/$/, "");
 const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
+const warmup = Number.parseInt(args.warmup ?? "3", 10);
 const staffVariant = args["staff-variant"] ?? "pbkdf2";
 const only = new Set((args.only ?? "public,signin,admin,student,lead,media").split(","));
+const REQUEST_TIMEOUT_MS = 90_000;
 
 if (!base || !token) {
-  console.error("Usage: node scripts/measure-cpu.mjs --base <https://worker-url> --token <PHASE0_PROBE_TOKEN> [--samples 50] [--only a,b] [--staff-variant pbkdf2]");
+  console.error("Usage: node scripts/measure-cpu.mjs --base <https://worker-url> --token <PHASE0_PROBE_TOKEN> [--samples 50] [--only a,b] [--media <sha256>]");
   process.exit(2);
 }
 
-// Thresholds from architecture section 17 (proposed, [Mine, confirm]).
-const LIMITS = { public: 5, signin: 10, admin: 8, student: 8, lead: 8, media: 8 };
+// Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
+const LIMITS = { public: 5, signin: 10, admin: 8, student: null, lead: 8, media: 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
 
+/** Starts `wrangler tail` directly (no shell), so it can be stopped reliably on every platform. */
 function startTail() {
-  const child = spawn("npx", ["wrangler", "tail", worker, "--format", "json"], { shell: true });
+  const wranglerBin = join(process.cwd(), "node_modules", "wrangler", "bin", "wrangler.js");
+  const child = spawn(process.execPath, [wranglerBin, "tail", worker, "--format", "json"], { stdio: ["ignore", "pipe", "pipe"] });
   let buffer = "";
   child.stdout.on("data", (chunk) => {
     buffer += chunk.toString();
-    let nl;
-    while ((nl = buffer.indexOf("\n")) >= 0) {
-      const line = buffer.slice(0, nl).trim();
-      buffer = buffer.slice(nl + 1);
-      if (!line.startsWith("{")) continue;
+    const { objects, rest } = drainJsonObjects(buffer);
+    buffer = rest;
+    for (const text of objects) {
       try {
-        events.push(JSON.parse(line));
+        events.push(JSON.parse(text));
       } catch {
-        /* partial line */
+        /* a fragment that is not an event */
       }
     }
   });
@@ -56,103 +64,124 @@ function startTail() {
   return child;
 }
 
-const cpuOf = (e) => e.cpuTime ?? e.cpuTimeMs ?? e.event?.cpuTime ?? null;
-const pathOf = (e) => {
-  try {
-    return new URL(e.event?.request?.url ?? "").pathname + (new URL(e.event.request.url).search || "");
-  } catch {
-    return "";
-  }
-};
+const cpuOf = (e) => (typeof e.cpuTime === "number" ? e.cpuTime : null);
+const urlOf = (e) => e.event?.request?.url ?? "";
 
 async function call(path, init = {}) {
   const started = performance.now();
-  const response = await fetch(base + path, { redirect: "manual", ...init });
-  await response.arrayBuffer();
-  return { status: response.status, ms: performance.now() - started, headers: response.headers };
+  try {
+    const response = await fetch(base + path, { redirect: "manual", signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), ...init });
+    await response.arrayBuffer();
+    return { status: response.status, ms: performance.now() - started, headers: response.headers };
+  } catch (error) {
+    return { status: 0, ms: performance.now() - started, headers: new Headers(), error: error?.name ?? "Error" };
+  }
 }
 
 const probeHeaders = { "x-phase0-token": token };
-const quantile = (sorted, q) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] : null);
 
 async function scenario(name, key, fn, count = samples) {
   if (!only.has(key)) return null;
   const marker = `m=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const outcomes = [];
+  const statuses = [];
+  const clientMs = [];
   for (let i = 0; i < count; i++) {
-    outcomes.push((await fn(marker, i)).status);
-    await sleep(120);
+    const r = await fn(marker, i);
+    statuses.push(r.status);
+    clientMs.push(r.ms);
+    await sleep(150);
   }
-  await sleep(2500); // let the tail deliver the last events
-  const mine = events.filter((e) => pathOf(e).includes(marker));
-  const cpus = mine.map(cpuOf).filter((v) => typeof v === "number").sort((a, b) => a - b);
+  await sleep(3000); // let the tail deliver the last events
+  const mine = events.filter((e) => urlOf(e).includes(marker)).sort((a, b) => a.eventTimestamp - b.eventTimestamp);
+  const cpus = mine.map(cpuOf).filter((v) => v !== null);
+  const stats = cpuStats(cpus, warmup);
   const exceeded = mine.filter((e) => /exceeded/i.test(e.outcome ?? "")).length;
+  const limit = LIMITS[key];
   const row = {
     scenario: name,
     requests: count,
     tailEvents: mine.length,
-    httpStatuses: [...new Set(outcomes)],
-    cpuMs: { p50: quantile(cpus, 0.5), p95: quantile(cpus, 0.95), max: cpus.at(-1) ?? null },
+    httpStatuses: Object.fromEntries([...new Set(statuses)].map((s) => [s, statuses.filter((x) => x === s).length])),
+    cpuMs: stats,
     exceededCpuOutcomes: exceeded,
-    limitMs: LIMITS[key],
+    limitMs: limit,
+    clientWallMs: { median: [...clientMs].sort((a, b) => a - b)[Math.floor(clientMs.length / 2)] },
   };
-  row.result = cpus.length === 0 ? "NO CPU DATA (tail did not report cpuTime; read it from the dashboard)" : exceeded === 0 && row.cpuMs.p95 <= LIMITS[key] ? "PASS" : "FAIL";
+  if (cpus.length === 0) row.result = "NO CPU DATA";
+  else if (limit === null) row.result = "recorded";
+  else row.result = exceeded === 0 && (stats.warm.p95 ?? stats.all.p95) <= limit ? "PASS" : "FAIL";
   return row;
 }
 
 const tail = startTail();
-await sleep(6000); // wait for the tail session to connect
+await sleep(8000); // wait for the tail session to connect
 const rows = [];
 
-// Cached public page, after one warm-up so it is served from cache. Gate: at most 5 ms.
-rows.push(await scenario("Public page (cached)", "public", (m) => call(`/?${m}`)));
+try {
+  // Cached public page (static, prerendered). Gate: at most 5 ms.
+  rows.push(await scenario("Public page (prerendered)", "public", (m) => call(`/?${m}`)));
 
-// Password sign-in for each hash variant. Gate: at most 10 ms, no Error 1102 over 50 sign-ins.
-for (const variant of ["default", "pbkdf2", "passwordless"]) {
-  rows.push(await scenario(`Sign-in: ${variant}`, "signin", (m) => call(`/api/v1/probe/signin-${variant}?${m}`, { headers: probeHeaders })));
+  // Password sign-in for each hash variant. Gate: at most 10 ms, no Error 1102 over 50 sign-ins.
+  for (const variant of ["default", "pbkdf2", "passwordless"]) {
+    rows.push(await scenario(`Sign-in: ${variant}`, "signin", (m) => call(`/api/v1/probe/signin-${variant}?${m}`, { headers: probeHeaders })));
+  }
+
+  // Authenticated stub pages. Gate: at most 8 ms for staff (fresh lookup); the student cookie-cache path is recorded.
+  const sessionCookie = async (role) => {
+    const res = await fetch(`${base}/api/v1/probe/signin-${staffVariant}?role=${role}`, { headers: probeHeaders, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    await res.arrayBuffer();
+    return (res.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
+  };
+  if (only.has("admin")) {
+    const cookie = await sessionCookie("admin");
+    rows.push(await scenario(`Admin page, fresh session lookup (cookie ${cookie ? "present" : "MISSING"})`, "admin", (m) => call(`/admin/phase0?${m}`, { headers: { cookie } })));
+  }
+  if (only.has("student")) {
+    const cookie = await sessionCookie("student");
+    rows.push(await scenario(`Student page, cookie cache (cookie ${cookie ? "present" : "MISSING"})`, "student", (m) => call(`/me/phase0?${m}`, { headers: { cookie } })));
+  }
+
+  // Lead POST stub. Gate: at most 8 ms. The limiter allows 5 a minute per caller, so only 4 requests are sent.
+  rows.push(
+    await scenario(
+      "Lead POST (stub)",
+      "lead",
+      (m) =>
+        call(`/api/v1/leads?${m}`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
+          body: JSON.stringify({ name: "Measure Probe", whatsapp: "+237651232301", country_code: "CM", turnstile_token: "dummy" }),
+        }),
+      Math.min(samples, 4),
+    ),
+  );
+
+  // Image served through the Cache API (cache hits after the first request).
+  if (args.media) rows.push(await scenario("Image serve (300 KB)", "media", (m) => call(`/media/${args.media}.webp?${m}`)));
+} finally {
+  tail.kill();
 }
 
-// Authenticated stub pages. Gate: at most 8 ms (fresh lookup for staff; cookie cache recorded for students).
-async function sessionCookie(role) {
-  const res = await fetch(`${base}/api/v1/probe/signin-${staffVariant}?role=${role}`, { headers: probeHeaders });
-  return (res.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
-}
-if (only.has("admin")) {
-  const cookie = await sessionCookie("admin");
-  rows.push(await scenario("Admin page, fresh session lookup (staff)", "admin", (m) => call(`/admin/phase0?${m}`, { headers: { cookie } })));
-}
-if (only.has("student")) {
-  const cookie = await sessionCookie("student");
-  rows.push(await scenario("Student page, cookie cache (record only)", "student", (m) => call(`/me/phase0?${m}`, { headers: { cookie } })));
-}
-
-// Lead POST stub. Gate: at most 8 ms. Each request has its own idempotency key and a fresh token.
-rows.push(
-  await scenario(
-    "Lead POST (stub)",
-    "lead",
-    (m, i) =>
-      call(`/api/v1/leads?${m}`, {
-        method: "POST",
-        headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
-        body: JSON.stringify({ name: "Measure Probe", whatsapp: "+237651232301", country_code: "CM", turnstile_token: `dummy-${i}` }),
-      }),
-    Math.min(samples, 4), // the limiter allows 5 a minute per caller; more would measure the 429 path
-  ),
-);
-
-// Image serve: first call is a miss (reads the database), the rest are cache hits. Needs `npm run phase0:seed-image`.
-if (args.media) {
-  rows.push(await scenario("Image serve (300 KB)", "media", (m) => call(`/media/${args.media}.webp?${m}`)));
-}
-
-tail.kill();
 mkdirSync("scripts/.generated", { recursive: true });
 const file = `scripts/.generated/measurements-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
 const report = rows.filter(Boolean);
-writeFileSync(file, JSON.stringify({ base, measuredAt: new Date().toISOString(), samples, report }, null, 2));
+writeFileSync(file, JSON.stringify({ base, measuredAt: new Date().toISOString(), samples, warmup, report }, null, 2));
 
-console.table(report.map((r) => ({ scenario: r.scenario, n: r.requests, events: r.tailEvents, "p50 ms": r.cpuMs.p50, "p95 ms": r.cpuMs.p95, "max ms": r.cpuMs.max, "limit ms": r.limitMs, exceeded: r.exceededCpuOutcomes, result: r.result })));
-console.log(`\nWritten to ${file}`);
-console.log("Cold start, Cache API, Durable Object, cron and revalidation probes are separate: see docs/stage-0-runbook.md.");
+const f = (v) => (v === null || v === undefined ? "-" : v);
+console.table(
+  report.map((r) => ({
+    scenario: r.scenario,
+    n: r.requests,
+    events: r.tailEvents,
+    "warm p50": f(r.cpuMs.warm.p50),
+    "warm p95": f(r.cpuMs.warm.p95),
+    "all p95": f(r.cpuMs.all.p95),
+    "worst": f(r.cpuMs.all.max),
+    limit: f(r.limitMs),
+    exceeded: r.exceededCpuOutcomes,
+    http: JSON.stringify(r.httpStatuses),
+    result: r.result,
+  })),
+);
+console.log(`\nCPU times are milliseconds from wrangler tail. Written to ${file}`);
 process.exit(0);

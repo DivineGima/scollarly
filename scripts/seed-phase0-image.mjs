@@ -19,7 +19,7 @@ const outOnly = process.argv.includes("--out-only");
 // Pseudo-random but deterministic pixels, so the same file (and hash) is produced every run.
 function noise(width, height) {
   const data = Buffer.alloc(width * height * 3);
-  let s = 123456789;
+  let s = 123456789 + Number(process.env.SEED_VARIANT ?? 0); // a different variant gives a different image (and hash)
   for (let i = 0; i < data.length; i++) {
     s = (s * 1664525 + 1013904223) >>> 0;
     data[i] = (s >>> 24) & 0xff;

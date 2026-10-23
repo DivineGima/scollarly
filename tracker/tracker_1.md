@@ -9,9 +9,9 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended pre-build 2026-10-23) |
 | Current architecture | `system_architecture_1.md` (amended pre-build 2026-10-23) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended pre-build 2026-10-23) |
-| Phase | Stage 0 (proof of fit) in progress. The Stage 0 code and the documents were merged to `main` by the owner through PR #1 on 2026-10-23 (merge commit `393affe`), with all CI jobs green. The gates that need a deployed Worker have not been measured. |
+| Phase | Stage 0 (proof of fit) is measured and **several gates FAIL**. By the build contract Claude Code stops here and the owner decides. Stage 1 has not started and must not start until the owner decides (flag F11). |
 | Next stage | Stage 0: Proof of fit (hard gate) |
-| Blocked by | The deployed gates need things only the owner can do: a Neon project and connection string, the Worker secrets, and (if the S0.1 probe fails on `workers.dev`) the domain on Cloudflare. Cloudflare is already logged in on the owner's PC. See `docs/stage-0-runbook.md` and Session 4 below. Also open: H1 (vendor terms) and H7 (domain on Cloudflare, needed before the cache gates if the S0.1 probe shows the Cache API is a no-op on `workers.dev`). Stage 1 must not start until every gate has a measured result. |
+| Blocked by | **Owner decision F11**: the Workers Free CPU limit (about 10 ms per request) is exceeded by sign-in (every hash variant tested), the lead POST and image serving, and the public page is above its 5 ms target. Options are in flag F11. The domain lock (F10) is no longer blocking Stage 0, because the Cache API works on `workers.dev`. |
 | Gate before Stage 2 | The owner must decide how email works before Stage 2 starts (see F10 and the Version 2 backlog). Stage 2 modules S2.1 and S2.2 as written need a verified Resend sending domain, which does not exist while the domain is locked. Either the domain is verified, or the documents are amended to version 2 first. Do not start Stage 2 on the current documents otherwise. |
 
 ## Session log
@@ -142,6 +142,47 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 - **Resend.** Without a verified sending domain, Resend delivers only to the email address of the Resend account itself (any other recipient is rejected with a 403). So no student, invite or password-reset email can be sent. Resend is first used in Stage 2, so this is a gate before Stage 2, not a Stage 0 problem.
 - The owner is contacting GoDaddy support and NIXI (`support@nixi.in`) about foreign-national KYC. The outcome decides which of the version 2 options below applies.
 
+### 2026-10-23: Session 6 (Stage 0 deployed to workers.dev and measured)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md` (all N = 1, aligned).
+
+**What happened**
+
+- **Owner confirmation H1:** the owner read the free-plan terms of Cloudflare, Neon, Resend and Turnstile and said "i checked all ok" (2026-10-23). Recorded as the owner's statement. Claude Code's reading, for the record: no page forbids commercial use of the free plan; Turnstile's page calls the free plan suitable for "most production applications"; Neon's plans page describes Free as for "prototypes, side projects, and small teams"; Cloudflare and Resend may end free services at any time.
+- **Deployment worked on the first run** through the manual workflow (`stage0-deploy.yml`, PR #4): token check, KV namespace and D1 database created **with no payment-method request**, Neon migration applied, 300 KB image stored, Worker built (1.24 MiB), deployed to `https://scollarly.gimafolabit.workers.dev`, secrets set.
+- **The workflow's probe step and CPU step were unreliable and were repaired.** The CPU step hung and was cancelled; the saved probe report was recovered. Root causes found in Claude Code's own scripts: (1) `wrangler tail --format json` prints pretty-printed multi-line JSON, but the script read one line at a time, so it could never parse an event; (2) requests had no timeout; (3) the tail process was started through a shell and could not be stopped reliably. All three are fixed (new JSON splitter with unit tests, request timeouts, direct launch). The CPU figures below come from the fixed script run from the owner's PC against the live Worker, with 20 requests per scenario.
+- The probe token on the test Worker was replaced by one held only by Claude Code, for local debugging. The next workflow run sets it back from the GitHub secret.
+
+**Measured results** (CPU is Worker CPU time from `wrangler tail`; the tail samples under load, so "events" is fewer than requests; values of 10 mean the request was cut at the 10 ms free-plan limit)
+
+| Scenario | Requests | CPU events | Warm p50 / p95 ms | Worst ms | Cut at the limit (error 1102) | HTTP | Gate | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| Public page (prerendered) | 20 | 11 | 7 / 9 | 14 | 0 | 200 x20 | 5 ms | Above target; never cut |
+| Sign-in, default (scrypt) | 20 | 14 | 95 / 173 | 293 | 1 | 500 x18, 503 x2 | 10 ms | **FAIL** |
+| Sign-in, PBKDF2 (WebCrypto, 100,000 iterations) | 20 | 12 | 10 / 10 | 10 | 12 of 12 | 503 x20 | 10 ms | **FAIL** |
+| Sign-in, passwordless (magic link, no hash) | 20 | 10 | 10 / 10 | 10 | 10 of 10 | 503 x20 | 10 ms | **FAIL** (see note) |
+| Admin page, fresh lookup | 20 | 10 | 10 / 10 | 10 | 9 of 10 | 404 x6, 503 x14 | 8 ms | **Not measurable**: no session could be obtained, so the request carried no cookie |
+| Student page, cookie cache | 20 | 11 | 10 / 10 | 346 | 6 of 11 | 404 x13, 503 x7 | record only | Not measurable, same reason |
+| Lead POST (stub) | 4 | 4 | 12 / 12 | 12 | 2 of 4 | 201 x2, 503 x2 | 8 ms | **FAIL** |
+| Image serve, 300 KB, mostly Cache API hits | 20 | 10 | 10 / 11 | 11 | 3 of 10 | 200 x20 | 8 ms | **FAIL** |
+
+Notes: the passwordless probe builds a new Better Auth instance on every request, which the real design does not, so its figure overstates the final cost, but it still shows that Better Auth's per-request cost on Workers Free is about the limit even with no password hashing. The first requests after a deploy were not cut: for example the first publish call used 195 ms of CPU and the first Neon query 236 ms and both returned 200, so the limit appears to be enforced only after a short grace period. A single image cache miss used 31 ms of CPU (193 ms wall) and a hit 37 ms.
+
+**Other gate results**
+
+| Gate | Result |
+|---|---|
+| Cache API on `workers.dev` (S0.1 first probe) | **Works** (put, match and delete behave). The community reply was wrong for this account. H7 is not blocking the cache gates. |
+| Neon cold start | 1.44 s client time (1.23 s server) for the first query after 330 s idle: **pass** (single sample). Warm query 137 ms. |
+| Neon WebSocket transaction | Works (value 2). |
+| Durable Objects | Counter increments and the limiter answers: **pass**. Cron has not run yet (first run 23:05 UTC); `lastCronAt` was null. |
+| Revalidation (S0.6) | **Pass on retry**: the page showed the new title within 5 seconds of a publish, with no deploy (KV + D1 + Durable Object queue, no payment method). The first publish call after the deploy returned 500, so the first call after a deploy is unreliable. |
+| Image through Cache API | Served as image/webp with immutable headers; a genuine miss took 1.2 s end to end here (an unexplained 160 s first request occurred once in the CI run and did not recur). |
+| Lead POST behaviour | 400 without a key, 400 on an invalid country, 201 then 200 on replay with the same reference. The 409 and the 429 checks could not be completed because of the 503s above. |
+| Better Auth over Neon | Sign-in over the Neon driver returned a session for the default and passwordless variants on the first requests after the deploy; cookie cache, TOTP, step-up and fresh lookup are proven on Postgres by the integration tests. Not provable on the Worker while sign-in is cut by the CPU limit. |
+
+**Stage 0 conclusion:** the stack builds, deploys and runs on Workers Free, and caching, revalidation, the database and Durable Objects work. **The CPU limit is the problem.** Authentication cannot run on the free plan as designed, and the lead POST and image serving also exceed their gates. This is the risk architecture section 1 named ("the 8 ms admin page gate is the likeliest to fail"). The contract says stop and report; the owner decides.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -156,6 +197,7 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | F8 | Architecture 13.8 and `CLAUDE.md` say `main` is protected by a branch protection rule. GitHub refuses to enable it on a private repository on the free plan (HTTP 403, "Upgrade to GitHub Pro or make this repository public"). | Today only discipline stops a push to `main`. Rulesets are also limited on free private repositories. | **Open.** Owner chooses: make the repository public, upgrade to GitHub Pro, or accept discipline-only protection and record it as an accepted risk. |
 | F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not enabled. | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 only if needed. |
 | F10 | `scollarly.co.in` is locked at GoDaddy until .IN KYC is accepted. The owner is an international student without Aadhaar, so DigiLocker is not available. Nameservers and DNS records cannot be changed. | Blocks moving the domain to Cloudflare (H7), a custom domain for the Worker, and the Resend sending domain (H6). The domain still resolves today; a registry server hold would take it offline. | **Open.** Owner action: ask GoDaddy support and email `support@nixi.in` for the foreign-national passport route (message drafted in the conversation). Not marked done by Claude Code. Decision D12: build on `workers.dev` meanwhile. See the Version 2 backlog. |
+| F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Open. The owner decides before any Stage 1 work.** Options, from architecture 17 and what was measured: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
 
 ## Stage status
 
@@ -256,20 +298,20 @@ One row per gate in architecture section 17. Any failed gate stops the build and
 
 | Gate | Pass when | Measured | Result |
 |---|---|---|---|
-| Worker size | At most 2.6 MiB compressed, with auth, Drizzle, next-intl and Zod | 1.24 MiB compressed (6.046 MiB raw) for the Stage 0 slice with Better Auth, Drizzle, Neon driver, next-intl and Zod, from the native Linux CI build (PR #1). The Windows build gave 1.212 MiB | Pass (Linux CI). Re-measure at each stage |
-| Public page CPU | Cached public page at most 5 ms per request | | Not measured |
-| Password sign-in CPU | At most 10 ms, no Error 1102 over 50 sign-ins. Three variants measured: Better Auth default, PBKDF2 through WebCrypto, passwordless path. | CPU not measured (needs a deployed Worker). Verified locally: all three variants sign in correctly | Not measured |
-| Authenticated admin page CPU | At most 8 ms on the fresh session lookup path (staff). The cookie-cache path (student) is recorded too. | CPU not measured (needs a deployed Worker). Pages built; fresh-lookup and cookie-cache paths tested for behaviour | Not measured |
-| Lead POST CPU | At most 8 ms (stub endpoint) | | Not measured |
-| Image serve (300 KB) | At most 8 ms CPU on a cache miss, no database access on a hit | CPU not measured (needs a deployed Worker). Verified locally: 300 KB bytea round trips byte-exact; a Cache API hit calls no database (unit test) | Not measured |
-| Neon cold start | First admin request after idle in about 2 s or less (record the value) | | Not measured |
-| Version pinning | Next.js, OpenNext, Serwist and next-intl build, run and pass offline tests | Next.js 15.5.28, OpenNext 1.20.13, Serwist 9.5.13 and next-intl 4.14.9 build and the Playwright offline tests pass 6 of 6 on Linux CI as well as locally. Next.js 16 not evaluated. A run on the deployed Worker is still to do | Pass on Linux CI; deployed run pending |
-| Revalidation | A publish updates a public page without a deploy. OpenNext cache bindings named; any payment-method requirement recorded. | | Not measured |
-| Cron and Durable Objects | Available on free and working (else ADR-003 fallback and DB rate limit) | Not measured. Scheduled handler and the SQLite-backed Collector and RateLimiter are written and configured | Not measured |
-| Better Auth features | Cookie cache, TOTP 2FA with recovery codes, 10-minute step-up, role field, email verification work with the Neon driver | On Postgres (PGlite): TOTP enrol and challenge, recovery code single use, 10-minute step-up and re-confirm, role field, mandatory email verification, fresh versus cached session lookup all pass (36 integration tests). Not yet run over the Neon driver | Pass on Postgres; Neon driver not yet verified |
-| Lighthouse | Mobile performance at least 85, first load under 200 KB | Linux CI job passed its assertions (performance at least 0.85, first load under 200 KB; exact scores not printed on a pass). On the owner's slower PC: 0.84 / 0.79 / 0.79 and 108 KiB. Total Blocking Time from the framework runtime is the risk | Pass on Linux CI (home page only). Recheck on the deployed URL and as pages are added |
-| Cache API and purge | Work on the production hostname. If they are no-ops on `workers.dev`, H7 becomes blocking before the cache gates. | | Not measured |
-| Terms check | Owner confirms commercial-use terms for Cloudflare, Neon, Resend and Turnstile free plans | | Waiting on owner (human action) |
+| Worker size | At most 2.6 MiB compressed, with auth, Drizzle, next-intl and Zod | 1.24 MiB compressed (6.046 MiB raw), native Linux CI build | Pass |
+| Public page CPU | Cached public page at most 5 ms per request | Warm p50 7 ms, p95 9 ms, worst 14 ms (20 requests, 11 sampled events); never cut at the limit | Above the 5 ms target (FAIL as written); under the 10 ms platform limit |
+| Password sign-in CPU | At most 10 ms, no Error 1102 over 50 sign-ins. Three variants measured: Better Auth default, PBKDF2 through WebCrypto, passwordless path. | scrypt: p50 95 ms, p95 173, worst 293, errors 500/503. PBKDF2 100k: cut at 10 ms on 12 of 12 events (503). Passwordless probe: cut at 10 ms on 10 of 10 (503; the probe builds Better Auth per request) | FAIL (all three variants) |
+| Authenticated admin page CPU | At most 8 ms on the fresh session lookup path (staff). The cookie-cache path (student) is recorded too. | Not measurable: no session could be obtained because sign-in is cut by the CPU limit | Not measured (blocked by the sign-in failure) |
+| Lead POST CPU | At most 8 ms (stub endpoint) | Warm 12 ms; 2 of 4 requests cut at the limit (503) | FAIL |
+| Image serve (300 KB) | At most 8 ms CPU on a cache miss, no database access on a hit | CPU about 10 ms warm (p95 11), 3 of 10 events cut; single miss 31 ms; a hit calls no database (unit test). A miss took 1.2 s end to end | FAIL against 8 ms |
+| Neon cold start | First admin request after idle in about 2 s or less (record the value) | 1.44 s client time, 1.23 s server, first query after 330 s idle (single sample); warm 137 ms | Pass |
+| Version pinning | Next.js, OpenNext, Serwist and next-intl build, run and pass offline tests | Next.js 15.5.28, OpenNext 1.20.13, Serwist 9.5.13 and next-intl 4.14.9 build on Linux CI, pass the offline tests, and run on the deployed Worker | Pass |
+| Revalidation | A publish updates a public page without a deploy. OpenNext cache bindings named; any payment-method requirement recorded. | After a publish the page showed the new content within 5 s, no deploy. Bindings: KV incremental cache, D1 tag cache, Durable Object queue. No payment method asked. The first publish call after the deploy returned 500 | Pass on retry |
+| Cron and Durable Objects | Available on free and working (else ADR-003 fallback and DB rate limit) | Durable Object counter and limiter work. Cron not yet run (first at 23:05 UTC) | Durable Objects pass; cron pending |
+| Better Auth features | Cookie cache, TOTP 2FA with recovery codes, 10-minute step-up, role field, email verification work with the Neon driver | Cookie cache, TOTP with recovery codes, 10-minute step-up, role field, email verification, fresh lookup: pass on Postgres (36 tests). Over the Neon driver on the Worker: sign-in worked on the first requests after the deploy, then is cut by the CPU limit | Pass on Postgres; not provable on the Worker (F11) |
+| Lighthouse | Mobile performance at least 85, first load under 200 KB | Linux CI job passed its assertions (performance at least 0.85, first load under 200 KB) | Pass (home page only) |
+| Cache API and purge | Work on the production hostname. If they are no-ops on `workers.dev`, H7 becomes blocking before the cache gates. | put, match and delete work on scollarly.gimafolabit.workers.dev | Pass. H7 does not block the cache gates |
+| Terms check | Owner confirms commercial-use terms for Cloudflare, Neon, Resend and Turnstile free plans | Owner: "i checked all ok" (2026-10-23) | Done per the owner |
 | Info only (non-gating): Neon API CU-hours | Can Neon's API report CU-hours to a cron job? | | Not measured |
 
 ## Owner actions (human, never marked done by Claude Code)
@@ -278,13 +320,13 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 
 | # | Action | Needed before | Status |
 |---|---|---|---|
-| H1 | Confirm commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans. Also decide if any OpenNext cache binding turns out to need a payment method (S0.6). | End of Stage 0 | Open |
+| H1 | Confirm commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans. Also decide if any OpenNext cache binding turns out to need a payment method (S0.6). | End of Stage 0 | **Done per the owner, 2026-10-23** ("i checked all ok"). No payment method was needed for KV or D1 (the workflow created both). R2 is not enabled and was not needed. |
 | H2 | Supply the old site's data files (9 universities, programmes, fees, FAQs, process steps, copy, logos and campus images) and any `ContactSubmission` rows | S1.7 (Claude Code must stop and ask if missing) | Open |
 | H3 | Q2: confirm the Scollarly WhatsApp number (+237 651 232 301 today) and the contact number shown on the site (+91 98157 25968 today) | Launch | Open |
 | H4 | Q3: supply real figures for students helped and admitted, confirm the 5 testimonials are real and consented, confirm team bios. Anything unconfirmed is not published. | Launch | Open |
 | H5 | Q6: legal check on consent for 17-year-old applicants and data protection in the student countries | Launch | Open |
 | H6 | Create a mailbox on scollarly.co.in and verify mail.scollarly.co.in in Resend (DNS records) | Launch, and before Stage 2 (see the gate in Current position) | Open. Blocked by F10 |
-| H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 |
+| H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 (no longer blocking the cache gates: the Cache API works on `workers.dev`) |
 | H8 | Create Google OAuth credentials for scollarly.co.in | Stage 2 testing and launch | Open |
 | H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 150 MB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, student email cap 60 a day with 40 reserved, 3 per address, 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
@@ -300,6 +342,7 @@ Added 2026-10-23 at the owner's request (decision D12). After Stage 0 started, t
 | V2-2 | **Decide how email works without a verified sending domain**, if the domain is still locked when Stage 2 is due. A possible interim design (owner decision, not yet taken): Google sign-in only for students, admin invites as copyable links sent over WhatsApp, Resend used only for the owner's own address. This would amend F5, FR-7, FR-8, ADR-015 and ADR-027 (the student email cap) and the A9, A10 and B0 page flows. Email and password sign-in and password reset return once a domain is verified. | PRD F5, section 10 (email abuse); architecture 9, 13.1, 16 (A9, A10, B0), ADR-027; essentials S2.1, S2.2, S2.5 | V2-1 |
 | V2-3 | **Record the hosting URL decision.** Stage 0 and early stages run on `<worker>.workers.dev`. Record the Cache API probe result there, which fallback from architecture 17 was used (edge cache with `s-maxage` needs the custom domain), and that a real domain is required before launch. | Architecture 6.1, 17, ADR-002; essentials S0.1, S0.6, S11.7 | S0.1 probe result |
 | V2-4 | **Re-check Google OAuth on `workers.dev`.** Whether Google accepts a `workers.dev` redirect URI for the consent screen is not verified here. Test it in Stage 2; if refused, it is a second reason to settle V2-1 first. | Architecture 9; H8 | Stage 2 |
+| V2-6 | **Refresh the vendor limits the architecture quoted.** Neon Free now says 1 GB per project (the architecture said 0.5 GB); Resend Free allows 3 domains (architecture: 1) with 30-day retention; Workers KV Free allows only 1,000 writes a day. None blocks anything; update the figures and the capacity estimates in section 3. | Architecture 1 and 3 | none |
 | V2-5 | **Fold in the other open flags if the owner agrees:** F5 (physical-delete carve-outs in `CLAUDE.md`), F6 (`server/db` may import Drizzle), F7 (public JavaScript budget), F8 (branch protection on a private free repository). | `CLAUDE.md`, architecture 5, 6.3, 13.8, ADR-014, ADR-029 | Owner answers |
 
 ## Project understanding (for future sessions)
