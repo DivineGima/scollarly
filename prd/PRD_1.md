@@ -1,6 +1,6 @@
 # PRD: Scollarly v2
 
-**Status:** Final v1.0, approved for build, amended pre-build on 2026-10-23 by the owner after the engineering review (see the Amendment log at the end). Items still needed before launch are in section 12.2.
+**Status:** Final v1.0, approved for build, amended pre-build on 2026-10-23 by the owner after the engineering review, and amended again on 2026-10-23 after the Stage 0 measurements (owner decisions D13 and D14: edit in place, and redesign for the Workers Free CPU limit). See the Amendment logs at the end. Items still needed before launch are in section 12.2.
 **Date:** 2026-10-23
 **Basis:** Read of the current codebase (design.md, claude.md, homepage, university pages, data files, Prisma schema, contact API, layout, i18n setup) plus the owner's answers in this session.
 
@@ -75,13 +75,14 @@ Scollarly connects African students with Indian universities. Students pay nothi
 ## 4. Constraints [Owner unless noted]
 
 - No paid APIs or tools in v1. Free tiers are acceptable but their limits and terms must be verified before committing. [Mine]
-- Auth: email plus Google via Better Auth, self-hosted. [Owner]
+- Auth: **Google sign-in only** via Better Auth, self-hosted. There are no passwords, so there is no password reset and no verification email. [Owner, amended 2026-10-23 (D14): password hashing does not fit the free Workers CPU limit]
 - WhatsApp: smart links only. [Owner chose smart links]
 - Brand-new codebase. [Owner] The "additive only" rules in claude.md and the "no admin / no auth / no new tables" decisions in design.md apply to the old site only and are superseded. The new repo needs its own CLAUDE.md.
 - The old Vercel projects (`scollarly`, `scollarly-story`) are being deleted, so there is no live site until v2 ships. [Owner]
 - Tech stack as listed below. [Owner]
 - Hosting: Cloudflare Workers only. Vercel is removed from the plan. [Owner]
-- Domain: scollarly.co.in is the only domain. scollarly.com is not used anywhere. [Owner]
+- **The Workers Free CPU limit (about 10 ms per request) shapes the design.** [Owner, amended 2026-10-23 (D14)] Stage 0 measured that Next.js, Better Auth and password hashing exceed it. The design therefore (a) answers public pages and images from the edge cache before Next.js starts, (b) has no password sign-in, and (c) keeps handlers and session checks thin. A paid plan is not assumed; if the redesign cannot meet the gates, the decision returns to the owner.
+- Domain: scollarly.co.in is the only domain. scollarly.com is not used anywhere. [Owner] Until the .IN verification at the registrar is complete, the build and its measurements use the free `workers.dev` address (owner decision D12, 2026-10-23). The domain is needed before launch, not for the build.
 - **Timezone: WAT (West Africa Time, `Africa/Douala`, UTC+1, no daylight saving) is the single timezone for the dashboard, the SLA and all reports. It is held in one configured value.** [Owner, amended 2026-10-23]
 - **Content images are stored in Neon, not in a separate object store.** [Owner, amended 2026-10-23]
 
@@ -97,9 +98,9 @@ Scollarly connects African students with Indian universities. Students pay nothi
 | Backend / API | Route Handlers, Server Actions, Zod | Lead sync, role checks, validation |
 | Database | Neon Postgres | Leads, stages, content, events, placements, content images |
 | ORM | Drizzle | Typed queries and migrations |
-| Authentication | Better Auth (self-hosted) | Google and email sign-in, roles, sessions, 2FA |
-| Email | Resend, sending from mail.scollarly.co.in | Verification, password reset, admin invites |
-| Bot protection | Cloudflare Turnstile | Protects the lead forms, sign-up, forgot-password and resend-verification |
+| Authentication | Better Auth (self-hosted) | Google sign-in only, roles, sessions, owner 2FA |
+| Email | Resend, sending from mail.scollarly.co.in (optional in v1) | Admin invite emails only. No verification or reset emails. Invite links can also be shared by hand |
+| Bot protection | Cloudflare Turnstile | Protects the lead forms (there is no password sign-up to protect) |
 | Testing | Vitest, Playwright, Lighthouse CI, axe | Unit, end-to-end and offline tests, page budget, accessibility |
 | CI | GitHub Actions | Tests on every push |
 | Hosting | Cloudflare Workers (OpenNext) only | Free hosting that allows commercial use is the goal, to be confirmed |
@@ -109,10 +110,10 @@ Scollarly connects African students with Indian universities. Students pay nothi
 - **Hosting.** Cloudflare Workers only. [Owner] There is no fallback host. If the Phase 0 test (section 13) shows the app does not fit the free Workers limits, the decision comes back to you before anything is spent.
 - **Next.js on Cloudflare Workers via OpenNext.** Needs a check that the chosen Next.js version, the Workers free-plan size and CPU limits, and Serwist all work together. This is tested first, in Phase 0.
 - **Neon free tier.** Check storage, compute hours and idle suspend. A database that has gone idle makes the first request slow, which hurts users on weak connections.
-- **Content images in Neon.** [Owner, amended 2026-10-23] Images share Neon's free storage with all other data, so they are size-capped and monitored (FR-18). Delivery must be cached at the edge so image requests do not wake the database for every student.
+- **Content images in Neon.** [Owner, amended 2026-10-23] Images share Neon's free storage with all other data, so they are size-capped and monitored (FR-18). Delivery must be cached at the edge so image requests do not wake the database for every student. Stage 0 measured that this delivery has to happen in the Worker entry, before Next.js starts, to fit the CPU limit. If an image's first (cache miss) request proves too costly, object storage (R2) is the fallback; it needs the owner's decision because it may need a payment method.
 - **Dashboard-only libraries.** shadcn/ui and Recharts must not enter the public bundle. They load only on admin routes. Lighthouse CI enforces the page budget (FR/NFR in section 8) on every push.
 - **2FA.** Required for the owner only. [Owner] Admins and students are not required to use it. Authenticator-app codes plus recovery codes; SMS codes would add cost and are not assumed. [Mine]
-- **Email domain.** scollarly.co.in is the only domain. [Owner] Email sends from mail.scollarly.co.in, whose DNS records must be verified in Resend. The old `info@scollarly.com` address is replaced by an address on scollarly.co.in, and a mailbox must exist to receive mail there (section 12.2).
+- **Email domain.** scollarly.co.in is the only domain. [Owner] **Email is optional in v1** (admin invites only; amended 2026-10-23). If invite emails are used, they send from mail.scollarly.co.in, whose DNS records must be verified in Resend. The old `info@scollarly.com` address is replaced by an address on scollarly.co.in, and a mailbox must exist to receive mail there (section 12.2).
 - **Drizzle replaces Prisma.** The old Prisma schema and migration are not reused. Existing `ContactSubmission` rows, if any, are migrated by a one-off script.
 - **Turnstile and offline leads.** See the edge case in section 10.
 - **Analytics.** No third-party analytics tool is listed, which matches assumption A9 (first-party events, GA4 removed).
@@ -183,7 +184,7 @@ A short form that does not require an account [Mine, confirm]. Fields follow the
 - v1 uses one shared Scollarly WhatsApp number, set in a single configured value. Per-admin numbers are deferred. [Mine]
 
 ### F5 Auth and roles
-Email/password and Google sign-in via self-hosted Better Auth [Owner], with 2FA required for the owner only [Owner]. Anyone who signs up becomes a Student. Only the owner can invite or promote someone to Admin. Admins cannot create admins. The owner role cannot be removed, self-demoted if last, or granted by anyone else. Owner powers need a session that has passed the 2FA check, and destructive owner actions need a 2FA check within the last 10 minutes [Mine, confirm]. Removing an admin cuts their access on their next request.
+Google sign-in via self-hosted Better Auth [Owner], with 2FA required for the owner only [Owner]. There are no passwords [Owner, amended 2026-10-23 (D14)]. Anyone who signs in with Google for the first time becomes a Student. Only the owner can invite or promote someone to Admin. Admins cannot create admins. The owner role cannot be removed, self-demoted if last, or granted by anyone else. Owner powers need a session that has passed the 2FA check, and destructive owner actions need a 2FA check within the last 10 minutes [Mine, confirm]. Removing an admin cuts their access on their next request.
 
 ### F6 Content management
 Admin screens for: universities, programmes, fee structures, campus experiences, official resources, testimonials, team, FAQs, trust stats, journeys, blog posts, and images. Fee and tour records keep `dataConfirmed`, `lastUpdated` and `urlLastChecked`, and the dashboard flags stale ones (fees over 180 days, tours over 90 days [Carried]). Testimonials need `verified` and a consent record before they can be published. Who may edit content is [Mine, Q: A4]. Images are uploaded by admins and the owner from these screens and stored per FR-18. [Owner, amended 2026-10-23]
@@ -218,7 +219,7 @@ All UI text goes through translation keys from day one. French is scaffolded but
 - S3. As a student, I want to see fees as a range with a clear disclaimer, and a "contact us" option where fees are unconfirmed, so I'm never shown a wrong number.
 - S4. As a student, I want to start a chat on WhatsApp in one tap with my details already included, so I don't retype anything.
 - S5. As a student with no signal, I want my submission saved on my phone and sent when I reconnect.
-- S6. As a student, I want to sign up with Google or email and see which step of the process I'm at.
+- S6. As a student, I want to sign in with Google and see which step of the process I'm at.
 - S7. As a student, I want proof this is real (verified testimonials, a real offer letter) before I share my documents.
 - S8. As a student, I want to watch a campus tour only if I choose to, so it doesn't use my data unasked.
 
@@ -278,7 +279,7 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 
 **Connectivity**
 - Background Sync is not supported in all browsers (notably iOS Safari), so the queue does not depend on it. It retries whenever the app is open and online.
-- Google sign-in and email links need a connection; show a clear offline message and keep the lead flow usable without an account.
+- Google sign-in needs a connection; show a clear offline message and keep the lead flow usable without an account.
 - Cached fee data can be old: always show "last updated", and replace the cache on reconnect.
 - 360° tours and videos are unavailable offline: show a clear "needs connection" state, not a broken frame.
 - The user taps WhatsApp offline: the lead is saved locally with its reference, WhatsApp opens (it can hold the message), and sync happens later.
@@ -288,7 +289,7 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 - Duplicate leads from the same student (retries, two devices, new session): dedupe by reference first, then by WhatsApp number, and surface possible duplicates to admins rather than auto-merge.
 - WhatsApp number missing a country code, wrong length, or shared between students: validate and normalise; allow multiple students per number with a warning.
 - A lead later signs up with a different email: link by number or reference with admin confirmation, never silently. The admin records how identity was checked: the verified email matches the lead, or the student replied on WhatsApp from the number on file. [Mine, amended 2026-10-23]
-- Sign-up, forgot-password and resend-verification can be abused to use up the free email allowance: they are protected by Turnstile and a rate limit, student-originated emails are capped per day, and part of the daily allowance is kept for owner invites and resets. [Mine, amended 2026-10-23]
+- There is no password sign-up, forgot-password or resend-verification, so those forms cannot be abused to use up the free email allowance. Email is used only for optional admin invites. The lead forms keep Turnstile and the rate limiter. [Owner, amended 2026-10-23 (D14)]
 - Applicants aged 17 are minors. Consent and parent involvement need a legal check. [Open, Q6]
 - Student requests deletion: leads, notes and events tied to them must be erasable while keeping anonymous aggregates. Payment records are not personal data and are kept; a link to an erased lead is cleared. [Mine]
 
@@ -324,7 +325,7 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 | The chosen stack may not fit Cloudflare's free Workers limits, and there is no fallback host | Phase 0 test of a thin slice (page + auth + DB query + image + offline page) on Workers before building the rest; if it fails, the decision returns to the owner |
 | Offline queue, bot protection and sync interact badly (Turnstile, iOS background sync) | Design and test the queue end to end early with Playwright offline tests |
 | Response time can't be measured exactly without the API | Admin-logged proxy, labelled as such on the dashboard |
-| Email-based sign-up suits some students poorly | Anonymous lead intake; account only needed for tracking |
+| Google sign-in only: a student without a Google account cannot sign in to track progress | Anonymous lead intake and WhatsApp work without an account; the account is only for tracking. Revisit if many students lack a Google account |
 | Trust claims on the site are inconsistent or unverifiable | Resolve Q3 before launch; testimonials gated by consent |
 | Storing students' personal data brings legal duties in several countries | Legal check [Open, Q6]; minimise stored data; deletion on request |
 | Images stored in Neon consume the shared free storage and could wake the database | Size caps, edge caching, usage meter and alert (FR-18); the storage layer is swappable later |
@@ -345,7 +346,7 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 | SLA rule | As defined in FR-12 | Owner (agreed to a precise rule), amended 2026-10-23 |
 | Owner | One owner: you. Created from a server-side configured email at first verified sign-in. | Owner / Mine |
 | 2FA | Required for the owner only. Authenticator app plus recovery codes. | Owner / Mine |
-| Authentication | Better Auth, self-hosted, email and Google | Owner |
+| Authentication | Better Auth, self-hosted, Google sign-in only (no passwords) | Owner, amended 2026-10-23 (D14) |
 | Hosting | Cloudflare Workers only. Vercel removed. No fallback host. | Owner |
 | Domain | scollarly.co.in only. Email sends from mail.scollarly.co.in. scollarly.com is not used. | Owner |
 | Offline lead verification | Turnstile runs when the app is open and online; queued leads submit then. No dependency on background sync. | Mine |
@@ -376,9 +377,9 @@ These do not block starting the build. They block going live.
 1. **Q2: Correct phone numbers.** Which number is the Scollarly WhatsApp number (+237 651 232 301 on every button), and which number should the contact section show (+91 98157 25968 today)?
 2. **Q3: Confirmed trust content.** Provide the real figures for students helped and students admitted, confirm the 5 testimonials are real and consented, and confirm the team bios. Anything unconfirmed is left out.
 3. **Q6: Minors and data protection.** Get a legal check on consent for 17-year-old applicants and on the privacy rules in the student countries. I have not verified which laws apply.
-4. **Mailbox.** Create a mailbox on scollarly.co.in to receive mail (for example an info@ address), and verify mail.scollarly.co.in in Resend by adding its DNS records.
-5. **Domain on Cloudflare.** Confirm scollarly.co.in can be pointed at Cloudflare Workers. This probably needs the domain's DNS to be managed in Cloudflare; I have not verified it. It may be needed before Phase 0 finishes: the Cache API may not work on the `workers.dev` address, so the caching gates might need the real domain (amended 2026-10-23).
-6. **Google sign-in.** Create the Google OAuth credentials for scollarly.co.in.
+4. **Mailbox and email (optional in v1).** Creating a mailbox on scollarly.co.in and verifying mail.scollarly.co.in in Resend are only needed if invite or notification emails are used. Not needed for launch.
+5. **Domain on Cloudflare.** Needed before launch, not for the build. The Stage 0 probe showed the Cache API works on the `workers.dev` address, so the build and the gates use `workers.dev`. At the time of this amendment scollarly.co.in is locked at the registrar pending .IN KYC (owner decision D12).
+6. **Google sign-in.** Create the Google OAuth credentials. Sign-in is now the only way in, so this is needed before Stage 2 testing. Whether Google accepts a `workers.dev` redirect address is not yet verified; it is checked in Stage 2.
 7. **Vendor limits.** Confirm the free-tier limits and commercial-use terms of Cloudflare Workers, Neon, Resend and Turnstile. Phase 0 starts this.
 
 ### 12.3 Needed before a specific feature
@@ -394,7 +395,7 @@ All stages ship in version 1. [Owner, amended 2026-10-23]
 
 Mapping to the build contract (`essentials/system_architecture_essential_1.md`, Stages 0 to 11): Phase 0 is Stage 0. The PRD's "Stage 1, core" is roughly essentials Stages 1 to 7. The PRD's "Stage 2" is roughly essentials Stages 8 and 9. Essentials Stages 10 and 11 (owner pages, operations, hardening, launch) have no separate PRD stage. The essentials file is the source for order and exit criteria.
 
-- **Phase 0, proof of fit:** one thin slice deployed on Cloudflare Workers' free plan: a server-rendered page, Google sign-in with Better Auth, a password hash and sign-in measured against the CPU limit, one Neon query, a stub authenticated admin page and a stub lead endpoint (so their CPU can be measured), one image stored in and served from Neon, one Serwist offline page, and Lighthouse CI on it. If it does not fit, stop and bring the decision back to the owner before building more. [Mine]
+(m) => m
 - **Stage 1, core:** F1, F2, F3, F4, F5, F6, F7, F11 structure, and the funnel and source/country views.
 - **Stage 2:** F8 student portal, admin performance, F10 placement payments received and the payments view in F9.
 - **Later (after v1):** French launch, student document upload (if you decide yes), WhatsApp Business API.
@@ -405,8 +406,20 @@ Edited in place by the owner's instruction after the engineering review. Nothing
 
 - Quick WhatsApp form added next to the full form; metric minimum profile defined for both (F3, F4, success metrics).
 - Send first, then open WhatsApp, up to 4 seconds when online (F3, section 10).
-- Turnstile also protects sign-up, forgot-password and resend-verification, with a daily cap on student-originated emails (stack table, section 10).
+$1 *(Superseded on 2026-10-23: there is no password sign-up any more; see the log below.)*
 - Owner 2FA rule made precise: a session that has passed 2FA, plus a 10-minute check for destructive actions (F5, FR-8).
 - Admin approval of a student link records how identity was checked (section 10).
 - Phase 0 slice includes a stub admin page and a stub lead endpoint; the domain action may be needed before Phase 0 ends (sections 12.2, 13).
 - PRD "Stage 1/2" mapped to the essentials stages (section 13).
+
+## Amendment log (after the Stage 0 measurements, 2026-10-23)
+
+Edited in place by the owner's instruction (decision D13: edit the existing documents, no new versions). Version stays 1. Cause: the Stage 0 slice was deployed to Workers Free and measured, and the CPU limit (about 10 ms per request) was exceeded by password sign-in (scrypt and PBKDF2), the lead POST and image serving. The owner chose to redesign for the free plan (decision D14). Each change is also reflected in `system_architecture_1.md`, `essentials/system_architecture_essential_1.md` and the tracker.
+
+- **Google sign-in only; no passwords** (constraints, stack table, F5, S6, section 10, risks). No verification, reset or resend emails exist any more.
+- **Email is optional in v1**: admin invites only, and invite links can be shared by hand. Mailbox and Resend are no longer launch requirements (section 12.2, items 4).
+- **The CPU limit is a stated constraint**, with the three design responses: edge fast path, no passwords, thin handlers (section 4).
+- **Hosting on `workers.dev` until the domain is verified** (D12); the Cache API was measured to work there (section 4, section 12.2 item 5).
+- **Images stay in Neon for now**, served from the edge before Next.js starts; object storage is the named fallback and is the owner's decision (section 4).
+- **New trade-off recorded:** a student without a Google account cannot sign in to track progress (section 11).
+- **Phase 0 stays open** and gains a lean-design proof (section 13; essentials S0.10).
