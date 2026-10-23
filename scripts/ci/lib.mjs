@@ -48,3 +48,43 @@ export function markdownTable(rows) {
   }
   return lines.join("\n");
 }
+
+/**
+ * `wrangler tail --format json` prints pretty-printed, multi-line JSON, so it cannot be read line by line.
+ * Takes the text received so far and returns every COMPLETE top-level JSON object in it, plus the unfinished
+ * remainder to keep for the next chunk. Braces inside strings are ignored.
+ */
+export function drainJsonObjects(buffer) {
+  const objects = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  let consumed = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    const c = buffer[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = depth > 0;
+    else if (c === "{") {
+      if (depth++ === 0) start = i;
+    } else if (c === "}" && depth > 0 && --depth === 0) {
+      objects.push(buffer.slice(start, i + 1));
+      consumed = i + 1;
+      start = -1;
+    }
+  }
+  return { objects, rest: depth > 0 && start >= 0 ? buffer.slice(start) : buffer.slice(consumed).replace(/^[^{]*/, "") };
+}
+
+/** Nearest-rank statistics for a list of CPU times, with the first `warmup` samples also reported separately. */
+export function cpuStats(values, warmup = 3) {
+  const all = values;
+  const warm = values.slice(warmup);
+  const stat = (v) => ({ n: v.length, p50: quantile(v, 0.5), p95: quantile(v, 0.95), max: v.length ? Math.max(...v) : null });
+  return { all: stat(all), warm: stat(warm) };
+}
