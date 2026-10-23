@@ -1,0 +1,19 @@
+{
+  "home": {
+    "title": "Scollarly",
+    "promise": "Study in India from Africa, with a team that answers on WhatsApp.",
+    "phase0": "Stage 0 proof of fit. This page is prerendered and served from the edge cache.",
+    "offlineLink": "See the offline page"
+  },
+  "offline": {
+    "title": "You are offline",
+    "body": "This page is not saved on your phone yet. Pages you have already opened still work. Reconnect to see the rest."
+  },
+  "phase0": {
+    "publishedHeading": "Published content",
+    "adminHeading": "Admin check (Stage 0)",
+    "meHeading": "Student check (Stage 0)",
+    "leadCount": "Stub leads stored",
+    "sessions": "Your sessions"
+  }
+}

@@ -1,0 +1,29 @@
+# Copy to .dev.vars for local `wrangler dev` / `opennextjs-cloudflare preview`. .dev.vars is git-ignored.
+# In deployed Workers set each value with `wrangler secret put NAME`. Never commit real values.
+
+# Neon connection string (pooled is fine for the HTTP driver and the WebSocket Pool).
+DATABASE_URL=postgres://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+
+BETTER_AUTH_SECRET=replace-with-32-plus-random-characters
+BETTER_AUTH_URL=http://localhost:8787
+
+# Google OAuth (tracker H8 is an owner action; leave empty until credentials exist).
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Cloudflare Turnstile. The documented always-pass test secret works for local runs:
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+
+# Resend. Empty means verification emails are skipped (the send is a no-op, nothing is logged).
+RESEND_API_KEY=
+EMAIL_FROM=Scollarly <onboarding@resend.dev>
+
+# First verified sign-in with this email becomes the owner (architecture 9.3).
+OWNER_EMAIL=owner@example.com
+
+# Stage 0 only: shared secret required by /api/v1/probe/* and the Phase 0 admin page. Remove with the probes.
+PHASE0_PROBE_TOKEN=replace-with-a-long-random-string
+
+# Optional, non-gating CU-hours probe (S0.3).
+NEON_API_KEY=
+NEON_PROJECT_ID=

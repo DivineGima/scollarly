@@ -1,0 +1,29 @@
+/* Stage 0: a tiny, system-font stylesheet. Design tokens arrive in S1.6. */
+:root {
+  --fg: #0b1220;
+  --bg: #ffffff;
+  --accent: #1d4ed8;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1rem;
+  color: var(--fg);
+  background: var(--bg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+a {
+  color: var(--accent);
+}
