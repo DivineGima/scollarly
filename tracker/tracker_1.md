@@ -12,6 +12,7 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Phase | Stage 0 (proof of fit) in progress. The Stage 0 code and the documents were merged to `main` by the owner through PR #1 on 2026-10-23 (merge commit `393affe`), with all CI jobs green. The gates that need a deployed Worker have not been measured. |
 | Next stage | Stage 0: Proof of fit (hard gate) |
 | Blocked by | The deployed gates need things only the owner can do: a Neon project and connection string, the Worker secrets, and (if the S0.1 probe fails on `workers.dev`) the domain on Cloudflare. Cloudflare is already logged in on the owner's PC. See `docs/stage-0-runbook.md` and Session 4 below. Also open: H1 (vendor terms) and H7 (domain on Cloudflare, needed before the cache gates if the S0.1 probe shows the Cache API is a no-op on `workers.dev`). Stage 1 must not start until every gate has a measured result. |
+| Gate before Stage 2 | The owner must decide how email works before Stage 2 starts (see F10 and the Version 2 backlog). Stage 2 modules S2.1 and S2.2 as written need a verified Resend sending domain, which does not exist while the domain is locked. Either the domain is verified, or the documents are amended to version 2 first. Do not start Stage 2 on the current documents otherwise. |
 
 ## Session log
 
@@ -121,6 +122,26 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 - GitHub: Claude Code is logged in with admin rights through the `gh` CLI and the GitHub tool server. **Branch protection on `main` is not available** on this private repository without GitHub Pro (HTTP 403), see flag F8.
 - No Neon, Resend or Google Cloud access exists in Claude Code (no logged-in CLI, no connector). These are owner tasks.
 
+### 2026-10-23: Session 5 (domain blocked, owner decision to continue on workers.dev)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md` (all N = 1, aligned). No document was changed in this session; the open question is recorded as a version 2 backlog item below.
+
+**What happened**
+
+- The owner tried to move `scollarly.co.in` to Cloudflare's nameservers (`lana.ns.cloudflare.com`, `yahir.ns.cloudflare.com`) at GoDaddy. GoDaddy refused (`PendingRAAVerification`), and the owner also cannot add or edit DNS records. The owner is an international student in India with no Aadhaar card, so GoDaddy's DigiLocker KYC route is not available.
+- Read-only checks by Claude Code: the domain still resolves on GoDaddy's nameservers (`ns43/ns44.domaincontrol.com`), was registered 2026-06-02 and expires 2027-06-02, has no registry hold, and carries `client update prohibited`. So it is locked by the registrar, not suspended. If NIXI (the .IN registry) places it on server hold, it drops out of DNS entirely.
+- Sources found: .IN KYC is mandatory for every .in-family domain. For foreign registrants the route is a support ticket, and NIXI reviews a passport plus a statement of connection to India; approval is not guaranteed and NIXI gives no time frame.
+- Registry checks on 2026-10-23: `scollarly.com` and `scollarly.org` were **not registered** (authoritative Verisign and PIR answers). Availability and price must still be confirmed at a registrar.
+- Claude Code found no legitimate technical workaround. GoDaddy's own nameservers or records do not help: the app needs the domain on Cloudflare, Resend needs records added to the domain's DNS, and the lock blocks both.
+
+**Owner decision D12 (2026-10-23):** keep building on the free `workers.dev` address for now. Record the domain problem as a to-do for the version 2 documents (PRD_2, system_architecture_2, essentials_2). No document is amended today.
+
+**What this means**
+
+- **Stage 0 is not affected** except that the Cache API probe (S0.1) runs on `workers.dev`. If it is a no-op there, the cache gates need the domain (H7) and the architecture 17 fallback applies.
+- **Resend.** Without a verified sending domain, Resend delivers only to the email address of the Resend account itself (any other recipient is rejected with a 403). So no student, invite or password-reset email can be sent. Resend is first used in Stage 2, so this is a gate before Stage 2, not a Stage 0 problem.
+- The owner is contacting GoDaddy support and NIXI (`support@nixi.in`) about foreign-national KYC. The outcome decides which of the version 2 options below applies.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -134,6 +155,7 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | F7 | The proposed public JavaScript budget (100 KB gzip) is already exceeded by the Next.js baseline (about 104 kB). | See Session 3, finding 5. Affects the Lighthouse gate and S3.5. | **Open.** Owner chooses: raise the budget, or accept a lower Lighthouse score target. |
 | F8 | Architecture 13.8 and `CLAUDE.md` say `main` is protected by a branch protection rule. GitHub refuses to enable it on a private repository on the free plan (HTTP 403, "Upgrade to GitHub Pro or make this repository public"). | Today only discipline stops a push to `main`. Rulesets are also limited on free private repositories. | **Open.** Owner chooses: make the repository public, upgrade to GitHub Pro, or accept discipline-only protection and record it as an accepted risk. |
 | F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not enabled. | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 only if needed. |
+| F10 | `scollarly.co.in` is locked at GoDaddy until .IN KYC is accepted. The owner is an international student without Aadhaar, so DigiLocker is not available. Nameservers and DNS records cannot be changed. | Blocks moving the domain to Cloudflare (H7), a custom domain for the Worker, and the Resend sending domain (H6). The domain still resolves today; a registry server hold would take it offline. | **Open.** Owner action: ask GoDaddy support and email `support@nixi.in` for the foreign-national passport route (message drafted in the conversation). Not marked done by Claude Code. Decision D12: build on `workers.dev` meanwhile. See the Version 2 backlog. |
 
 ## Stage status
 
@@ -261,12 +283,24 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H3 | Q2: confirm the Scollarly WhatsApp number (+237 651 232 301 today) and the contact number shown on the site (+91 98157 25968 today) | Launch | Open |
 | H4 | Q3: supply real figures for students helped and admitted, confirm the 5 testimonials are real and consented, confirm team bios. Anything unconfirmed is not published. | Launch | Open |
 | H5 | Q6: legal check on consent for 17-year-old applicants and data protection in the student countries | Launch | Open |
-| H6 | Create a mailbox on scollarly.co.in and verify mail.scollarly.co.in in Resend (DNS records) | Launch | Open |
-| H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open |
+| H6 | Create a mailbox on scollarly.co.in and verify mail.scollarly.co.in in Resend (DNS records) | Launch, and before Stage 2 (see the gate in Current position) | Open. Blocked by F10 |
+| H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 |
 | H8 | Create Google OAuth credentials for scollarly.co.in | Stage 2 testing and launch | Open |
 | H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 150 MB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, student email cap 60 a day with 40 reserved, 3 per address, 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
+
+## Version 2 backlog (to-do for PRD_2, system_architecture_2, essentials_2)
+
+Added 2026-10-23 at the owner's request (decision D12). After Stage 0 started, the architecture says any change creates a new version, preceded by a PRD bump with the same number, so these items are done together as N = 2. Nothing below is changed yet. When the version 2 documents are written, each changelog must carry the **Downstream Impact** field that `CLAUDE.md` steps 4 and 6 check (`NO_IMPACT` or `IMPACT`); the email and domain items are `IMPACT` for Stage 2 and Stage 11.
+
+| # | To-do | Documents and modules touched | Depends on |
+|---|---|---|---|
+| V2-1 | **Settle the production domain.** Either record that `scollarly.co.in` is verified and usable, or replace it with a domain the owner controls (candidates seen unregistered on 2026-10-23: `scollarly.com`, `scollarly.org`; recheck and confirm price at a registrar). Update every place that names the domain. | PRD section 4 ("scollarly.co.in is the only domain"), section 12.2 items 4 to 6; architecture 1, 13.7 and 20; essentials S2.1, S2.2, S11.6, S11.7; H6, H7, H8 | F10: GoDaddy and NIXI outcome |
+| V2-2 | **Decide how email works without a verified sending domain**, if the domain is still locked when Stage 2 is due. A possible interim design (owner decision, not yet taken): Google sign-in only for students, admin invites as copyable links sent over WhatsApp, Resend used only for the owner's own address. This would amend F5, FR-7, FR-8, ADR-015 and ADR-027 (the student email cap) and the A9, A10 and B0 page flows. Email and password sign-in and password reset return once a domain is verified. | PRD F5, section 10 (email abuse); architecture 9, 13.1, 16 (A9, A10, B0), ADR-027; essentials S2.1, S2.2, S2.5 | V2-1 |
+| V2-3 | **Record the hosting URL decision.** Stage 0 and early stages run on `<worker>.workers.dev`. Record the Cache API probe result there, which fallback from architecture 17 was used (edge cache with `s-maxage` needs the custom domain), and that a real domain is required before launch. | Architecture 6.1, 17, ADR-002; essentials S0.1, S0.6, S11.7 | S0.1 probe result |
+| V2-4 | **Re-check Google OAuth on `workers.dev`.** Whether Google accepts a `workers.dev` redirect URI for the consent screen is not verified here. Test it in Stage 2; if refused, it is a second reason to settle V2-1 first. | Architecture 9; H8 | Stage 2 |
+| V2-5 | **Fold in the other open flags if the owner agrees:** F5 (physical-delete carve-outs in `CLAUDE.md`), F6 (`server/db` may import Drizzle), F7 (public JavaScript budget), F8 (branch protection on a private free repository). | `CLAUDE.md`, architecture 5, 6.3, 13.8, ADR-014, ADR-029 | Owner answers |
 
 ## Project understanding (for future sessions)
 
