@@ -10,9 +10,9 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
 | Phase | Stage 0 (proof of fit) is open. The first slice failed the CPU gates; the owner chose to redesign for the free plan (D14), and on 2026-10-24 asked for a Neon-centred redesign (D15): Neon Auth for sign-in and sessions, our own owner 2FA on the otpauth library, Neon row level security plus the facade, images in a Neon Object Storage bucket (D16), Resend removed. The documents are edited in place and are still version 1 (D13). **The redesign is a proposal until Module S0.10 proves it on the deployed Worker.** Stage 1 has not started and must not start until S0.10 passes. **2026-10-24: the first S0.10 run failed two gates (staff page, lead POST). The owner chose to stay on the free plan (D18), so signed-in screens were rebuilt as a data-free cached shell plus plain data functions (ADR-040). The re-run on the deployed Worker is the next step.** |
-| Next stage | Stage 0: Proof of fit (hard gate), now Module S0.10 (free-plan proof) |
+| Next stage | **Stage 1** (Stage 0 is complete: every Module S0.10 gate passes) |
 | Blocked by | The S0.10 re-run (after the owner merges the pull request) and the one Google sign-in measurement that needs the owner. Open owner actions: H12 (Object Storage limits), H15 (turn off Magic Link), H16 (Google redirect check). The domain (F10) blocks launch only. |
-| Gate before Stage 2 | Module S0.10 passes. Stage 2 needs Neon Auth and the Google credentials (H8). Google's redirect address will be Neon Auth's; confirm when the credentials are created. |
+| Gate before Stage 2 | Stage 1 complete. Stage 2 needs Neon Auth and the Google credentials (H8, done per the owner); H16 (redirect check) is confirmed by the owner. Stage 2 also builds the F13 fix (visitor IP kept by Neon Auth) and the owner bootstrap. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -284,6 +284,19 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 - **Documents corrected in place (all version 1, D13):** PRD (tech stack row, amendment), architecture (ADR-040 added; ADR-004, 033, 039 amended; sections 1, 4.3, 5, 6, 8, 9, 10, 12, 15, 17, 18, 19; amendment log), essentials (S0.4, S0.10, S2.4, amendment), `CLAUDE.md` (guardrail), this tracker.
 - **Not yet done:** deploy and measure (needs the pull request merged to `main`, then the manual workflow), the lead POST diagnosis, the Google sign-in measurement by hand, and the open questions in ADR-040 (staff navigation between screens; mutation endpoint CPU).
 
+### 2026-10-24: Session 12 (Module S0.10 re-run after D18: every measured gate passes)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1.
+
+- The owner merged PR #11 and answered the standing check-in C1: **Neon Auth has not shipped authenticator-app 2FA** (still asked each session).
+- Workflow run 40074577922 (commit 284eac1) succeeded. Results are in "Module S0.10 gates" above: staff and student shells 2 to 3 ms and data calls 4 to 5 ms at p95 (gate 8), lead POST p95 5 ms (worst 13), public page and both image paths 0 to 3 ms, nothing cut at the limit, 20 probes passed.
+- **Google sign-in measured (same day):** the Stage 0 home page had no sign-in button, so a Stage 0 route `GET /auth/start` was added (PR #13). Five real sign-ins by the owner finished and showed the student screen. The first two, through Next.js, used 19 ms and 12 ms for the return trip (over the 10 ms gate, nothing cut). `/auth/start` and `/auth/return` were then moved into the Worker entry (PR #14, `src/server/edge/sign-in.ts`); three more sign-ins measured **4, 2 and 1 ms**. One error page ("Verification not found") was seen once; it could not be reproduced in 13 command-line tries and is put down to a stale ticket from a reloaded page.
+- **Stage 0 is complete.** Every gate in architecture section 17 has a recorded result and every Module S0.10 gate passes with no request cut at the limit. Stage 1 may start. H16 awaits the owner's word. The Phase 0 probes and `phase0*` tables are removed after Stage 1 starts (a later cleanup).
+- **Carried to later stages (none blocks Stage 1):** F13 to Stage 2, H12 to Stage 3 and before launch, staff navigation between screens (Stage 5), write endpoint CPU (each stage adds its own row), the lead POST's two slow requests (13 and 10 ms of 50), and the Neon API key id 3459305 and the default storage credential clean-up.
+- **Unproven and carried to later stages (ADR-040):** staff navigation between screens, and the CPU of write endpoints beyond the lead POST insert.
+- **Owner answers (2026-10-24):** magic link switched off (H15 done per the owner); the beta Neon Auth SDK is accepted (F14); F13 (visitor IP kept by Neon Auth) and H12 are carried to later stages and do not block Stage 1 (the owner asked for a suggestion on F13, recorded in the flag).
+- **Sign-in measurement:** the owner reported the check as complete, but Neon Auth holds no users and no sessions, so no Google sign-in has finished. Claude Code started a log watch and asked for one sign-in; the result is recorded here when it is seen.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -301,8 +314,8 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Decided 2026-10-23 (owner): option (b), redesign for the free plan (D14), documents edited in place (D13). Stage 0 stays open until Module S0.10 proves the redesign; if it fails, the decision returns to the owner.** The original options, for the record: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
 | F15 | **Two S0.10 gates failed on the deployed Worker** (Session 10): the admin page used 15 ms warm p50 and 25 ms p95 against 8 ms, and the lead POST used 3 ms p50 and 14 ms p95 against 8 ms. Nothing was cut at the 10 ms free-plan limit. Everything else measured passed. | Stage 0 is a hard gate: Stage 1 cannot start until S0.10 passes or the owner decides otherwise. The student page (no second query) costs 13 ms, so most of the admin cost is Next.js rendering, not the auth or RLS design. | **Decided 2026-10-24 (owner): option (1), stay on the free plan (D18).** The options were: (1) stay free and move staff screens off the Next.js render (static shell plus thin edge functions, as already done for the lead POST), and diagnose the lead POST tail; (2) Workers Paid plan (about 5 dollars a month, breaks PRD G6); (3) relax the 8 ms gate for staff-only pages, which needs an explanation of why 15 ms was not cut at the 10 ms limit. Claude Code's recommendation: (1) first, no plan change yet. |
 | F12 | Image backup. With images in Neon Object Storage the weekly `pg_dump` carries no image bytes, and a monthly copy of up to 3.5 GB cannot fit in GitHub Free artifact storage (about 500 MB). | Content is archived and never deleted (ADR-014). | **Decided 2026-10-24 (D17, owner delegated the choice).** No cloud copy. Immutable hash-keyed objects with no delete path, a manifest in the weekly dump, and an owner-run incremental copy to the owner's own disk, checked by sha256 (`scripts/backup-images.mjs`, built in S10.3). Needs no credential, no GitHub storage, no paid service, and does not delay any stage before Stage 10. |
-| F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Open.** Options for the owner: accept it for sessions only (they are deleted when the session ends), ask Neon whether IP capture can be switched off, or clear the column with the daily cron (our code writing to Neon's table). Needs an owner decision before launch. |
-| F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Open (informational).** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
+| F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Carried to Stage 2 (owner, 2026-10-24: flag it to a later stage; it does not block Stage 1).** The owner asked what Claude Code suggests. **Suggestion:** (1) a database trigger on `neon_auth.session` that blanks `ipAddress` and `userAgent` as each row is written, so nothing is kept; to be tried first on a throwaway Neon branch, because Neon manages that schema and could replace the trigger in an update; (2) if the trigger is not safe, a SECURITY DEFINER function owned by the owner role that clears both columns, called by the daily cron (S10.2), so nothing older than a day is kept; (3) either way the privacy notice says what is kept. Built and tested in S2.2 (sign-in) and confirmed with the owner then. Until then only the owner and test accounts sign in, so no visitor data is held. |
+| F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Owner accepts the beta (2026-10-24: "yes am okay with it being a beta version").** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
 
 ## Stage status
 
@@ -310,7 +323,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 
 | Stage | Name | Module IDs | Status |
 |---|---|---|---|
-| 0 | Proof of fit (hard gate) | S0.1 to S0.10 | in-progress |
+| 0 | Proof of fit (hard gate) | S0.1 to S0.10 | **complete** (2026-10-24) |
 | 1 | Foundation | S1.1 to S1.7 | — |
 | 2 | Authentication, roles, admin shell | S2.1 to S2.7 | — |
 | 3 | Public site | S3.1 to S3.5 | — |
@@ -329,16 +342,16 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 
 | ID | Module | Status |
 |---|---|---|
-| S0.1 | Repo skeleton and Cache API probe | in-progress |
-| S0.2 | Prerendered public page with Lighthouse CI | in-progress |
-| S0.3 | Neon driver, stub lead POST, CU-hours probe | in-progress |
-| S0.4 | Neon Auth behind the facade, owner 2FA (otpauth), stub admin page, step-up | in-progress |
-| S0.5 | 300 KB WebP in a Neon Object Storage bucket served through the Cache API | in-progress |
-| S0.6 | Tag revalidation and OpenNext cache bindings | in-progress |
-| S0.7 | Cron, Durable Object counter and limiter | in-progress |
-| S0.8 | Serwist offline page | in-progress |
-| S0.9 | Measurement report | in-progress |
-| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress (first run 2026-10-24 failed two gates; rebuilt under D18 as shell plus data calls; re-run pending) |
+| S0.1 | Repo skeleton and Cache API probe | complete |
+| S0.2 | Prerendered public page with Lighthouse CI | complete |
+| S0.3 | Neon driver, stub lead POST, CU-hours probe | complete |
+| S0.4 | Neon Auth behind the facade, owner 2FA (otpauth), stub admin page, step-up | complete |
+| S0.5 | 300 KB WebP in a Neon Object Storage bucket served through the Cache API | complete |
+| S0.6 | Tag revalidation and OpenNext cache bindings | complete |
+| S0.7 | Cron, Durable Object counter and limiter | complete |
+| S0.8 | Serwist offline page | complete |
+| S0.9 | Measurement report | complete |
+| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | complete (2026-10-24: every gate passes on the deployed Worker after D18; see the gates tables) |
 | S1.1 | Migrations, constraints, indexes, seeds | — |
 | S1.2 | Repository layer, `Actor`, auth facade interface | — |
 | S1.3 | Shared libraries | — |
@@ -424,7 +437,7 @@ One row per gate in architecture section 17. Any failed gate stops the build and
 
 ## Module S0.10 gates (free-plan proof, redesigned; extended by D15 on 2026-10-24)
 
-Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. **Measured 2026-10-24 by the workflow run 40064928935 on commit e964be3** (live Worker, throwaway Neon Auth sessions, CPU time from `wrangler tail`; the tail samples under load, so "events" is fewer than requests). **Two gates failed (admin page, lead POST), so Stage 0 stays closed. The owner chose to stay on the free plan (D18); the staff and student rows are rebuilt as shell plus data call and re-measured in the next table.** A failed gate returns the matching decision to the owner.
+Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. **Measured 2026-10-24 by the workflow run 40064928935 on commit e964be3** (live Worker, throwaway Neon Auth sessions, CPU time from `wrangler tail`; the tail samples under load, so "events" is fewer than requests). **Two gates failed (admin page, lead POST), so Stage 0 stays closed. The owner chose to stay on the free plan (D18); the staff and student rows were rebuilt as shell plus data call and re-measured; they pass (next table).** A failed gate returns the matching decision to the owner.
 
 | Gate | Pass when | Measured (warm p50 / p95 / worst ms) | Result |
 |---|---|---|---|
@@ -438,19 +451,25 @@ Same thresholds as architecture section 17, measured as warm p95 over at least 5
 | Runtime role denied on every table (non-owner, forced policies) | All tables denied without the right user | Live probe: role `app_runtime`, no BYPASSRLS, 0 rows visible without a context, Neon Auth's tables unreadable. Every-table check passes in CI | **Pass** |
 | Neon Object Storage from the Worker | Signed write and public read work | Write 606 ms, read 177 ms wall; the probe used 5 / 7 / 9 ms CPU | **Pass** |
 | Forged cookie, anonymous visitor and student refused on the admin page | All refused | 404, 404, 404 | **Pass** |
-| Sign-in return trip on Neon Auth (throwaway Google test account) | At most 10 ms | Needs the owner to sign in with Google once while the Worker log is watched | Not measured |
-| Google redirect through Neon Auth | Works; recorded | Needs the same sign-in (H16) | Not measured |
+| Sign-in return trip on Neon Auth (the owner's Google test account) | At most 10 ms | Through Next.js: 19 ms and 12 ms (two real sign-ins), over the gate and not cut. Moved into the Worker entry; see the re-run table | **Fixed, see re-run table** |
+| Google redirect through Neon Auth | Works; recorded | Works: five real sign-ins finished and landed on the student screen | Pass (H16 awaits the owner) |
 
-**Re-run after D18 (ADR-040).** Not yet measured. Each signed-in screen is two requests, each gated at warm p95 of at most 8 ms over 50 requests with none cut at the limit.
+**Re-run after D18 (ADR-040): measured 2026-10-24, workflow run 40074577922, commit 284eac1.** Each signed-in screen is two requests, each gated at warm p95 of at most 8 ms over 50 requests with none cut at the limit. **Every measured gate passed.** CPU is milliseconds from `wrangler tail`; the tail samples under load, so events are fewer than requests.
 
-| Gate | Pass when | Measured | Result |
+| Gate | Pass when | Measured (warm p50 / p95 / worst ms) | Result |
 |---|---|---|---|
-| Staff screen, shell (session query, then the cached page) | At most 8 ms | | Not measured |
-| Staff screen, data call (session query, then one query under row level security) | At most 8 ms | | Not measured |
-| Student screen, shell | At most 8 ms | | Not measured |
-| Student screen, data call | At most 8 ms | | Not measured |
-| Lead POST, 50 requests, with every sampled CPU value kept | At most 8 ms; explain the slow tail | | Not measured |
-| Shell has no data, a browser may not cache it; anonymous / student / forged refused (404 shell, 401 / 403 data) | All hold | | Not measured |
+| Public page | At most 5 ms | 0 / 0 / 0 (17 events; the first request after the deploy used 17) | **Pass** |
+| Staff screen, shell (session query, then the cached page) | At most 8 ms | 1 / 2 / 2 (50 requests, 18 events; first request 12) | **Pass** |
+| Staff screen, data call (session query, then one query under row level security) | At most 8 ms | 2 / 4 / 4 (23 events) | **Pass** |
+| Student screen, shell | At most 8 ms | 1 / 3 / 3 (19 events; first request 11) | **Pass** |
+| Student screen, data call | At most 8 ms | 2 / 4 / 5 (30 events) | **Pass** |
+| Lead POST, 50 requests, every sampled CPU value kept | At most 8 ms; explain the slow tail | 3 / 5 / 13 (50 events). Only three requests were above 5 ms: 13 (the fifth), 10 (the 28th) and 5. The run gate is warm p95, which is 5 | **Pass**; the two slow requests are not explained (probably an isolate starting fresh, since requests are 12.5 s apart) |
+| Image cache hit | At most 8 ms, no database | 0 / 1 / 1 | **Pass** |
+| Image cache miss, read from Neon Object Storage | At most 8 ms | 2 / 2 / 3 (9 misses) | **Pass** |
+| Shell has no data and is not browser-cacheable; anonymous, student and forged sessions refused (404 shell, 401 / 403 data) | All hold | All checks passed (20 probes passed, 0 failed, 1 informational) | **Pass** |
+| No request cut at the CPU limit | None | 0 in every scenario | **Pass** |
+| Sign-in return trip on Neon Auth (`/auth/return`, the owner's Google test account) | At most 10 ms | **4 / 2 / 1 ms** (three real sign-ins after the move into the Worker entry); `/auth/start` 1 to 4 ms. Before the move, through Next.js: 19 and 12 ms | **Pass** |
+| Google redirect through Neon Auth (H16) | Works; recorded | Works: the Google account chooser, the Neon Auth return, the session cookie and the student screen, five times. The database holds a Google account with a verified email, a 32-character token and a `student` row in `app_user`. Neon also stored the visitor's IP and browser string (F13) | **Pass**; H16 stays open until the owner says it is done |
 
 Other checks in the same run (all passed): Neon cold start 1.66 s client time after a 330 s idle wait (gate about 2 s); warm query 431 ms; WebSocket transaction; Durable Objects counter and limiter; cron `lastCronAt` 2026-10-23 23:05 UTC; revalidation (a publish shows on the page in 31 s with no deploy); image served as webp with immutable headers; lead POST rules (400 without a key, 400 for a bad country, 201 then 200 on replay then 409 on a changed payload, 429 after 5 requests a minute). 17 probes passed, 0 failed.
 
@@ -474,10 +493,10 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 5 GB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, (the student email cap of 60 a day, 40 reserved and 3 per address was removed by D14), 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
-| H12 | Read Neon's plans page for Object Storage and confirm the free-plan request and transfer limits (the pages read state 5 GB per project but no request or transfer limit). No card is needed. R2 is dropped (D16) | Before S0.10 measures images | Open |
+| H12 | Read Neon's plans page for Object Storage and confirm the free-plan request and transfer limits (the pages read state 5 GB per project but no request or transfer limit). No card is needed. R2 is dropped (D16) | Before S0.10 measures images | **Carried to Stage 3 (image upload, S3.3) and before launch; does not block Stage 1** (owner, 2026-10-24). Open |
 | H13 | Switch on Neon Auth for the project in the Neon console and add the Google credentials there | Before S0.10 can measure Neon Auth | **Done per the owner, 2026-10-24.** Claude Code verified from the Neon CLI that Google shows as its own credentials, not Neon's shared test keys. |
 | H14 | From Stage 10 on: run `scripts/backup-images.mjs` monthly and after any bulk upload, and keep the copy on your own drive (a second copy in your own cloud account is optional). The script needs no password or key | After S10.3, then monthly | Not yet needed |
-| H15 | Turn off the **Magic Link** plugin on Neon Auth: Neon console, Settings, Better Auth, Magic Link, switch off. (Claude Code turned off email-and-password and organizations from the command line, but magic link has no command.) Until then anyone can create an account with an email link, which bypasses "Google sign-in only" | Before launch, and ideally before S0.10 | Open |
+| H15 | Turn off the **Magic Link** plugin on Neon Auth: Neon console, Settings, Better Auth, Magic Link, switch off. (Claude Code turned off email-and-password and organizations from the command line, but magic link has no command.) Until then anyone can create an account with an email link, which bypasses "Google sign-in only" | Before launch, and ideally before S0.10 | **Done per the owner, 2026-10-24** ("i have switched off the majic link"). Claude Code cannot check this from the command line |
 | H16 | Add the redirect URI `https://ep-bitter-bar-b97sb88f.neonauth.c-7.eu-central-1.aws.neon.tech/neondb/auth/callback/google` to the Google OAuth client if it is not there | Before the first real Google sign-in | Per the owner the sign-in test worked; recorded as done only when the owner says so |
 
 ## Amendments applied in place (decision D13) and what remains
