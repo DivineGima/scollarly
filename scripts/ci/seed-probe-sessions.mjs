@@ -51,7 +51,7 @@ try {
       const token = randomBytes(24).toString("hex").slice(0, 32);
       const user = await client.query(`insert into neon_auth."user" (name, email, "emailVerified") values ($1, $2, true) returning id::text as id`, [`S010 probe ${who}`, email]);
       const userId = user.rows[0].id;
-      await client.query(`insert into neon_auth.session ("expiresAt", token, "userId") values (now() + interval '2 hours', $1, $2::uuid)`, [token, userId]);
+      await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now())`, [token, userId]);
       await client.query("insert into public.app_user (id, role) values ($1, $2) on conflict (id) do update set role = excluded.role", [userId, role]);
       sessions[who] = { token, userId };
     }

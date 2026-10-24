@@ -23,7 +23,7 @@ const NEON_AUTH_STUB = `
     id uuid primary key default gen_random_uuid(),
     name text not null,
     email text not null unique,
-    "emailVerified" boolean not null default false,
+    "emailVerified" boolean not null,
     image text,
     "createdAt" timestamptz not null default now(),
     "updatedAt" timestamptz not null default now(),
@@ -37,7 +37,7 @@ const NEON_AUTH_STUB = `
     "expiresAt" timestamptz not null,
     token text not null unique,
     "createdAt" timestamptz not null default now(),
-    "updatedAt" timestamptz not null default now(),
+    "updatedAt" timestamptz not null,
     "ipAddress" text,
     "userAgent" text,
     "userId" uuid not null references neon_auth."user"(id) on delete cascade
@@ -117,7 +117,7 @@ export async function createTestDb(): Promise<TestDb> {
       )) as { id: string }[];
       const expires = new Date(Date.now() + (options.expiresInMs ?? 3600_000)).toISOString();
       const [session] = (await run(
-        `insert into neon_auth.session ("expiresAt", token, "userId") values (${literal(expires)}, ${literal(token)}, '${user?.id}') returning id`,
+        `insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (${literal(expires)}, ${literal(token)}, '${user?.id}', now()) returning id`,
       )) as { id: string }[];
       return { userId: user?.id ?? "", sessionId: session?.id ?? "", token, email };
     },
