@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CAMPUS_EXPERIENCE_KINDS, CURRENCIES, PROCESS_STEP_KINDS, YOUTUBE_ID_PATTERN } from "@/lib/constants";
+import { isE164 } from "@/lib/phone";
 import { contentStatusSchema, isoDateTimeSchema, translationsSchema } from "@/lib/schemas/common";
 
 /**
@@ -127,12 +128,22 @@ export const contentBlockSeedSchema = z.strictObject({
   status,
 });
 
+/**
+ * The two owner-confirmed contact settings (tracker H3). They are applied only while the setting is still "not set" (JSON
+ * null), so a later edit in the admin screens is never overwritten; every other setting keeps its migration default.
+ */
+export const siteSettingSeedSchema = z.discriminatedUnion("key", [
+  z.strictObject({ key: z.literal("whatsapp_number_e164"), value: z.string().refine(isE164, "A WhatsApp number is + and 7 to 15 digits (E.164).") }),
+  z.strictObject({ key: z.literal("contact_phone_display"), value: text(40) }),
+]);
+
 export const seedBundleSchema = z
   .strictObject({
     universities: z.array(universitySeedSchema).default([]),
     faqs: z.array(faqSeedSchema).default([]),
     process_steps: z.array(processStepSeedSchema).default([]),
     content_blocks: z.array(contentBlockSeedSchema).default([]),
+    site_settings: z.array(siteSettingSeedSchema).default([]),
   })
   .superRefine((bundle, ctx) => {
     const duplicates = (label: string, keys: string[]) => {
@@ -146,6 +157,7 @@ export const seedBundleSchema = z
     duplicates("faqs", bundle.faqs.map((f) => f.question));
     duplicates("process_steps", bundle.process_steps.map((s) => `${s.kind}/${s.position}`));
     duplicates("content_blocks", bundle.content_blocks.map((b) => b.key));
+    duplicates("site_settings", bundle.site_settings.map((s) => s.key));
     bundle.universities.forEach((u, i) => {
       const programmeNames = u.programmes.map((p) => p.name);
       const names = new Set(programmeNames);
@@ -171,4 +183,5 @@ export const SEED_FILES = {
   faqs: "faqs.json",
   process_steps: "process-steps.json",
   content_blocks: "content-blocks.json",
+  site_settings: "site-settings.json",
 } as const;

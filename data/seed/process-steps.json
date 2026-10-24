@@ -1,0 +1,13 @@
+[
+  { "kind": "application", "position": 1, "title": "Share Your Results", "body": "Share your O-level and A-level or Grade 10 and 11 results with the Scollarly team to begin your journey." },
+  { "kind": "application", "position": 2, "title": "Choose Your Course", "body": "Explore courses offered by our partner universities and select at least 3 preferred programs aligned with your career goals." },
+  { "kind": "application", "position": 3, "title": "Receive Your Offer Letter", "body": "An offer letter with a scholarship will be shared by the university. Review it carefully with our guidance." },
+  { "kind": "application", "position": 4, "title": "Confirm Your Admission", "body": "A registration fee payment is required before the university issues your acceptance letter. This fee is later deducted from tuition." },
+  { "kind": "application", "position": 5, "title": "Secure Your Visa", "body": "Purchase your flight ticket and use your acceptance letter, flight ticket, and valid passport to secure your student visa." },
+  { "kind": "application", "position": 6, "title": "Arrive in India", "body": "Catch your flight and we'll receive you at the airport! Our team provides transport and helps you settle into your new home." },
+  { "kind": "visa", "position": 1, "title": "Admission Confirmation", "body": "Receive your official acceptance letter from the Indian institution, a critical document for your visa application." },
+  { "kind": "visa", "position": 2, "title": "Collect Documents", "body": "Gather passport, photos, proof of admission, financial proof, health certificate, birth certificate, and proof of residence." },
+  { "kind": "visa", "position": 3, "title": "Submit Application", "body": "Complete the online application and pay the visa fee (USD $83). Your Scollarly agent will guide you through the entire process." },
+  { "kind": "visa", "position": 4, "title": "Processing", "body": "Visa processing takes 3-5 working days. We'll keep you updated on the status throughout." },
+  { "kind": "visa", "position": 5, "title": "Collect Visa", "body": "Once approved, collect your passport with the visa. We'll verify all details are correct before you travel." }
+]

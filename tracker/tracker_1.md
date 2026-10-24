@@ -9,10 +9,10 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stage 1 (foundation) is built and in review (pull request #15); S1.7 waits for the old site's data (H2).** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 has not started (gate below). |
-| Next stage | **Stage 1 is built and in review** (pull request #15, 2026-10-24). S1.1 to S1.6 are complete; S1.7 is in progress and waits for the old site's data (H2). **Stage 2 has not started** (see the gate below). |
-| Blocked by | **H2** (the old site's data files) blocks S1.7 and so the Stage 1 exit criteria "seed twice" and "9 logos" on real data, and so Stage 2. **H16** (Google redirect check) is not yet confirmed by the owner. H12 (Object Storage limits) is carried to Stage 3. The domain (F10) blocks launch only. |
-| Gate before Stage 2 | Stage 1 complete (all seven modules, which needs H2) and H16 confirmed by the owner. Stage 2 needs Neon Auth and the Google credentials (H8, done per the owner). Stage 2 also builds the F13 fix (visitor IP kept by Neon Auth) and the owner bootstrap. **On 2026-10-24 the owner asked for Stages 1 and 2 together; Stage 2 was not started because this gate is not met (CLAUDE.md: halt and flag).** |
+| Phase | **Stage 1 (foundation) is built and in review (pull request #15); S1.7: the old site's data is converted and validated (dry run), the real run waits for the merge and the credentials.** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 has not started (gate below). |
+| Next stage | **Stage 1 is built and in review** (pull request #15, 2026-10-24). S1.1 to S1.6 are complete; S1.7 is in progress (seed files in `data/seed/` validated, real run not done). **Stage 2 has not started** (see the gate below). |
+| Blocked by | **The real seed run** blocks S1.7 and so the Stage 1 exit criteria "seed twice" and "9 logos" on real data, and so Stage 2. It needs the merge of PR #15 (migration 0003 on the database) and the owner-held credentials (`MIGRATION_DATABASE_URL`, `NEON_STORAGE_*`). H2 data is supplied (2026-10-24), except any `ContactSubmission` rows. **H16** (Google redirect check) is not yet confirmed by the owner. H12 (Object Storage limits) is carried to Stage 3. The domain (F10) blocks launch only. |
+| Gate before Stage 2 | Stage 1 complete (all seven modules, which needs the real seed run) and H16 confirmed by the owner. Stage 2 needs Neon Auth and the Google credentials (H8, done per the owner). Stage 2 also builds the F13 fix (visitor IP kept by Neon Auth) and the owner bootstrap. **On 2026-10-24 the owner asked for Stages 1 and 2 together; Stage 2 was not started because this gate is not met (CLAUDE.md: halt and flag).** |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -20,7 +20,7 @@ Claude Code: after reading this tracker, ask the owner each open check-in below 
 
 | # | Check | Link | Why | Status |
 |---|---|---|---|---|
-| C1 | Has Neon Auth shipped authenticator-app 2FA (MFA/TOTP)? | https://neon.com/docs/auth/roadmap | Neon Auth has none today (checked 2026-10-24), so the owner's 2FA is our own code on the otpauth library (ADR-037). If Neon ships it, the owner decides whether to replace our code with Neon's. | Open, asked every session |
+| C1 | Has Neon Auth shipped authenticator-app 2FA (MFA/TOTP)? | https://neon.com/docs/auth/roadmap | Neon Auth has none today (checked 2026-10-24), so the owner's 2FA is our own code on the otpauth library (ADR-037). If Neon ships it, the owner decides whether to replace our code with Neon's. | **Paused by the owner (2026-10-24): "not yet, it won't come for about a month, stop over-asking".** Do not ask again until about 2026-11-24. |
 
 ## Session log
 
@@ -341,6 +341,25 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 - Stage 7: the cron job needs a way to delete raw `event` rows after rollup (carve-out, ADR-029); the runtime role has no DELETE, so use a definer function or the owner role.
 - Stage 2: `audit_log` has no SELECT right for non-owners, so insert without `RETURNING` unless the actor is the owner.
 
+### 2026-10-24: Session 14 (S1.7 data converted from the old site)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1.
+
+**Owner decisions in this session:** old leads are exempt from the SLA; image budget confirmed 3.5 GB (F16 closed); WhatsApp contact is +919815725968 (H3); C1 paused for about a month; H2 files supplied.
+
+**What changed**
+- `data/seed/`: `universities.json` (9 universities, 77 programmes, 9 confirmed fees for Chandigarh, Jain and Kalinga, 5 campus tours), `faqs.json` (12), `process-steps.json` (6 application, 5 visa), `content-blocks.json` (36), `site-settings.json` (the two contact settings), `logos/` (9, downloaded from the old site's own URLs; Aditya's SVG was rasterised to PNG because the importer refuses SVG), `site-images/` (4 page photos, kept for Stage 3, not imported), `brand/logo.svg`.
+- Seed code: a `site_settings` list (`src/modules/seed/schema.ts`, `service.ts`, `src/server/repositories/seed.ts`) fills `whatsapp_number_e164` and `contact_phone_display` only while the setting is still JSON null, so an admin edit is never overwritten. Tests added (unit and integration). `npm run seed -- --dir data/seed --dry-run` passes; local results: lint and typecheck clean, unit 316, integration 232 plus 23 todos.
+- Architecture: the stale 150 MB image budget lines (section 3, 7.3, risk table) corrected to 3.5 GB.
+
+**Everything is `draft`.** Nothing becomes public until a row's status is set to `published` (in the file before the real run, or in the admin screens in Stage 6).
+
+**Not seeded, on purpose:** testimonials, team bios and the "100+ students / 5+ countries" counters (CLAUDE.md: no unconfirmed statistics, testimonials or team bios; they also belong to the testimonial, team and trust tables with their own consent and verification rules); each university's scholarship text ("Up to 50% via Scollarly", no column for it); universities with no confirmed fee have no fee rows (the site shows the WhatsApp call to action, FR-2); the 4 universities whose tour is "coming soon" have no tour row.
+
+**`ContactSubmission` import: not built.** Only the model and the form route were sent, no rows. The old form never required a phone, and `lead` requires a valid WhatsApp number, so rows without one cannot become leads. Rows with a phone could be imported as `quick` leads that are exempt from the SLA. Needs the export (or confirmation that the table is empty) before building.
+
+**F17 touched:** a university's `translations.en` holds its overview text (it has no other translatable prose). FAQ question and answer stay in plain columns.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -361,7 +380,7 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F12 | Image backup. With images in Neon Object Storage the weekly `pg_dump` carries no image bytes, and a monthly copy of up to 3.5 GB cannot fit in GitHub Free artifact storage (about 500 MB). | Content is archived and never deleted (ADR-014). | **Decided 2026-10-24 (D17, owner delegated the choice).** No cloud copy. Immutable hash-keyed objects with no delete path, a manifest in the weekly dump, and an owner-run incremental copy to the owner's own disk, checked by sha256 (`scripts/backup-images.mjs`, built in S10.3). Needs no credential, no GitHub storage, no paid service, and does not delay any stage before Stage 10. |
 | F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Carried to Stage 2 (owner, 2026-10-24: flag it to a later stage; it does not block Stage 1).** The owner asked what Claude Code suggests. **Suggestion:** (1) a database trigger on `neon_auth.session` that blanks `ipAddress` and `userAgent` as each row is written, so nothing is kept; to be tried first on a throwaway Neon branch, because Neon manages that schema and could replace the trigger in an update; (2) if the trigger is not safe, a SECURITY DEFINER function owned by the owner role that clears both columns, called by the daily cron (S10.2), so nothing older than a day is kept; (3) either way the privacy notice says what is kept. Built and tested in S2.2 (sign-in) and confirmed with the owner then. Until then only the owner and test accounts sign in, so no visitor data is held. |
 | F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Owner accepts the beta (2026-10-24: "yes am okay with it being a beta version").** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
-| F16 | **Two image budgets in the documents.** Architecture 7.3 (`media_budget_bytes (150 MB)`) and section 3 say 150 MB; PRD FR-18, architecture 10.5 and essentials S6.3 say about 3.5 GB of Neon Object Storage's free 5 GB. | A seed default had to be chosen, and the meter and the 70% banner (S6.3, S10.2) read it. | **Seeded as 3.5 GiB, following the newer text (D16).** Owner confirms 3.5 GB, or says 150 MB. The two stale lines in architecture 7.3 and section 3 should be corrected in place when decided. |
+| F16 | **Two image budgets in the documents.** Architecture 7.3 (`media_budget_bytes (150 MB)`) and section 3 say 150 MB; PRD FR-18, architecture 10.5 and essentials S6.3 say about 3.5 GB of Neon Object Storage's free 5 GB. | A seed default had to be chosen, and the meter and the 70% banner (S6.3, S10.2) read it. | **Closed 2026-10-24: the owner confirmed 3.5 GB.** Seeded as 3.5 GiB (D16). The stale 150 MB lines in architecture sections 3, 7.3 and the risk table were corrected in place. Left as written: ADR-026's historical rationale and the PRD's open question Q on the budget. |
 | F17 | **`translations` shape.** Architecture 6.4 shows one text per row (`{ "en": "...", "fr": "..." }`), but `faq`, `university`, `fee_structure` and others have several translatable fields. | Stage 3 renders it and Stage 6 writes it. The database only checks it is a JSON object; `translationsSchema` requires `en`. | **Open, for Stage 3 and 6.** Decide whether a row keeps its English text in plain columns and `translations` holds one object per extra locale (Claude Code's reading), or the shape changes. |
 
 ## Stage status
@@ -371,7 +390,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | Stage | Name | Module IDs | Status |
 |---|---|---|---|
 | 0 | Proof of fit (hard gate) | S0.1 to S0.10 | **complete** (2026-10-24) |
-| 1 | Foundation | S1.1 to S1.7 | in-progress (2026-10-24: S1.1 to S1.6 complete, S1.7 waits for H2) |
+| 1 | Foundation | S1.1 to S1.7 | in-progress (2026-10-24: S1.1 to S1.6 complete, S1.7 files validated, real run pending) |
 | 2 | Authentication, roles, admin shell | S2.1 to S2.7 | — |
 | 3 | Public site | S3.1 to S3.5 | — |
 | 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | — |
@@ -405,7 +424,7 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S1.4 | SLA pure function | complete (2026-10-24, CI) |
 | S1.5 | Full CI | complete (2026-10-24, CI) |
 | S1.6 | i18n scaffolding | complete (2026-10-24, CI) |
-| S1.7 | Seed and migration scripts, logo and image import | in-progress (built and proven on synthetic data; real run waits for H2) |
+| S1.7 | Seed and migration scripts, logo and image import | in-progress (built; seed files from the old site validated by a dry run; real run pending the merge and credentials; `ContactSubmission` import not built, see S1.7 note in Session 14) |
 | S2.1 | Production Neon Auth configuration behind the facade | — |
 | S2.2 | Sign-in and sign-out pages (Google only) | — |
 | S2.3 | Owner bootstrap, 2FA, step-up | — |
@@ -530,8 +549,8 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | # | Action | Needed before | Status |
 |---|---|---|---|
 | H1 | Confirm commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans. Also decide if any OpenNext cache binding turns out to need a payment method (S0.6). | End of Stage 0 | **Done per the owner, 2026-10-23** ("i checked all ok"). No payment method was needed for KV or D1 (the workflow created both). R2 is not enabled and was not needed. **Not yet confirmed (added by D15, D16):** the free-plan terms of Neon Auth and Neon Object Storage. |
-| H2 | Supply the old site's data files (9 universities, programmes, fees, FAQs, process steps, copy, logos and campus images) and any `ContactSubmission` rows. Format and steps: `docs/stage-1-runbook.md`. Also decide how migrated old leads are treated for the SLA (they have no reply logged, so they would show as overdue). | S1.7 (Claude Code must stop and ask if missing) | **Open, and it now blocks the end of Stage 1 and so Stage 2** (asked 2026-10-24) |
-| H3 | Q2: confirm the Scollarly WhatsApp number (+237 651 232 301 today) and the contact number shown on the site (+91 98157 25968 today) | Launch | Open |
+| H2 | Supply the old site's data files (9 universities, programmes, fees, FAQs, process steps, copy, logos and campus images) and any `ContactSubmission` rows. Format and steps: `docs/stage-1-runbook.md`. Also decide how migrated old leads are treated for the SLA (they have no reply logged, so they would show as overdue). | S1.7 (Claude Code must stop and ask if missing) | **Supplied 2026-10-24** (old `universities.ts`, `page.tsx`, `route.ts`, `schema.prisma`, logo and four images) and converted into `data/seed/` (dry run passes: 9 universities, 77 programmes, 9 confirmed fees, 12 FAQs, 11 process steps, 36 copy blocks, 9 logos). **Still missing:** any `ContactSubmission` rows (only the model was sent), the testimonials, team and journey data (not seeded, see the runbook). Old leads are exempt from the SLA (owner, 2026-10-24). The real run waits for the merge of PR #15 (migration 0003) and the owner-held credentials. |
+| H3 | Q2: confirm the Scollarly WhatsApp number (+237 651 232 301 today) and the contact number shown on the site (+91 98157 25968 today) | Launch | **Answered by the owner 2026-10-24: the WhatsApp contact is +919815725968** (the contact number shown is the same). Put in `data/seed/site-settings.json`; it is written to `site_setting` by the seed, only while the setting is still unset. The +237 number in PRD Q2 is superseded. |
 | H4 | Q3: supply real figures for students helped and admitted, confirm the 5 testimonials are real and consented, confirm team bios. Anything unconfirmed is not published. | Launch | Open |
 | H5 | Q6: legal check on consent for 17-year-old applicants and data protection in the student countries | Launch | Open |
 | H6 | Mailbox on scollarly.co.in and Resend domain verification | **Removed (D15):** no email is sent in v1 | Not needed |

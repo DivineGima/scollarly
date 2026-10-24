@@ -1,5 +1,6 @@
+import { sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { campusExperience, contentBlock, faq, feeStructure, officialResource, processStep, programme, university } from "@/server/db/schema";
+import { campusExperience, contentBlock, faq, feeStructure, officialResource, processStep, programme, siteSetting, university } from "@/server/db/schema";
 
 /**
  * Inserts the seed rows (S1.7). It is run by `scripts/seed.ts` with the OWNER database role, which is how migrations run
@@ -19,6 +20,7 @@ export interface SeedRows {
   faqs: (typeof faq.$inferInsert)[];
   processSteps: (typeof processStep.$inferInsert)[];
   contentBlocks: (typeof contentBlock.$inferInsert)[];
+  siteSettings: { key: string; value: unknown }[];
 }
 
 /** Rows newly inserted per table. A second run reports zeros. */
@@ -42,6 +44,7 @@ export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
     faqs: 0,
     processSteps: 0,
     contentBlocks: 0,
+    siteSettings: 0,
   };
 
   // Parents before children, so every foreign key resolves.
@@ -53,6 +56,16 @@ export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
   for (const batch of chunks(rows.faqs)) report.faqs += (await db.insert(faq).values(batch).onConflictDoNothing().returning({ id: faq.id })).length;
   for (const batch of chunks(rows.processSteps)) report.processSteps += (await db.insert(processStep).values(batch).onConflictDoNothing().returning({ id: processStep.id })).length;
   for (const batch of chunks(rows.contentBlocks)) report.contentBlocks += (await db.insert(contentBlock).values(batch).onConflictDoNothing().returning({ id: contentBlock.id })).length;
+
+  // A setting is filled only while it is still "not set" (JSON null); a value an admin has set is left alone.
+  for (const s of rows.siteSettings) {
+    const written = await db
+      .insert(siteSetting)
+      .values({ key: s.key, value: sql`${JSON.stringify(s.value)}::jsonb` })
+      .onConflictDoUpdate({ target: siteSetting.key, set: { value: sql`excluded.value` }, setWhere: sql`${siteSetting.value} = 'null'::jsonb` })
+      .returning({ key: siteSetting.key });
+    report.siteSettings += written.length;
+  }
 
   return report;
 }

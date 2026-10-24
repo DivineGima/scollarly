@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   console.log(
     `seed: ${bundle.universities.length} universities, ${bundle.universities.reduce((n, u) => n + u.programmes.length, 0)} programmes, ` +
       `${bundle.universities.reduce((n, u) => n + u.fees.length, 0)} fees, ${bundle.faqs.length} FAQs, ${bundle.process_steps.length} process steps, ` +
-      `${bundle.content_blocks.length} copy blocks, ${images.size} images`,
+      `${bundle.content_blocks.length} copy blocks, ${bundle.site_settings.length} settings, ${images.size} images`,
   );
   if (dryRun) {
     // Convert every image too, so a file that cannot meet the caps is found now and not halfway through a real run.
