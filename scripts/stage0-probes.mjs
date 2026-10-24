@@ -194,14 +194,34 @@ const COOKIE = "__Secure-neon-auth.session_token";
 if (sessionsFile && existsSync(sessionsFile)) {
   const sessions = JSON.parse(readFileSync(sessionsFile, "utf8"));
   const cookieOf = (who) => `${COOKIE}=${sessions[who].token}.c2lnbmF0dXJl`;
-  const anon = await call("/admin/phase0");
-  const adminPage = await call("/admin/phase0", { headers: { cookie: cookieOf("admin") } });
-  const studentOnAdmin = await call("/admin/phase0", { headers: { cookie: cookieOf("student") } });
-  const studentPage = await call("/me/phase0", { headers: { cookie: cookieOf("student") } });
-  const forged = await call("/admin/phase0", { headers: { cookie: `${COOKIE}=${"x".repeat(32)}.c2lnbmF0dXJl` } });
-  record("Auth: the admin page renders for an admin session (one session query, then one query under row level security)", adminPage.status === 200 && /Stub leads stored/.test(adminPage.text), { status: adminPage.status, ms: adminPage.ms });
-  record("Auth: an anonymous visitor, a student and a forged cookie are all refused on the admin page", anon.status === 404 && studentOnAdmin.status === 404 && forged.status === 404, { anonymous: anon.status, student: studentOnAdmin.status, forged: forged.status });
-  record("Auth: the student page renders for a student session", studentPage.status === 200 && /Your role: student/.test(studentPage.text.replace(/<!--.*?-->/g, "")), { status: studentPage.status, ms: studentPage.ms });
+  const as = (who) => ({ headers: { cookie: cookieOf(who) } });
+  const forgedCookie = { headers: { cookie: `${COOKIE}=${"x".repeat(32)}.c2lnbmF0dXJl` } };
+  // The shell: no data in it, and nobody without the right role gets it (404, so the screen's existence is not revealed).
+  const anonShell = await call("/admin/phase0");
+  const adminShell = await call("/admin/phase0", as("admin"));
+  const studentOnAdmin = await call("/admin/phase0", as("student"));
+  const forgedShell = await call("/admin/phase0", forgedCookie);
+  const studentShell = await call("/me/phase0", as("student"));
+  const shellText = adminShell.text.replace(/<!--.*?-->/g, "");
+  record("Auth: the staff shell is served to an admin session, with no data in it, and a browser may not cache it (ADR-040)", adminShell.status === 200 && /Stub leads stored/.test(shellText) && !/Stub leads stored: \d/.test(shellText) && /no-store/.test(adminShell.headers.get("cache-control") ?? ""), { status: adminShell.status, ms: adminShell.ms, cacheControl: adminShell.headers.get("cache-control") });
+  record("Auth: an anonymous visitor, a student and a forged cookie are all refused on the staff shell", anonShell.status === 404 && studentOnAdmin.status === 404 && forgedShell.status === 404, { anonymous: anonShell.status, student: studentOnAdmin.status, forged: forgedShell.status });
+  record("Auth: the student shell is served to a student session", studentShell.status === 200 && /Your role/.test(studentShell.text), { status: studentShell.status, ms: studentShell.ms });
+  // The data calls: JSON, one session query and one query under row level security.
+  const anonData = await call("/api/v1/admin/phase0");
+  const adminData = await call("/api/v1/admin/phase0", as("admin"));
+  const studentOnAdminData = await call("/api/v1/admin/phase0", as("student"));
+  const forgedData = await call("/api/v1/admin/phase0", forgedCookie);
+  const studentData = await call("/api/v1/me/phase0", as("student"));
+  const parse = (r) => {
+    try {
+      return JSON.parse(r.text);
+    } catch {
+      return null;
+    }
+  };
+  record("Auth: the staff data call returns the lead count to an admin (session query, then one query under row level security)", adminData.status === 200 && Number.isInteger(parse(adminData)?.leadCount) && /no-store/.test(adminData.headers.get("cache-control") ?? ""), { status: adminData.status, ms: adminData.ms, body: parse(adminData) });
+  record("Auth: the staff data call refuses an anonymous visitor (401), a student (403) and a forged cookie (401)", anonData.status === 401 && studentOnAdminData.status === 403 && forgedData.status === 401, { anonymous: anonData.status, student: studentOnAdminData.status, forged: forgedData.status });
+  record("Auth: the student data call returns the student's own role", studentData.status === 200 && parse(studentData)?.role === "student", { status: studentData.status, ms: studentData.ms, body: parse(studentData) });
 } else {
   record("Auth page checks skipped: no --sessions file", null, "run scripts/ci/seed-probe-sessions.mjs first");
 }

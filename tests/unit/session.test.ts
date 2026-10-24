@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readSessionToken } from "@/server/auth/session";
+import { NEON_AUTH_SESSION_COOKIE_NAME } from "@neondatabase/auth/server";
+import { readSessionToken, SESSION_COOKIE_NAME } from "@/server/auth/session";
 
 const COOKIE = "__Secure-neon-auth.session_token";
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345"; // 32 characters, the shape Better Auth issues
@@ -44,5 +45,11 @@ describe("readSessionToken: the opaque Neon Auth session token from the cookie",
   it("uses the first matching cookie when the name appears twice", () => {
     const other = "ZyXwVuTsRqPoNmLkJiHgFeDcBa987654";
     expect(readSessionToken(headers(`${COOKIE}=${TOKEN}.s; ${COOKIE}=${other}.s`))).toBe(TOKEN);
+  });
+});
+
+describe("the cookie name", () => {
+  it("is the one the Neon Auth SDK sets (the thin paths read it without importing the SDK)", () => {
+    expect(SESSION_COOKIE_NAME).toBe(NEON_AUTH_SESSION_COOKIE_NAME);
   });
 });

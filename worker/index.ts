@@ -5,6 +5,8 @@
 // @ts-ignore
 import { default as handler } from "../.open-next/worker.js";
 
+import { handleAuthed } from "../src/server/edge/authed";
+import { authedDeps } from "../src/server/edge/authed-runtime";
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
 import { handleLeadPost, LEADS_PATH } from "../src/server/edge/leads";
 import { serveMedia } from "../src/server/edge/media";
@@ -15,12 +17,22 @@ export default {
    * Free-plan CPU fast path (ADR-033). Workers Free allows about 10 ms of CPU per request and the Next.js server layer
    * alone costs several milliseconds, so the requests that must be cheapest never reach it:
    *  - public pages and content-hashed images are answered from the Cache API (images are read from the public bucket on a miss);
-   *  - `POST /api/v1/leads` runs as a plain function.
+   *  - `POST /api/v1/leads` runs as a plain function;
+   *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`).
    * Everything else, and every page miss, goes to OpenNext unchanged.
    */
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === LEADS_PATH) return handleLeadPost(request, env);
+
+    const authed = await handleAuthed(request, () =>
+      authedDeps(env, {
+        cache: (caches as unknown as { default: Cache }).default,
+        next: (shellRequest) => handler.fetch(shellRequest, env, ctx),
+        waitUntil: (task) => ctx.waitUntil(task),
+      }),
+    );
+    if (authed) return authed;
 
     const kind = classify(request.method, url, request.headers.has("cookie"));
     if (!kind) return handler.fetch(request, env, ctx);

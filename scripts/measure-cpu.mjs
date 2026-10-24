@@ -5,7 +5,7 @@
  * Wall-clock time seen by a client is NOT CPU time and is never reported as such.
  *
  *   node scripts/measure-cpu.mjs --base https://scollarly.<you>.workers.dev --token $PHASE0_PROBE_TOKEN \
- *        [--worker scollarly] [--samples 50] [--only public,admin,student,lead,media,media-miss,rls,storage] \
+ *        [--worker scollarly] [--samples 50] [--only public,admin-shell,admin-data,student-shell,student-data,lead,media,media-miss,rls,storage] \
  *        [--sessions scripts/.generated/probe-sessions.json] [--media <sha256>] [--media-list scripts/.generated/phase0-images.json] \
  *        [--lead-samples 50] [--lead-interval-ms 12500] [--warmup 3]
  *
@@ -29,7 +29,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin,student,lead,media,media-miss,rls,storage").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,lead,media,media-miss,rls,storage").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -42,7 +42,7 @@ if (!base || !token) {
 
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
-const LIMITS = { public: 5, admin: 8, student: null, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -107,6 +107,7 @@ async function scenario(name, key, fn, count = samples, delayMs = 150) {
     tailEvents: mine.length,
     httpStatuses: Object.fromEntries([...new Set(statuses)].map((s) => [s, statuses.filter((x) => x === s).length])),
     cpuMs: stats,
+    cpuSamplesInOrder: cpus, // every sampled event, oldest first, so a slow tail can be read request by request
     exceededCpuOutcomes: exceeded,
     limitMs: limit,
     clientWallMs: { median: [...clientMs].sort((a, b) => a - b)[Math.floor(clientMs.length / 2)] },
@@ -125,15 +126,19 @@ try {
   // Cached public page (static, prerendered). Gate: at most 5 ms.
   rows.push(await scenario("Public page (prerendered)", "public", (m) => call(`/?${m}`)));
 
-  // Authenticated stub pages with REAL Neon Auth sessions of throwaway users (scripts/ci/seed-probe-sessions.mjs): the cookie, the one
-  // session query, the role from our table and row level security are all real. Gate: at most 8 ms for staff.
+  // Signed-in screens (ADR-040) with REAL Neon Auth sessions of throwaway users (scripts/ci/seed-probe-sessions.mjs): the cookie, the one
+  // session query, the role from our table and row level security are all real. A screen is two requests, each with its own gate of
+  // at most 8 ms: the shell (session check, then the cached page) and the data call (session check, then one query under row level security).
   if (sessionsFile && existsSync(sessionsFile)) {
     const sessions = JSON.parse(readFileSync(sessionsFile, "utf8"));
     const cookieOf = (who) => `__Secure-neon-auth.session_token=${sessions[who].token}.c2lnbmF0dXJl`;
-    rows.push(await scenario("Admin page: one session query + one query under row level security", "admin", (m) => call(`/admin/phase0?${m}`, { headers: { cookie: cookieOf("admin") } })));
-    rows.push(await scenario("Student page: the same one-query session check", "student", (m) => call(`/me/phase0?${m}`, { headers: { cookie: cookieOf("student") } })));
-  } else if (only.has("admin") || only.has("student")) {
-    console.error("No --sessions file: the admin and student scenarios were skipped.");
+    const as = (who) => ({ headers: { cookie: cookieOf(who) } });
+    rows.push(await scenario("Staff screen, shell: session query, then the cached page", "admin-shell", (m) => call(`/admin/phase0?${m}`, as("admin"))));
+    rows.push(await scenario("Staff screen, data: session query, then one query under row level security", "admin-data", (m) => call(`/api/v1/admin/phase0?${m}`, as("admin"))));
+    rows.push(await scenario("Student screen, shell: session query, then the cached page", "student-shell", (m) => call(`/me/phase0?${m}`, as("student"))));
+    rows.push(await scenario("Student screen, data: session query, then one query under row level security", "student-data", (m) => call(`/api/v1/me/phase0?${m}`, as("student"))));
+  } else if ([...only].some((k) => /^(admin|student)-/.test(k))) {
+    console.error("No --sessions file: the staff and student scenarios were skipped.");
   }
 
   // Row level security and Neon Object Storage probes (recorded; their CPU is the cost of the check itself).

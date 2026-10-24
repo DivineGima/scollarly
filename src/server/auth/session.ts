@@ -1,4 +1,6 @@
-import { handleAuthProxyRequest, NEON_AUTH_SESSION_COOKIE_NAME, processAuthMiddleware } from "@neondatabase/auth/server";
+import { handleAuthProxyRequest, processAuthMiddleware } from "@neondatabase/auth/server";
+
+export { readSessionToken, SESSION_COOKIE_NAME } from "./cookie";
 
 /**
  * Neon Auth glue (ADR-037). This file and `index.ts` are the only places that import the Neon Auth SDK. We use its
@@ -15,34 +17,6 @@ export interface NeonAuthConfig {
   baseUrl: string;
   /** At least 32 characters. Signs the `session_data` cookie the SDK mints on sign-in. */
   cookieSecret: string;
-}
-
-const COOKIE_NAME = NEON_AUTH_SESSION_COOKIE_NAME;
-const TOKEN_PATTERN = /^[A-Za-z0-9]{16,64}$/;
-
-/**
- * Reads the opaque session token from the Neon Auth session cookie. Better Auth stores `token.signature`
- * (URL-encoded); the token is the part before the first dot. A malformed value gives null, never an error.
- * The signature is not checked here: the token is a long random value that must exist in the database
- * (`app_resolve_session`), so a forged cookie cannot match a session.
- */
-export function readSessionToken(headers: Headers): string | null {
-  const header = headers.get("cookie");
-  if (!header) return null;
-  for (const part of header.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator < 0) continue;
-    if (part.slice(0, separator).trim() !== COOKIE_NAME) continue;
-    let value = part.slice(separator + 1).trim();
-    try {
-      value = decodeURIComponent(value);
-    } catch {
-      return null;
-    }
-    const token = value.split(".")[0] ?? "";
-    return TOKEN_PATTERN.test(token) ? token : null;
-  }
-  return null;
 }
 
 /** `/api/auth/[...path]`: forwards the request to Neon Auth and returns its response, cookies included. */
