@@ -1,0 +1,114 @@
+{
+  "catalogue": {
+    "universities": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "slug": "alpha-university",
+        "name": "Alpha University",
+        "city": "Mohali",
+        "state": "Punjab",
+        "type": "private",
+        "naacGrade": "A+",
+        "websiteUrl": "https://alpha.example/",
+        "logo": null,
+        "overview": "Alpha University is a test university with confirmed fees.\n\nIt has a second paragraph.",
+        "programmes": [
+          { "id": "00000000-0000-4000-8000-0000000000a1", "name": "B.Tech Computer Science", "level": "Undergraduate", "field": "Engineering", "durationMonths": 48 },
+          { "id": "00000000-0000-4000-8000-0000000000a2", "name": "MBA", "level": "Postgraduate", "field": "Business", "durationMonths": 24 },
+          { "id": "00000000-0000-4000-8000-0000000000a3", "name": "BBA", "level": "Undergraduate", "field": "Business", "durationMonths": 36 }
+        ],
+        "fees": [
+          { "id": "00000000-0000-4000-8000-0000000000f1", "currency": "USD", "min": 3000, "max": 6000, "period": "tuition per year", "lastUpdatedAt": "2026-06-12T00:00:00.000Z", "programmeId": null },
+          { "id": "00000000-0000-4000-8000-0000000000f2", "currency": "USD", "min": 1920, "max": 2400, "period": "hostel per year", "lastUpdatedAt": "2026-06-12T00:00:00.000Z", "programmeId": null }
+        ],
+        "experiences": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "kind": "video", "title": "Official campus tour", "youtubeId": "5ddvpNEqpec", "url": null, "thumbnail": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "kind": "tour360", "title": "360 degree virtual tour", "youtubeId": null, "url": "https://tour.example/alpha/", "thumbnail": null }
+        ],
+        "resources": [{ "id": "00000000-0000-4000-8000-0000000000d1", "title": "Official prospectus", "url": "https://alpha.example/prospectus.pdf", "kind": "prospectus" }]
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "slug": "beta-university",
+        "name": "Beta University",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "type": "private",
+        "naacGrade": "A",
+        "websiteUrl": null,
+        "logo": null,
+        "overview": "Beta University has no confirmed fee yet.",
+        "programmes": [{ "id": "00000000-0000-4000-8000-0000000000b1", "name": "B.Com", "level": "Undergraduate", "field": "Commerce", "durationMonths": 36 }],
+        "fees": [],
+        "experiences": [],
+        "resources": []
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "slug": "gamma-university",
+        "name": "Gamma University",
+        "city": "Bhubaneswar",
+        "state": "Odisha",
+        "type": "private",
+        "naacGrade": null,
+        "websiteUrl": null,
+        "logo": null,
+        "overview": "",
+        "programmes": [],
+        "fees": [{ "id": "00000000-0000-4000-8000-0000000000f3", "currency": "INR", "min": 150000, "max": 250000, "period": "tuition per year", "lastUpdatedAt": "2026-05-01T00:00:00.000Z", "programmeId": null }],
+        "experiences": [],
+        "resources": []
+      }
+    ]
+  },
+  "site": {
+    "faqs": [
+      { "id": "00000000-0000-4000-8000-0000000000e1", "category": "Costs", "question": "Is Scollarly free for students?", "answer": "Yes. Students pay Scollarly nothing." },
+      { "id": "00000000-0000-4000-8000-0000000000e2", "category": "Visa", "question": "How long does a visa take?", "answer": "It depends on the embassy." },
+      { "id": "00000000-0000-4000-8000-0000000000e3", "category": null, "question": "Can I apply from my phone?", "answer": "Yes, the form works offline too." }
+    ],
+    "processSteps": [
+      { "id": "00000000-0000-4000-8000-0000000000s1", "kind": "application", "position": 1, "title": "Share your results", "body": "Send us your O-level and A-level results." },
+      { "id": "00000000-0000-4000-8000-0000000000s2", "kind": "application", "position": 2, "title": "Choose your course", "body": "Pick at least three programmes." },
+      { "id": "00000000-0000-4000-8000-0000000000s3", "kind": "visa", "position": 1, "title": "Collect your documents", "body": "Passport, offer letter and photographs." }
+    ],
+    "blocks": {
+      "about.summary": "Scollarly helps African students find Indian universities.",
+      "about.mission": "We want every student to study where they can thrive.",
+      "about.value.commitment.title": "Commitment",
+      "about.value.commitment.body": "We stay with you until you arrive.",
+      "about.motto": "Your journey, our commitment.",
+      "contact.email": "hello@scollarly.example",
+      "fees.disclaimer": "Fees are indicative and set by the universities."
+    },
+    "contact": { "whatsappE164": "+14155550100", "phoneDisplay": "+1 415 555 0100" }
+  },
+  "trust": {
+    "stats": [{ "key": "students", "label": "Students helped", "value": "120+", "asOf": "2026-10-01" }],
+    "testimonials": [
+      { "id": "00000000-0000-4000-8000-0000000000t1", "studentName": "Test Student", "country": "Cameroon", "universityName": "Alpha University", "quote": "They answered me on WhatsApp the same day.", "photo": null }
+    ],
+    "journeys": [],
+    "team": [{ "id": "00000000-0000-4000-8000-0000000000m1", "name": "Test Teammate", "roleTitle": "Student adviser", "bio": "Confirmed bio.", "photo": null }]
+  },
+  "blog": {
+    "posts": [
+      {
+        "slug": "how-to-apply",
+        "title": "How to apply",
+        "publishedAt": "2026-10-20T08:00:00.000Z",
+        "excerpt": "Start with your results.",
+        "cover": null,
+        "body": "Start with your **results**.\n\n## Next\n\n- Pick programmes\n- Send them\n\n<script>window.__xss = 1</script>\n\n[bad link](javascript:window.__xss=2) and [good link](https://example.com/guide)\n\n![tracking pixel](https://evil.example/x.png)"
+      },
+      {
+        "slug": "visa-checklist",
+        "title": "Visa checklist",
+        "publishedAt": "2026-10-10T08:00:00.000Z",
+        "excerpt": "Documents to gather.",
+        "cover": null,
+        "body": "Gather your documents."
+      }
+    ]
+  }
+}

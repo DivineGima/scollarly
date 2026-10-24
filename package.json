@@ -18,6 +18,7 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
     "size": "node scripts/worker-size.mjs",
+    "check:bundle": "node scripts/check-public-bundle.mjs",
     "measure": "node scripts/measure-cpu.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

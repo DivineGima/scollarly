@@ -8,9 +8,9 @@ export default async function PublishedPage({ params }: { params: Promise<{ loca
   const t = await getTranslations("phase0");
   const title = await getPublishedTitle();
   return (
-    <main>
+    <section>
       <h1>{t("publishedHeading")}</h1>
       <p data-testid="published-title">{title}</p>
-    </main>
+    </section>
   );
 }
