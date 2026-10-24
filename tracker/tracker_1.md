@@ -284,6 +284,15 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 - **Documents corrected in place (all version 1, D13):** PRD (tech stack row, amendment), architecture (ADR-040 added; ADR-004, 033, 039 amended; sections 1, 4.3, 5, 6, 8, 9, 10, 12, 15, 17, 18, 19; amendment log), essentials (S0.4, S0.10, S2.4, amendment), `CLAUDE.md` (guardrail), this tracker.
 - **Not yet done:** deploy and measure (needs the pull request merged to `main`, then the manual workflow), the lead POST diagnosis, the Google sign-in measurement by hand, and the open questions in ADR-040 (staff navigation between screens; mutation endpoint CPU).
 
+### 2026-10-24: Session 12 (Module S0.10 re-run after D18: every measured gate passes)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1.
+
+- The owner merged PR #11 and answered the standing check-in C1: **Neon Auth has not shipped authenticator-app 2FA** (still asked each session).
+- Workflow run 40074577922 (commit 284eac1) succeeded. Results are in "Module S0.10 gates" above: staff and student shells 2 to 3 ms and data calls 4 to 5 ms at p95 (gate 8), lead POST p95 5 ms (worst 13), public page and both image paths 0 to 3 ms, nothing cut at the limit, 20 probes passed.
+- **Still open before S0.10 and Stage 0 can close:** the Google sign-in return trip (at most 10 ms, needs the owner to sign in once while `npx wrangler tail scollarly --format json` runs), and H16 (Google redirect check). Open owner actions H12, H15. Decisions F13 (visitor IP kept by Neon Auth) and F14 (beta SDK) are unanswered.
+- **Unproven and carried to later stages (ADR-040):** staff navigation between screens, and the CPU of write endpoints beyond the lead POST insert.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -338,7 +347,7 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S0.7 | Cron, Durable Object counter and limiter | in-progress |
 | S0.8 | Serwist offline page | in-progress |
 | S0.9 | Measurement report | in-progress |
-| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress (first run 2026-10-24 failed two gates; rebuilt under D18 as shell plus data calls; re-run pending) |
+| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress (first run 2026-10-24 failed two gates; rebuilt under D18 as shell plus data calls; re-run 2026-10-24 passed every measured gate; only the Google sign-in return trip (needs the owner) remains) |
 | S1.1 | Migrations, constraints, indexes, seeds | — |
 | S1.2 | Repository layer, `Actor`, auth facade interface | — |
 | S1.3 | Shared libraries | — |
@@ -424,7 +433,7 @@ One row per gate in architecture section 17. Any failed gate stops the build and
 
 ## Module S0.10 gates (free-plan proof, redesigned; extended by D15 on 2026-10-24)
 
-Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. **Measured 2026-10-24 by the workflow run 40064928935 on commit e964be3** (live Worker, throwaway Neon Auth sessions, CPU time from `wrangler tail`; the tail samples under load, so "events" is fewer than requests). **Two gates failed (admin page, lead POST), so Stage 0 stays closed. The owner chose to stay on the free plan (D18); the staff and student rows are rebuilt as shell plus data call and re-measured in the next table.** A failed gate returns the matching decision to the owner.
+Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. **Measured 2026-10-24 by the workflow run 40064928935 on commit e964be3** (live Worker, throwaway Neon Auth sessions, CPU time from `wrangler tail`; the tail samples under load, so "events" is fewer than requests). **Two gates failed (admin page, lead POST), so Stage 0 stays closed. The owner chose to stay on the free plan (D18); the staff and student rows were rebuilt as shell plus data call and re-measured; they pass (next table).** A failed gate returns the matching decision to the owner.
 
 | Gate | Pass when | Measured (warm p50 / p95 / worst ms) | Result |
 |---|---|---|---|
@@ -441,16 +450,22 @@ Same thresholds as architecture section 17, measured as warm p95 over at least 5
 | Sign-in return trip on Neon Auth (throwaway Google test account) | At most 10 ms | Needs the owner to sign in with Google once while the Worker log is watched | Not measured |
 | Google redirect through Neon Auth | Works; recorded | Needs the same sign-in (H16) | Not measured |
 
-**Re-run after D18 (ADR-040).** Not yet measured. Each signed-in screen is two requests, each gated at warm p95 of at most 8 ms over 50 requests with none cut at the limit.
+**Re-run after D18 (ADR-040): measured 2026-10-24, workflow run 40074577922, commit 284eac1.** Each signed-in screen is two requests, each gated at warm p95 of at most 8 ms over 50 requests with none cut at the limit. **Every measured gate passed.** CPU is milliseconds from `wrangler tail`; the tail samples under load, so events are fewer than requests.
 
-| Gate | Pass when | Measured | Result |
+| Gate | Pass when | Measured (warm p50 / p95 / worst ms) | Result |
 |---|---|---|---|
-| Staff screen, shell (session query, then the cached page) | At most 8 ms | | Not measured |
-| Staff screen, data call (session query, then one query under row level security) | At most 8 ms | | Not measured |
-| Student screen, shell | At most 8 ms | | Not measured |
-| Student screen, data call | At most 8 ms | | Not measured |
-| Lead POST, 50 requests, with every sampled CPU value kept | At most 8 ms; explain the slow tail | | Not measured |
-| Shell has no data, a browser may not cache it; anonymous / student / forged refused (404 shell, 401 / 403 data) | All hold | | Not measured |
+| Public page | At most 5 ms | 0 / 0 / 0 (17 events; the first request after the deploy used 17) | **Pass** |
+| Staff screen, shell (session query, then the cached page) | At most 8 ms | 1 / 2 / 2 (50 requests, 18 events; first request 12) | **Pass** |
+| Staff screen, data call (session query, then one query under row level security) | At most 8 ms | 2 / 4 / 4 (23 events) | **Pass** |
+| Student screen, shell | At most 8 ms | 1 / 3 / 3 (19 events; first request 11) | **Pass** |
+| Student screen, data call | At most 8 ms | 2 / 4 / 5 (30 events) | **Pass** |
+| Lead POST, 50 requests, every sampled CPU value kept | At most 8 ms; explain the slow tail | 3 / 5 / 13 (50 events). Only three requests were above 5 ms: 13 (the fifth), 10 (the 28th) and 5. The run gate is warm p95, which is 5 | **Pass**; the two slow requests are not explained (probably an isolate starting fresh, since requests are 12.5 s apart) |
+| Image cache hit | At most 8 ms, no database | 0 / 1 / 1 | **Pass** |
+| Image cache miss, read from Neon Object Storage | At most 8 ms | 2 / 2 / 3 (9 misses) | **Pass** |
+| Shell has no data and is not browser-cacheable; anonymous, student and forged sessions refused (404 shell, 401 / 403 data) | All hold | All checks passed (20 probes passed, 0 failed, 1 informational) | **Pass** |
+| No request cut at the CPU limit | None | 0 in every scenario | **Pass** |
+| Sign-in return trip on Neon Auth (throwaway Google test account) | At most 10 ms | Needs the owner to sign in with Google once while the Worker log is watched | **Not measured** |
+| Google redirect through Neon Auth (H16) | Works; recorded | Same sign-in | **Not measured** |
 
 Other checks in the same run (all passed): Neon cold start 1.66 s client time after a 330 s idle wait (gate about 2 s); warm query 431 ms; WebSocket transaction; Durable Objects counter and limiter; cron `lastCronAt` 2026-10-23 23:05 UTC; revalidation (a publish shows on the page in 31 s with no deploy); image served as webp with immutable headers; lead POST rules (400 without a key, 400 for a bad country, 201 then 200 on replay then 409 on a changed payload, 429 after 5 requests a minute). 17 probes passed, 0 failed.
 
