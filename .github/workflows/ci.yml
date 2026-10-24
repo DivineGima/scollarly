@@ -28,7 +28,15 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      # Includes the import boundaries, the every-table row level security scan, the 9.5 permission table parity check,
+      # the security headers and the i18n catalogues.
       - run: npm test
+      # S1.1: the migrations folder must match src/server/db/schema.ts. If generate has anything to write, the schema changed
+      # without a migration, and this step fails.
+      - name: Migrations match the schema
+        run: |
+          MIGRATION_DATABASE_URL=postgres://ci:ci@localhost/ci npx drizzle-kit generate --name ci_drift_check
+          test -z "$(git status --porcelain src/server/db/migrations)" || { git status --porcelain src/server/db/migrations; echo "Schema changed without a migration."; exit 1; }
 
   integration:
     name: Integration tests (Postgres service container)
@@ -49,6 +57,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
+      # Applies every migration to an empty database, then runs the constraint, row level security, authorisation matrix,
+      # repository and seed suites (S1.1 to S1.7).
       - run: npm run test:integration
 
   build:
@@ -72,6 +82,7 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # Offline mode (S0.8), plus axe, the security headers with CSP in report-only mode, 375 px layout and the /en rewrite (S1.5, S1.6).
       - run: npm run test:e2e
       - if: failure()
         uses: actions/upload-artifact@v4

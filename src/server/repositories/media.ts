@@ -14,6 +14,8 @@ export interface NewMedia {
   height: number;
   bytes: number;
   sha256: string;
+  /** Translatable alternative text, for example `{ en: "Jain University campus" }`. */
+  alt?: Record<string, string>;
 }
 
 /** Inserts the metadata row. Returns no row when the hash already exists (deduplication by content hash). */
@@ -32,4 +34,16 @@ export function findAssetBySha256Query(db: Db, sha256: string) {
     .from(mediaAsset)
     .where(and(eq(mediaAsset.sha256, sha256), isNull(mediaAsset.archivedAt)))
     .limit(1);
+}
+
+/** The id of the asset with this hash, archived or not. For the import script and the upload path, which run with the owner role or inside `inContext`. */
+export async function findAssetIdBySha256(db: Db, sha256: string): Promise<string | null> {
+  const [row] = await db.select({ id: mediaAsset.id }).from(mediaAsset).where(eq(mediaAsset.sha256, sha256)).limit(1);
+  return row?.id ?? null;
+}
+
+/** Inserts the metadata row and returns its id, or null when the hash already exists. Runs with the owner role (the import script). */
+export async function insertMediaAsset(db: Db, media: NewMedia): Promise<string | null> {
+  const [row] = await insertMediaAssetQuery(db, media);
+  return row?.id ?? null;
 }

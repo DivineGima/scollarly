@@ -2,6 +2,8 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import createNextIntlPlugin from "next-intl/plugin";
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
+import { localeRewrites } from "./src/i18n/rewrites";
+import { securityHeaderList } from "./src/lib/security-headers";
 
 // Lets `next dev` read Worker bindings (getCloudflareContext). Guarded because it starts a local Miniflare
 // (workerd) process, which must not run during `next build`: it slows the build and can keep it from exiting.
@@ -28,20 +30,13 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // ADR-018: no locale middleware. Unprefixed paths are rewritten to `/en/...`.
-  // Stage 0 lists its pages explicitly. Stage 1 (S1.6) generalises this.
+  // ADR-018: no locale middleware. Unprefixed paths are rewritten to `/en/...` (S1.6, src/i18n/rewrites.ts).
   async rewrites() {
-    return {
-      beforeFiles: [
-        { source: "/", destination: "/en" },
-        { source: "/offline", destination: "/en/offline" },
-        { source: "/admin/phase0", destination: "/en/admin/phase0" },
-        { source: "/me/phase0", destination: "/en/me/phase0" },
-        { source: "/phase0/published", destination: "/en/phase0/published" },
-      ],
-      afterFiles: [],
-      fallback: [],
-    };
+    return { beforeFiles: localeRewrites(), afterFiles: [], fallback: [] };
+  },
+  // Architecture 13.1. The Worker entry adds the same headers to every response, including the ones that never reach Next.js.
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaderList() }];
   },
 };
 

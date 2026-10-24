@@ -20,7 +20,10 @@ const addAppUser = (id: string, role = "student") => t.run(`insert into app_user
 describe("S0.1/S0.3: migrations and the two query paths", () => {
   it("applies the committed migrations to an empty database", async () => {
     const tables = (await t.run("select table_name from information_schema.tables where table_schema = 'public' order by 1")) as { table_name: string }[];
-    expect(tables.map((r) => r.table_name)).toEqual(["app_user", "media_asset", "owner_totp", "phase0_content", "phase0_lead_stub", "recovery_code", "step_up"]);
+    // Stage 1 (S1.1) adds the rest of architecture 7; the every-table list is asserted in schema-foundation.test.ts.
+    expect(tables.map((r) => r.table_name)).toEqual(
+      expect.arrayContaining(["app_user", "media_asset", "owner_totp", "phase0_content", "phase0_lead_stub", "recovery_code", "step_up"]),
+    );
   });
 
   it("no longer has the self-hosted Better Auth tables or the bytea image table (ADR-037, ADR-039)", async () => {
