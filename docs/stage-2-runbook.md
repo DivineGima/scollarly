@@ -71,6 +71,8 @@ These are the exit criteria that need something this session cannot do. None was
    npx drizzle-kit migrate
    ```
 
+   **The manual deploy workflow (`Stage 0 deploy and measure`, step "Apply database migrations to Neon") runs `npm run db:migrate` itself**, so running it after the merge (step 3) applies migration 0004 too; the command above is only needed to apply it earlier.
+
    Then check: `select count(*) from neon_auth.session where "ipAddress" is not null or "userAgent" is not null` returns 0 after the next sign-in.
 3. **Deploy and sign in once for real** with the Worker log open: record the CPU of `/auth/return` and `/auth/landing` (gate 10 ms) and whether Google accepted the `workers.dev` redirect (it did in Stage 0).
 4. **Owner first sign-in** with the address in `OWNER_EMAIL`: it should land on `/two-factor/enrol`. This is a human step.
