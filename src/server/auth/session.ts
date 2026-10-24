@@ -29,13 +29,19 @@ export function proxyAuthRequest(request: Request, path: string, config: NeonAut
  * it is exchanged for session cookies and the user is redirected to the same URL without it. Otherwise the user goes to
  * `fallbackPath`. The decision comes from the SDK; this function only turns it into a redirect.
  */
-export async function completeSignIn(request: Request, config: NeonAuthConfig, fallbackPath: string): Promise<Response> {
+export async function completeSignIn(
+  request: Request,
+  config: NeonAuthConfig,
+  fallbackPath: string,
+  /** Where a visitor with no session goes (Google refused, or the person cancelled): back to the sign-in page with a plain message (A9 step 3). */
+  loginUrl = "/sign-in?error=cancelled",
+): Promise<Response> {
   const url = new URL(request.url);
   const decision = await processAuthMiddleware({
     request,
     pathname: url.pathname,
     skipRoutes: [],
-    loginUrl: "/",
+    loginUrl,
     baseUrl: config.baseUrl,
     cookieSecret: config.cookieSecret,
     sameSite: "lax",

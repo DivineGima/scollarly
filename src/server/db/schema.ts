@@ -134,7 +134,11 @@ export const adminInvite = pgTable(
     acceptedAt: tz("accepted_at"),
     revokedAt: tz("revoked_at"),
   },
-  (t) => [check("admin_invite_expiry_check", sql`${t.expiresAt} > ${t.createdAt}`)],
+  (t) => [
+    check("admin_invite_expiry_check", sql`${t.expiresAt} > ${t.createdAt}`),
+    // S2.5: one open invite per email, so a double tap on "Send invite" cannot create two. Resend revokes the old one first.
+    uniqueIndex("admin_invite_one_open_per_email").on(sql`lower(${t.email})`).where(sql`${t.acceptedAt} is null and ${t.revokedAt} is null`),
+  ],
 );
 
 /** Append-only (architecture 7.1): the runtime role has no update or delete right. `meta` holds ids and changed field names only, no personal data. */

@@ -26,10 +26,27 @@ describe("handleSignIn", () => {
     expect(start.mock.calls[0]?.[2]).toBe("/auth/return");
   });
 
-  it("finishes sign-in at /auth/return and lands on the Stage 0 student page", async () => {
+  it("finishes sign-in at /auth/return and goes on to /auth/landing, which chooses the page for the role", async () => {
     await handleSignIn(get("/auth/return?neon_auth_session_verifier=abc"), env);
     expect(complete).toHaveBeenCalledTimes(1);
-    expect(complete.mock.calls[0]?.[2]).toBe("/me/phase0");
+    expect(complete.mock.calls[0]?.[2]).toBe("/auth/landing");
+  });
+
+  it("carries a well-formed invite token through the whole trip, and drops anything else", async () => {
+    const invite = "A".repeat(43);
+    await handleSignIn(get(`/auth/start?invite=${invite}`), env);
+    expect(start.mock.calls[0]?.[2]).toBe(`/auth/return?invite=${invite}`);
+    await handleSignIn(get(`/auth/return?invite=${invite}&neon_auth_session_verifier=abc`), env);
+    expect(complete.mock.calls[0]?.[2]).toBe(`/auth/landing?invite=${invite}`);
+
+    start.mockClear();
+    complete.mockClear();
+    for (const bad of ["short", "A".repeat(44), "../../etc/passwd", `${"A".repeat(42)}+`]) {
+      await handleSignIn(get(`/auth/start?invite=${encodeURIComponent(bad)}`), env);
+      await handleSignIn(get(`/auth/return?invite=${encodeURIComponent(bad)}`), env);
+    }
+    expect(start.mock.calls.every((call) => call[2] === "/auth/return")).toBe(true);
+    expect(complete.mock.calls.every((call) => call[2] === "/auth/landing")).toBe(true);
   });
 
   it("ignores every other path and every other method", () => {

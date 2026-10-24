@@ -29,6 +29,13 @@
       "when": 1792832422965,
       "tag": "0003_stage1_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792859143638,
+      "tag": "0004_stage2_auth",
+      "breakpoints": true
     }
   ]
 }
