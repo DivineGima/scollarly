@@ -10,6 +10,7 @@ import { authedDeps } from "../src/server/edge/authed-runtime";
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
 import { handleLeadPost, LEADS_PATH } from "../src/server/edge/leads";
 import { serveMedia } from "../src/server/edge/media";
+import { handleSignIn } from "../src/server/edge/sign-in";
 import { getMediaStore } from "../src/server/media/runtime";
 
 export default {
@@ -18,12 +19,16 @@ export default {
    * alone costs several milliseconds, so the requests that must be cheapest never reach it:
    *  - public pages and content-hashed images are answered from the Cache API (images are read from the public bucket on a miss);
    *  - `POST /api/v1/leads` runs as a plain function;
+   *  - the two sign-in steps of ours, `/auth/start` and `/auth/return`, are plain functions (`edge/sign-in.ts`);
    *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`).
    * Everything else, and every page miss, goes to OpenNext unchanged.
    */
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === LEADS_PATH) return handleLeadPost(request, env);
+
+    const signIn = handleSignIn(request, env);
+    if (signIn) return signIn;
 
     const authed = await handleAuthed(request, () =>
       authedDeps(env, {
