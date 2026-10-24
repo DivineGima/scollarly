@@ -87,6 +87,7 @@ Read `SYSTEM DESIGN RULES.html` and the other source files at the start of every
 
 - Only `server/repositories` imports Drizzle. Only `server/auth` imports the Neon Auth SDK and otpauth. Only `server/media` uses the Neon Object Storage client and credential. Nothing imports Resend (removed, D15).
 - Never put access control in middleware. Authorisation is enforced through the auth facade and the `Actor` type, backed by Neon row level security as a second lock: the app connects as a non-owner runtime role, every table has `FORCE ROW LEVEL SECURITY` and a policy, and CI fails on a table without one. Neither lock replaces the other. (Amended 2026-10-24, owner decision D15.)
+- Signed-in screens are a prerendered shell with no data and no session logic, plus plain data functions in the Worker entry (`src/server/edge/authed.ts`). No Server Actions and no server-rendered signed-in pages: Next.js costs more CPU than Workers Free allows (D18, ADR-040). Never put personal data in a shell or in any cache. Each such module adds a CPU row (shell and data call, at most 8 ms each).
 - No admin library (shadcn/ui, Recharts) in any public route.
 - No third-party scripts, no hotlinked images, no Next.js image optimiser.
 - Every WhatsApp URL comes from the one helper, using the number in `site_setting`. No hardcoded numbers.
