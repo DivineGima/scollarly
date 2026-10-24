@@ -46,3 +46,35 @@ export async function completeSignIn(request: Request, config: NeonAuthConfig, f
   for (const cookie of decision.cookies ?? []) headers.append("Set-Cookie", cookie);
   return new Response(null, { status: 302, headers });
 }
+
+/**
+ * Starts Google sign-in with one GET (Stage 0 only: the real sign-in page is S2.2, and it does the same thing from a button).
+ * Neon Auth's social sign-in is a POST that answers with the Google URL and sets a short-lived state cookie on our origin.
+ * This makes that POST, then redirects the browser to Google with the cookie. `returnPath` is where Neon sends the user back.
+ */
+export async function startGoogleSignIn(request: Request, config: NeonAuthConfig, returnPath: string): Promise<Response> {
+  const origin = new URL(request.url).origin;
+  const proxied = await proxyAuthRequest(
+    new Request(`${origin}/api/auth/sign-in/social`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin, cookie: request.headers.get("cookie") ?? "" },
+      body: JSON.stringify({ provider: "google", callbackURL: new URL(returnPath, origin).toString() }),
+    }),
+    "sign-in/social",
+    config,
+  );
+
+  let target = proxied.headers.get("location");
+  if (!target) {
+    try {
+      target = ((await proxied.clone().json()) as { url?: string }).url ?? null;
+    } catch {
+      target = null;
+    }
+  }
+  if (!target) return new Response("Sign-in could not be started.", { status: 502, headers: { "Cache-Control": "no-store" } });
+
+  const headers = new Headers({ Location: target, "Cache-Control": "no-store" });
+  for (const cookie of proxied.headers.getSetCookie()) headers.append("Set-Cookie", cookie);
+  return new Response(null, { status: 302, headers });
+}
