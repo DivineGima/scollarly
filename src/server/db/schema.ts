@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   check,
-  customType,
   index,
   integer,
   jsonb,
@@ -17,120 +17,72 @@ import {
  * Stage 0 schema. All timestamps are `timestamptz` (UTC in storage, architecture 7).
  *
  * Sections:
- *  1. Better Auth tables (architecture 7.1). Exact columns confirmed in Stage 0 by the auth integration test.
- *  2. Media tables, final shape from architecture 7.4 (S0.5 measures `bytea` reads on them).
+ *  1. Identity tables (architecture 7.1, ADR-037). Neon Auth owns the users and sessions in its own schema.
+ *  2. Media metadata (architecture 7.4). Image bytes live in Neon Object Storage (ADR-039), not in a table.
  *  3. Phase 0 throwaway tables. They are additive, hold no real data, and are marked deprecated:
  *     Stage 1 (S1.1) owns the real `lead` table; the stub is removed in a later version once nothing references it.
  */
 
 const tz = (name: string) => timestamp(name, { withTimezone: true });
 
-/** `bytea` column. node-postgres and the Neon driver return a Buffer; some paths return a `\x...` hex string. */
-export const bytea = customType<{ data: Uint8Array; driverData: Buffer | Uint8Array | string }>({
-  dataType: () => "bytea",
-  toDriver: (value) => Buffer.from(value),
-  fromDriver: (value) => {
-    if (typeof value === "string") return Uint8Array.from(Buffer.from(value.replace(/^\\x/, ""), "hex"));
-    return value instanceof Uint8Array ? value : Uint8Array.from(value);
-  },
-});
-
 // ---------------------------------------------------------------------------------------------
-// 1. Better Auth
+// 1. Identity (ADR-037). Sign-in and sessions are Neon Auth (managed Better Auth, schema `neon_auth`), which our
+//    code never writes. These are OUR tables: the role, the owner second factor and the step-up time.
+//    `app_user.id` is the Neon Auth user id as text, with no foreign key across schemas.
 // ---------------------------------------------------------------------------------------------
 
-export const user = pgTable(
-  "user",
+export const appUser = pgTable(
+  "app_user",
   {
     id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("email_verified").notNull().default(false),
-    image: text("image"),
-    createdAt: tz("created_at").notNull().defaultNow(),
-    updatedAt: tz("updated_at").notNull().defaultNow(),
-    /** `student` (default) / `admin` / `owner`. Architecture 7.1. */
+    /** `student` (default) / `admin` / `owner`. Created idempotently by `app_resolve_session` on the first authenticated request. */
     role: text("role").notNull().default("student"),
-    twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+    createdAt: tz("created_at").notNull().defaultNow(),
   },
   (t) => [
-    check("user_role_check", sql`${t.role} in ('student', 'admin', 'owner')`),
+    check("app_user_role_check", sql`${t.role} in ('student', 'admin', 'owner')`),
     // Exactly one owner can ever exist (ADR-013).
-    uniqueIndex("user_single_owner").on(t.role).where(sql`${t.role} = 'owner'`),
+    uniqueIndex("app_user_single_owner").on(t.role).where(sql`${t.role} = 'owner'`),
   ],
 );
 
-export const session = pgTable(
-  "session",
+/** The owner's authenticator-app secret (ADR-037). The secret is AES-GCM encrypted with a Worker secret. */
+export const ownerTotp = pgTable("owner_totp", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => appUser.id),
+  secretEncrypted: text("secret_encrypted").notNull(),
+  /** False until the owner proves the first code during enrolment. */
+  confirmed: boolean("confirmed").notNull().default(false),
+  enrolledAt: tz("enrolled_at").notNull().defaultNow(),
+  /** The last accepted 30 second time step. A code for the same or an earlier step is refused (replay). */
+  lastUsedStep: bigint("last_used_step", { mode: "number" }),
+  failedCount: integer("failed_count").notNull().default(0),
+  lockedUntil: tz("locked_until"),
+});
+
+/** Ten single-use recovery codes per owner, stored as hashes only. */
+export const recoveryCode = pgTable(
+  "recovery_code",
   {
-    id: text("id").primaryKey(),
-    expiresAt: tz("expires_at").notNull(),
-    token: text("token").notNull().unique(),
-    createdAt: tz("created_at").notNull().defaultNow(),
-    updatedAt: tz("updated_at").notNull().defaultNow(),
-    /** Raw IP addresses are never stored (CLAUDE.md). Better Auth IP tracking is disabled, so this stays null. */
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
+    id: uuid("id").primaryKey(),
     userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    /** Set when the user last passed a TOTP or recovery-code check on this session (step-up, architecture 9.3). */
-    twoFactorVerifiedAt: tz("two_factor_verified_at"),
+      .references(() => appUser.id),
+    codeHash: text("code_hash").notNull(),
+    usedAt: tz("used_at"),
   },
-  (t) => [index("session_user_id_idx").on(t.userId)],
+  (t) => [uniqueIndex("recovery_code_user_hash").on(t.userId, t.codeHash)],
 );
 
-export const account = pgTable(
-  "account",
-  {
-    id: text("id").primaryKey(),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    accessToken: text("access_token"),
-    refreshToken: text("refresh_token"),
-    idToken: text("id_token"),
-    accessTokenExpiresAt: tz("access_token_expires_at"),
-    refreshTokenExpiresAt: tz("refresh_token_expires_at"),
-    scope: text("scope"),
-    password: text("password"),
-    createdAt: tz("created_at").notNull().defaultNow(),
-    updatedAt: tz("updated_at").notNull().defaultNow(),
-  },
-  (t) => [index("account_user_id_idx").on(t.userId)],
-);
-
-export const verification = pgTable(
-  "verification",
-  {
-    id: text("id").primaryKey(),
-    identifier: text("identifier").notNull(),
-    value: text("value").notNull(),
-    expiresAt: tz("expires_at").notNull(),
-    createdAt: tz("created_at").notNull().defaultNow(),
-    updatedAt: tz("updated_at").notNull().defaultNow(),
-  },
-  (t) => [index("verification_identifier_idx").on(t.identifier)],
-);
-
-export const twoFactor = pgTable(
-  "two_factor",
-  {
-    id: text("id").primaryKey(),
-    secret: text("secret").notNull(),
-    backupCodes: text("backup_codes").notNull(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    verified: boolean("verified").notNull().default(true),
-    // Account lockout after repeated failed second-factor checks (Better Auth 1.7). Confirmed by the Stage 0 auth test.
-    failedVerificationCount: integer("failed_verification_count").notNull().default(0),
-    lockedUntil: tz("locked_until"),
-  },
-  (t) => [index("two_factor_user_id_idx").on(t.userId)],
-);
+/** When a Neon Auth session last passed the second factor. Read by the facade for "2FA verified" and the 10-minute step-up. */
+export const stepUp = pgTable("step_up", {
+  sessionId: text("session_id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => appUser.id),
+  verifiedAt: tz("verified_at").notNull(),
+});
 
 // ---------------------------------------------------------------------------------------------
 // 2. Media (architecture 7.4)
@@ -156,14 +108,6 @@ export const mediaAsset = pgTable(
     check("media_asset_mime_check", sql`${t.mime} = 'image/webp'`),
   ],
 );
-
-/** Never selected by content queries. Only the `/media/[hash]` handler reads it. */
-export const mediaBlob = pgTable("media_blob", {
-  mediaId: uuid("media_id")
-    .primaryKey()
-    .references(() => mediaAsset.id),
-  data: bytea("data").notNull(),
-});
 
 // ---------------------------------------------------------------------------------------------
 // 3. Phase 0 throwaway tables
@@ -191,5 +135,5 @@ export const phase0Content = pgTable("phase0_content", {
   updatedAt: tz("updated_at").notNull().defaultNow(),
 });
 
-export const schema = { user, session, account, verification, twoFactor, mediaAsset, mediaBlob, phase0LeadStub, phase0Content };
+export const schema = { appUser, ownerTotp, recoveryCode, stepUp, mediaAsset, phase0LeadStub, phase0Content };
 export type Schema = typeof schema;

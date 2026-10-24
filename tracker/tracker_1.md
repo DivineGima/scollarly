@@ -6,13 +6,21 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 
 | Item | Value |
 |---|---|
-| Current PRD | `PRD_1.md` (amended pre-build 2026-10-23) |
-| Current architecture | `system_architecture_1.md` (amended pre-build 2026-10-23) |
-| Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended pre-build 2026-10-23) |
-| Phase | Stage 0 (proof of fit) is open. The first slice was measured and failed the CPU gates; the owner chose to redesign for the free plan (D14) and had the documents edited in place (D13). The PRD, architecture and essentials are amended and still version 1. The redesign is not yet proven: Module S0.10 builds and measures it on the deployed Worker. Stage 1 has not started and must not start until S0.10 passes. |
+| Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
+| Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
+| Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
+| Phase | Stage 0 (proof of fit) is open. The first slice failed the CPU gates; the owner chose to redesign for the free plan (D14), and on 2026-10-24 asked for a Neon-centred redesign (D15): Neon Auth for sign-in and sessions, our own owner 2FA on the otpauth library, Neon row level security plus the facade, images in a Neon Object Storage bucket (D16), Resend removed. The documents are edited in place and are still version 1 (D13). **The redesign is a proposal until Module S0.10 proves it on the deployed Worker.** Stage 1 has not started and must not start until S0.10 passes. |
 | Next stage | Stage 0: Proof of fit (hard gate), now Module S0.10 (free-plan proof) |
-| Blocked by | Nothing from the owner for S0.10: the deployed Worker, the Neon database and the secrets already exist. Owner items that matter later: Google OAuth credentials before Stage 2 (H8), and the domain before launch (F10). If S0.10 fails a gate, the decision returns to the owner. |
-| Gate before Stage 2 | **Resolved by D14**: sign-in is Google only, so Stage 2 no longer needs a verified Resend sending domain. One check remains inside S2.2: whether Google accepts a `workers.dev` redirect address (H8). |
+| Blocked by | Owner actions for S0.10: finish the Google credentials in Neon Auth (H8, H13: Google is still on Neon's shared test keys) and read the Neon Object Storage free-plan limits (H12). The domain (F10) blocks launch only. |
+| Gate before Stage 2 | Module S0.10 passes. Stage 2 needs Neon Auth and the Google credentials (H8). Google's redirect address will be Neon Auth's; confirm when the credentials are created. |
+
+## Standing owner check-ins (ask the owner at the start of every session)
+
+Claude Code: after reading this tracker, ask the owner each open check-in below and show its link. Stop asking only when the owner says the item is done or no longer wanted, and record that here. (Added at the owner's request, D15.)
+
+| # | Check | Link | Why | Status |
+|---|---|---|---|---|
+| C1 | Has Neon Auth shipped authenticator-app 2FA (MFA/TOTP)? | https://neon.com/docs/auth/roadmap | Neon Auth has none today (checked 2026-10-24), so the owner's 2FA is our own code on the otpauth library (ADR-037). If Neon ships it, the owner decides whether to replace our code with Neon's. | Open, asked every session |
 
 ## Session log
 
@@ -207,6 +215,53 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Spike code:** a first draft of the edge fast path and a reused-instance probe exists on a local branch (`spike/lean-free-plan`, not pushed, not reviewed). It becomes the S0.10 work when the owner asks to proceed.
 
+### 2026-10-24: Session 8 (owner decision D15: Neon-centred redesign, engineering review)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all amended in place and still version 1 (all three N values are 1). Documents only; no code changed.
+
+**Request:** drop Better Auth and Resend, make authentication and authorisation happen through Neon, and store images in a bucket; then correct the source-of-truth files to match. An engineering review (`/plan-eng-review`) was run first. Its saved report: `C:\Users\ALL COMPUTERS\.gstack\projects\DivineGima-scollarly\docs-align-with-option-2-eng-review-20261024-0130.md`.
+
+**Facts found (checked 2026-10-24)**
+- Neon Auth **is** Better Auth, run by Neon (`neon_auth` schema in our own database). Dropping Better Auth therefore means moving it off our Worker, not removing it. Google, email-and-password, magic-link and admin plugins are supported; **authenticator-app 2FA and restricted sign-ups are "coming soon"**; 60,000 monthly users free; AWS regions only. Our project is `aws-eu-central-1` with no IP allow-list, so it qualifies.
+- ~~Neon has no object storage.~~ **This was wrong and was corrected the same day (D16).** Neon Object Storage exists, is generally available, supports our region (aws-eu-central-1), gives 5 GB per project on the free plan, and works on our project. R2 was the first choice but its checkout asked for a payment method.
+- Row level security does nothing if the app connects as the table owner, so a non-owner runtime role and `FORCE ROW LEVEL SECURITY` are required.
+- Codex outside review was unavailable (not installed); no outside reviewer read the plan.
+
+**Owner decisions**
+
+| ID | Decision | Result |
+|---|---|---|
+| D15 | Neon-centred redesign | **Adopted as a proposal, proven or rejected by S0.10.** (1) Neon Auth runs Google sign-in and sessions. (2) Owner 2FA is our own code on the otpauth library (the owner challenged hand-rolling it; a proven library is used). (3) Images go to a bucket (first R2, then switched to Neon Object Storage by D16 because R2 asked for a payment method). (4) Neon row level security is a second lock under the auth facade, and `CLAUDE.md` is amended to say so (the owner chose this over "our code only"). (5) Resend and all email are removed. (6) Smaller file layout (the owner delegated this; the recommended option was applied). (7) The owner asked for a standing session check-in on Neon's 2FA instead of a TODOS file (see Standing owner check-ins, C1). |
+| D16 | Where images are stored, after R2 asked for a payment method | **Neon Object Storage** (owner, 2026-10-24: "yes lets switch to neon object storage"). R2 is dropped. Sets aside the R2 part of D15. Proven or rejected by S0.10. |
+| D17 | Image backup (flag F12) | **Owner delegated the choice** (2026-10-24: decide it so that it causes no security issue, does not use the free plan quickly and does not delay production). Decision: no cloud copy; immutable hash-keyed objects, manifest in the weekly dump, and an owner-run incremental copy to the owner's own disk checked by sha256. Rejected: GitHub artifacts (quota), R2 (payment method). |
+
+**Changes made** (details in each document's amendment log): PRD sections 4, 6, 10, 11, 12.2 and FR-18; architecture ADR-036 to ADR-039 added, ADR-005, 011, 013, 020, 026, 029, 032, 034 amended, sections 1, 4, 5, 7, 9, 13, 15, 17; essentials S0.4, S0.5, S0.10, S1.1, S2.1 to S2.5, S3.3, S6.3, S10.3, S11.4, S11.6; `CLAUDE.md` guardrails and Step 1. A mistake from Session 7 was also fixed: the essentials S0.9 row had been lost and a stray `$1` left in front of S0.10.
+
+**Still unproven:** Neon Auth session verification and sign-in CPU in a Worker (SDK or own cookie check), the row-level-security query cost, Neon Object Storage read cost and limits, Google redirect through Neon Auth. All are S0.10 gates. A failed gate returns the matching decision to the owner.
+
+### 2026-10-24: Session 9 (Module S0.10 built; not yet deployed or measured)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (the owner merged PRs #6 and #7; #7 landed in the old branch, so its text was merged into the S0.10 branch).
+
+**Owner confirmations recorded** (the owner's words): Google credentials created and tested with the owner's own email as a test user ("i checked its okay, done its own testing for now and my email has been set as test user"). H8 and H13 are therefore marked done below.
+
+**What was built** (branch `feature/s0-10-neon-proof`; module status stays `in-progress` until the gates are measured)
+- **S0.4:** Neon Auth through the framework-neutral `@neondatabase/auth/server` entry (route `/api/auth/[...path]` proxy, `/auth/return` for the Google return trip); the facade does the one query `app_resolve_session` per request (no cache); roles in `app_user`; owner bootstrap function; owner 2FA on `otpauth` 9.5.2 with an encrypted secret, 10 hashed recovery codes, 5-failure lockout, replay refusal and a `step_up` table. Better Auth, Resend and password code deleted.
+- **S0.5:** images in the Neon Object Storage bucket `images` (public-read, created), served by the Worker entry (cache, then a plain fetch of the public URL); uploads signed with a **write-only** credential (checked: signed write 200, anonymous read 200, missing key 404, anonymous write 403, the write-only credential cannot read).
+- **S0.10:** row level security on every table with a non-owner `app_runtime` role (forced policies, a CI test for every table), `POST /api/v1/leads` as a plain function in the Worker entry, probes `rls` and `storage`, throwaway Neon Auth sessions for measuring the real authenticated path, an updated deploy workflow.
+- **Tests:** 146 unit and 39 integration tests pass locally (new: session cookie parser, facade, second factor with an in-memory store and against the real tables, media store, edge media, every-table row-level-security check, one-session-query behaviour including concurrent first sign-ins, revocation, banned and expired sessions, owner bootstrap, role changes, cross-user isolation). Type check, lint and `next build` pass.
+- **Neon configuration changed** (project aged-recipe-72220939, branch production): email-and-password sign-in turned off, the organization plugin turned off, the Worker address `https://scollarly.gimafolabit.workers.dev` added as a trusted domain, bucket `images` created, a write-only storage credential `scollarly-uploader` created. New repository secrets were created straight from the CLI without printing them; the old `PHASE0_BETTER_AUTH_SECRET` was deleted.
+
+**Findings during the build**
+- Neon Auth had **email-and-password sign-up open to anyone**, plus organizations and magic link on. Email-and-password and organizations are now off. **Magic Link is still on** (no CLI command): owner action H15.
+- `neondb_owner` has BYPASSRLS (read from `pg_roles`), so the separate runtime role is required, as the review said.
+- Neon Auth keeps the visitor's IP address and browser string in `neon_auth.session`: flag F13.
+- `@neondatabase/auth` is a beta (0.7.0), pins an older zod and Better Auth 1.7.6, and declares an optional peer of Next 16 (we are on 15.5.28), so `package.json` carries an `overrides` entry for it. We import only its framework-neutral server entry: flag F14.
+- The SDK's own per-request session path (`getSession`) was **not** measured: it needs a session minted by Neon Auth, and our one-query path replaces it. If the one query passes its gate, the SDK path is not needed.
+- A Neon Auth session cookie value was assumed to be `token.signature` (Better Auth's format); the token is looked up in the database, so a wrong guess fails closed. To be confirmed by the first real Google sign-in.
+
+**Not yet done:** deploy and measure (needs this branch merged to `main`, then the manual workflow), the real Google sign-in measurement by hand, R2-free image hit/miss numbers.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -219,9 +274,12 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F6 | `src/server/db` (client factory, schema, migrations) imports Drizzle. `CLAUDE.md` says only `server/repositories` may. | Architecture section 5 lists `server/db/` as its own directory beside repositories and calls it part of the data layer, so it was read as the repository layer's internals. The ESLint rule and a source-scan test allow `server/repositories` and `server/db` only. | **Open.** Owner confirms this reading, or the files move under `server/repositories`. |
 | F7 | The proposed public JavaScript budget (100 KB gzip) is already exceeded by the Next.js baseline (about 104 kB). | See Session 3, finding 5. Affects the Lighthouse gate and S3.5. | **Open.** Owner chooses: raise the budget, or accept a lower Lighthouse score target. |
 | F8 | Architecture 13.8 and `CLAUDE.md` say `main` is protected by a branch protection rule. GitHub refuses to enable it on a private repository on the free plan (HTTP 403, "Upgrade to GitHub Pro or make this repository public"). | Today only discipline stops a push to `main`. Rulesets are also limited on free private repositories. | **Open.** Owner chooses: make the repository public, upgrade to GitHub Pro, or accept discipline-only protection and record it as an accepted risk. |
-| F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not enabled. | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 only if needed. |
+| F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not needed (D16). | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 is no longer planned (D16: images use Neon Object Storage). |
 | F10 | `scollarly.co.in` is locked at GoDaddy until .IN KYC is accepted. The owner is an international student without Aadhaar, so DigiLocker is not available. Nameservers and DNS records cannot be changed. | Blocks moving the domain to Cloudflare (H7), a custom domain for the Worker, and the Resend sending domain (H6). The domain still resolves today; a registry server hold would take it offline. | **Open.** Owner action: ask GoDaddy support and email `support@nixi.in` for the foreign-national passport route (message drafted in the conversation). Not marked done by Claude Code. Decision D12: build on `workers.dev` meanwhile. No longer blocks Stage 0 or the cache gates (the Cache API works on `workers.dev`); it blocks launch only. See the list of applied amendments below. |
 | F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Decided 2026-10-23 (owner): option (b), redesign for the free plan (D14), documents edited in place (D13). Stage 0 stays open until Module S0.10 proves the redesign; if it fails, the decision returns to the owner.** The original options, for the record: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
+| F12 | Image backup. With images in Neon Object Storage the weekly `pg_dump` carries no image bytes, and a monthly copy of up to 3.5 GB cannot fit in GitHub Free artifact storage (about 500 MB). | Content is archived and never deleted (ADR-014). | **Decided 2026-10-24 (D17, owner delegated the choice).** No cloud copy. Immutable hash-keyed objects with no delete path, a manifest in the weekly dump, and an owner-run incremental copy to the owner's own disk, checked by sha256 (`scripts/backup-images.mjs`, built in S10.3). Needs no credential, no GitHub storage, no paid service, and does not delay any stage before Stage 10. |
+| F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Open.** Options for the owner: accept it for sessions only (they are deleted when the session ends), ask Neon whether IP capture can be switched off, or clear the column with the daily cron (our code writing to Neon's table). Needs an owner decision before launch. |
+| F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Open (informational).** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
 
 ## Stage status
 
@@ -251,13 +309,13 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S0.1 | Repo skeleton and Cache API probe | in-progress |
 | S0.2 | Prerendered public page with Lighthouse CI | in-progress |
 | S0.3 | Neon driver, stub lead POST, CU-hours probe | in-progress |
-| S0.4 | Better Auth, hash variants, stub admin page, step-up | in-progress |
-| S0.5 | 300 KB WebP in `media_blob` served through the Cache API | in-progress |
+| S0.4 | Neon Auth behind the facade, owner 2FA (otpauth), stub admin page, step-up | in-progress |
+| S0.5 | 300 KB WebP in a Neon Object Storage bucket served through the Cache API | in-progress |
 | S0.6 | Tag revalidation and OpenNext cache bindings | in-progress |
 | S0.7 | Cron, Durable Object counter and limiter | in-progress |
 | S0.8 | Serwist offline page | in-progress |
 | S0.9 | Measurement report | in-progress |
-| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress |
+| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress (built, not yet measured) |
 | S1.1 | Migrations, constraints, indexes, seeds | — |
 | S1.2 | Repository layer, `Actor`, auth facade interface | — |
 | S1.3 | Shared libraries | — |
@@ -265,8 +323,8 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S1.5 | Full CI | — |
 | S1.6 | i18n scaffolding | — |
 | S1.7 | Seed and migration scripts, logo and image import | — |
-| S2.1 | Production Better Auth configuration, email templates | — |
-| S2.2 | Auth pages with Turnstile and email cap | — |
+| S2.1 | Production Neon Auth configuration behind the facade | — |
+| S2.2 | Sign-in and sign-out pages (Google only) | — |
 | S2.3 | Owner bootstrap, 2FA, step-up | — |
 | S2.4 | `Actor` issuance, role guards, fresh staff session lookup | — |
 | S2.5 | Admin invites and Team page | — |
@@ -341,20 +399,23 @@ One row per gate in architecture section 17. Any failed gate stops the build and
 | Terms check | Owner confirms commercial-use terms for Cloudflare, Neon, Resend and Turnstile free plans | Owner: "i checked all ok" (2026-10-23) | Done per the owner |
 | Info only (non-gating): Neon API CU-hours | Can Neon's API report CU-hours to a cron job? | | Not measured |
 
-## Module S0.10 gates (free-plan proof, redesigned)
+## Module S0.10 gates (free-plan proof, redesigned; extended by D15 on 2026-10-24)
 
-Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. Not yet measured.
+Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. Not yet measured. A failed gate returns the matching decision (Neon Auth, Neon Object Storage, row level security) to the owner.
 
 | Gate | Pass when | Measured | Result |
 |---|---|---|---|
 | Public page through the edge fast path | At most 5 ms | | Not measured |
 | Image cache hit through the edge fast path | At most 8 ms, no database access | | Not measured |
-| Image cache miss (first request per image per region) | Recorded; must not be cut at the limit, or the owner decides on object storage | | Not measured |
-| Session-issuing path with no hashing (stands in for the Google callback) | At most 10 ms, reusing one Better Auth instance | | Not measured |
-| Staff page with the one-query session check | At most 8 ms | | Not measured |
-| Student page, cookie-cache path | Recorded | | Not measured |
+| Image cache miss, read from Neon Object Storage (public-read bucket) | At most 8 ms; recorded; must not be cut at the limit | | Not measured |
+| Neon Auth session verification: SDK `getSession()` versus our own signed-cookie check | Staff page at most 8 ms; pick the path by number | | Not measured |
+| Sign-in return trip on Neon Auth (throwaway Google test account) | At most 10 ms | | Not measured |
+| Staff page with the row-level-security context set in the same Neon HTTP request | At most 8 ms | | Not measured |
+| Student page, cached session (60 s) | Recorded | | Not measured |
 | Lead POST, thinned | At most 8 ms | | Not measured |
-| Real Google callback on `workers.dev` | Works, and its CPU is recorded (Stage 2, S2.2) | | Not measured |
+| Runtime role denied on every table (non-owner, forced policies) | All tables denied without the right user | | Not measured |
+| Google redirect through Neon Auth | Works; recorded (replaces the `workers.dev` redirect question) | | Not measured |
+
 
 ## Owner actions (human, never marked done by Claude Code)
 
@@ -362,17 +423,22 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 
 | # | Action | Needed before | Status |
 |---|---|---|---|
-| H1 | Confirm commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans. Also decide if any OpenNext cache binding turns out to need a payment method (S0.6). | End of Stage 0 | **Done per the owner, 2026-10-23** ("i checked all ok"). No payment method was needed for KV or D1 (the workflow created both). R2 is not enabled and was not needed. |
+| H1 | Confirm commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans. Also decide if any OpenNext cache binding turns out to need a payment method (S0.6). | End of Stage 0 | **Done per the owner, 2026-10-23** ("i checked all ok"). No payment method was needed for KV or D1 (the workflow created both). R2 is not enabled and was not needed. **Not yet confirmed (added by D15, D16):** the free-plan terms of Neon Auth and Neon Object Storage. |
 | H2 | Supply the old site's data files (9 universities, programmes, fees, FAQs, process steps, copy, logos and campus images) and any `ContactSubmission` rows | S1.7 (Claude Code must stop and ask if missing) | Open |
 | H3 | Q2: confirm the Scollarly WhatsApp number (+237 651 232 301 today) and the contact number shown on the site (+91 98157 25968 today) | Launch | Open |
 | H4 | Q3: supply real figures for students helped and admitted, confirm the 5 testimonials are real and consented, confirm team bios. Anything unconfirmed is not published. | Launch | Open |
 | H5 | Q6: legal check on consent for 17-year-old applicants and data protection in the student countries | Launch | Open |
-| H6 | Create a mailbox on scollarly.co.in and verify mail.scollarly.co.in in Resend (DNS records) | **Optional in v1** (D14): only if invite emails are used. Not needed for launch | Open, optional. Blocked by F10 |
+| H6 | Mailbox on scollarly.co.in and Resend domain verification | **Removed (D15):** no email is sent in v1 | Not needed |
 | H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 (no longer blocking the cache gates: the Cache API works on `workers.dev`) |
-| H8 | Create Google OAuth credentials. Sign-in is Google only, so they are needed before Stage 2 testing. Ask Google whether a `workers.dev` redirect address is accepted | Before Stage 2 testing, and at launch | Open |
-| H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 150 MB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, (the student email cap of 60 a day, 40 reserved and 3 per address was removed by D14), 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
+| H8 | Create the Google OAuth credentials and enter them in the Neon Auth console (H13). Google's redirect address is Neon Auth's | Before S0.10 can measure the sign-in return trip, and before Stage 2 | **Done per the owner, 2026-10-24** ("i checked its okay, done its own testing for now and my email has been set as test user"). The app is in Google's Testing mode with the owner as test user, so publishing it is a launch step. |
+| H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 5 GB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, (the student email cap of 60 a day, 40 reserved and 3 per address was removed by D14), 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
+| H12 | Read Neon's plans page for Object Storage and confirm the free-plan request and transfer limits (the pages read state 5 GB per project but no request or transfer limit). No card is needed. R2 is dropped (D16) | Before S0.10 measures images | Open |
+| H13 | Switch on Neon Auth for the project in the Neon console and add the Google credentials there | Before S0.10 can measure Neon Auth | **Done per the owner, 2026-10-24.** Claude Code verified from the Neon CLI that Google shows as its own credentials, not Neon's shared test keys. |
+| H14 | From Stage 10 on: run `scripts/backup-images.mjs` monthly and after any bulk upload, and keep the copy on your own drive (a second copy in your own cloud account is optional). The script needs no password or key | After S10.3, then monthly | Not yet needed |
+| H15 | Turn off the **Magic Link** plugin on Neon Auth: Neon console, Settings, Better Auth, Magic Link, switch off. (Claude Code turned off email-and-password and organizations from the command line, but magic link has no command.) Until then anyone can create an account with an email link, which bypasses "Google sign-in only" | Before launch, and ideally before S0.10 | Open |
+| H16 | Add the redirect URI `https://ep-bitter-bar-b97sb88f.neonauth.c-7.eu-central-1.aws.neon.tech/neondb/auth/callback/google` to the Google OAuth client if it is not there | Before the first real Google sign-in | Per the owner the sign-in test worked; recorded as done only when the owner says so |
 
 ## Amendments applied in place (decision D13) and what remains
 
@@ -386,18 +452,21 @@ This section replaces the "Version 2 backlog" written in Session 5. No version 2
 | V2-4 | Re-check Google OAuth on `workers.dev` | **Remains.** Now an explicit Stage 2 check in S2.2 and its exit criteria. |
 | V2-5 | Fold in the other open flags (F5 delete carve-outs in `CLAUDE.md`, F6 `server/db` Drizzle import, F7 JavaScript budget, F8 branch protection) | **Remains.** Waiting for the owner's answers. F7 matters more now that Next.js is bypassed for cached pages. |
 | V2-6 | Refresh vendor limits the architecture quoted | **Applied** in architecture section 1 (Neon plans page says 1 GB per project; capacity estimates stay on the safer 0.5 GB; KV, D1 and the Durable Object queue need no payment method). |
+| D15-1 | Neon-centred redesign: Neon Auth, otpauth owner 2FA, row level security plus facade, Neon Object Storage images (D16), Resend removed | **Applied 2026-10-24 as a proposal.** PRD sections 4, 6, 10, 11, 12.2, FR-18; architecture ADR-036 to ADR-039 and amended ADRs; essentials S0.4, S0.5, S0.10, S1.1, S2.x, S3.3, S6.3, S10.3, S11.x; CLAUDE.md. Proven or rejected by S0.10. |
+| D15-2 | Backup of images now that they are in Neon Object Storage | **Applied (D17).** Architecture 13.7, ADR-026, ADR-039, risk table; essentials S6.3, S10.3, S10.4. |
 
 ## Project understanding (for future sessions)
 
 - **Product:** Scollarly connects African students (Cameroon, Nigeria, Ghana, Ivory Coast, Senegal, Guinea, South Africa) with Indian universities. Students pay nothing. Universities pay Scollarly in USD after enrolment. Version 2 is a brand-new codebase replacing an old site built for good connections.
 - **Core problem:** users are on limited, expensive Android data. The old site was heavy, hotlinked images, had no lead storage, no admin, hard-coded content and inconsistent trust claims.
 - **Roles:** exactly three: student, admin, owner. One owner, enforced by a partial unique index. Owner powers require a 2FA-verified session. Admin and owner requests do a fresh session lookup, so removal cuts access on the next request.
-- **Scope:** all features F1 to F11 ship in version 1 (public site, PWA with offline lead queue, lead intake with a full form and a quick WhatsApp form, smart WhatsApp links, auth and roles, content management with images in Neon, lead management with SLA, student portal, analytics, payments-received ledger, i18n scaffolding with English live and French ready).
+- **Scope:** all features F1 to F11 ship in version 1 (public site, PWA with offline lead queue, lead intake with a full form and a quick WhatsApp form, smart WhatsApp links, auth and roles, content management with images in Neon Object Storage, lead management with SLA, student portal, analytics, payments-received ledger, i18n scaffolding with English live and French ready).
 - **Lead flow:** the form saves locally, sends, waits up to 4 seconds when online, then opens WhatsApp with the reference. Offline or slow, it queues and opens WhatsApp anyway.
-- **Stack:** Next.js (App Router) and TypeScript on Cloudflare Workers via OpenNext, Neon Postgres with Drizzle, Better Auth, Resend, Turnstile, Serwist and idb, next-intl, Tailwind, shadcn/ui and Recharts (admin only), Vitest, Playwright, Lighthouse CI, axe, GitHub Actions. Free tiers only. No paid service and no change of host without the owner.
+- **Stack:** Next.js (App Router) and TypeScript on Cloudflare Workers via OpenNext, Neon Postgres with Drizzle, Neon Auth, otpauth, Neon Object Storage, Turnstile, Serwist and idb, next-intl, Tailwind, shadcn/ui and Recharts (admin only), Vitest, Playwright, Lighthouse CI, axe, GitHub Actions. Free tiers only. No paid service and no change of host without the owner.
 - **Biggest risks:** Workers Free limits (10 ms CPU, 3 MiB size) against Next.js, auth hashing and images (Cloudflare puts auth and server rendering at 10 to 20 ms, so the 8 ms admin gate is the likeliest to fail); Neon scale-to-zero and 100 CU-hours; offline queue interacting with Turnstile; Serwist and Next.js version compatibility; caching behaviour that may need the real domain. This is why Stage 0 is a hard gate.
-- **Hard rules:** never push to `main`; feature branch and merge request for every change; only `server/repositories` imports Drizzle, only `server/auth` imports Better Auth, only `server/email` imports Resend; no access control in middleware; no admin libraries in public routes; one WhatsApp URL helper; no physical deletes of business or content data (carve-outs in ADR-029); no personal data in logs or events; UTC in storage, WAT (`Africa/Douala`) for display; additive-first migrations; unconfirmed stats, testimonials and bios are never published.
+- **Hard rules:** never push to `main`; feature branch and merge request for every change; only `server/repositories` imports Drizzle, only `server/auth` imports the Neon Auth SDK and otpauth, only `server/media` uses the storage client, nothing imports Resend; no access control in middleware; no admin libraries in public routes; one WhatsApp URL helper; no physical deletes of business or content data (carve-outs in ADR-029); no personal data in logs or events; UTC in storage, WAT (`Africa/Douala`) for display; additive-first migrations; unconfirmed stats, testimonials and bios are never published.
 - **Free-plan design (D14):** Google sign-in only (no passwords), an edge fast path that answers public pages and images from the Cache API before Next.js starts, a one-query session check, thin handlers, images in Neon behind `MediaStore`. Stage 0 stays open until Module S0.10 proves it on the deployed Worker.
+- **Neon-centred design (D15):** Neon Auth (managed Better Auth) for sign-in and sessions; roles, owner, invites and owner 2FA in our own tables; Neon row level security plus the auth facade (two locks, non-owner runtime role, forced policies); images in a Neon Object Storage bucket; no email. Proven or rejected by S0.10.
 - **Build order:** Stage 0 proof of fit, then Foundation, Auth and admin shell, Public site, Offline and lead intake, Lead management, Content and images, Analytics, Student portal, Payments, Owner pages, Hardening and launch.
 
 ## Traceability (to be filled at S11.5)

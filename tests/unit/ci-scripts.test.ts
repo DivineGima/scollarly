@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain .mjs helper with no type declarations
-import { cpuStats, D1_PLACEHOLDER, drainJsonObjects, KV_PLACEHOLDER, markdownTable, parseSeedSha, patchWranglerConfig, quantile, workersDevUrl } from "../../scripts/ci/lib.mjs";
+import { buildRuntimeUrl, cpuStats, D1_PLACEHOLDER, drainJsonObjects, KV_PLACEHOLDER, markdownTable, parseSeedSha, patchWranglerConfig, quantile, workersDevUrl } from "../../scripts/ci/lib.mjs";
 
 const KV_ID = "0123456789abcdef0123456789abcdef";
 const D1_ID = "11111111-2222-4333-8444-555555555555";
@@ -115,5 +115,34 @@ describe("cpuStats", () => {
   });
   it("handles too few samples", () => {
     expect(cpuStats([1, 2], 3).warm.p95).toBeNull();
+  });
+});
+
+describe("buildRuntimeUrl (ADR-038: the Worker never connects as the owner)", () => {
+  const owner = "postgres://neondb_owner:owner-secret@ep-cool-name-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+
+  it("swaps the credentials and keeps host, database and parameters", () => {
+    const url = new URL(buildRuntimeUrl(owner, "Runtime-Password-0123456789"));
+    expect(url.username).toBe("app_runtime");
+    expect(url.password).toBe("Runtime-Password-0123456789");
+    expect(url.host).toBe("ep-cool-name-pooler.eu-central-1.aws.neon.tech");
+    expect(url.pathname).toBe("/neondb");
+    expect(url.searchParams.get("sslmode")).toBe("require");
+  });
+
+  it("never carries the owner name or password into the result", () => {
+    const result = buildRuntimeUrl(owner, "Runtime-Password-0123456789");
+    expect(result).not.toContain("neondb_owner");
+    expect(result).not.toContain("owner-secret");
+  });
+
+  it("percent-encodes characters that would break a URL", () => {
+    const url = new URL(buildRuntimeUrl(owner, "ab+cd/ef=gh-0123456789012345"));
+    expect(decodeURIComponent(url.password)).toBe("ab+cd/ef=gh-0123456789012345");
+  });
+
+  it("refuses a string that is not a Postgres URL", () => {
+    expect(() => buildRuntimeUrl("not a url", "x")).toThrow();
+    expect(() => buildRuntimeUrl("https://example.com/db", "x")).toThrow("Postgres");
   });
 });

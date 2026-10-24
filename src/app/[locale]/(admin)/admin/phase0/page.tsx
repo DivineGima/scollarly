@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { loadAdminStub } from "@/modules/phase0/auth-stubs";
 import { AuthError, requireRole } from "@/server/auth";
 
-// S0.4 stub admin page: fresh session lookup (the staff path, ADR-020), one Neon query, render. Online-only, never cached.
+// S0.4 stub admin page: the one-query session check (ADR-034), one Neon query under row level security, render. Online-only, never cached.
 export const dynamic = "force-dynamic";
 
 export default async function AdminPhase0Page({ params }: { params: Promise<{ locale: string }> }) {

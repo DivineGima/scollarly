@@ -1,7 +1,10 @@
 import { revalidateTag } from "next/cache";
-import { createHttpDb, createWsDb } from "@/server/db/client";
-import { type ProbeRole, runSigninProbe, isHashVariant } from "@/server/auth";
-import { selectOne, transactionRoundTrip, writePhase0Title } from "@/server/repositories/phase0-probe";
+import { sha256Hex } from "@/lib/hash";
+import { createWsDb } from "@/server/db/client";
+import { inContext } from "@/server/db/rls";
+import { getDb } from "@/server/db/runtime";
+import { getMediaStore } from "@/server/media/runtime";
+import { rlsProbe, selectOne, transactionRoundTrip, writePhase0TitleQuery } from "@/server/repositories/phase0-probe";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
 import { runInBackground } from "@/server/env";
 import { PHASE0_CONTENT_TAG } from "./tags";
@@ -58,7 +61,7 @@ const cache: Probe = async ({ url }) => {
 
 /** S0.3: one HTTP query. Call it after the database has idled 5+ minutes to record the cold start. */
 const neonHttp: Probe = async ({ env }) => {
-  const { value, ms } = await timed(() => selectOne(createHttpDb(env.DATABASE_URL)));
+  const { value, ms } = await timed(() => selectOne(getDb(env)));
   return { driver: "neon-http", value, wallMs: ms };
 };
 
@@ -100,7 +103,7 @@ const durableObjects: Probe = async ({ env, url }) => {
   };
   const counter = await collector.increment("probe");
   const limiter = createDurableObjectLimiter(env.RATE_LIMITER);
-  const key = await limiterKey({ route: `probe:${url.pathname}`, ip: null }, env.BETTER_AUTH_SECRET);
+  const key = await limiterKey({ route: `probe:${url.pathname}`, ip: null }, env.RATE_LIMIT_SECRET);
   const decision = await limiter(key, 3, 60_000);
   const lastCron = await collector.lastCron();
   return { counter, limiter: decision, lastCronAt: lastCron ? new Date(lastCron).toISOString() : null };
@@ -109,19 +112,34 @@ const durableObjects: Probe = async ({ env, url }) => {
 /** S0.6: write new content, then revalidate the tag. The public Phase 0 page must change without a deploy. */
 const publish: Probe = async ({ env, url }) => {
   const title = (url.searchParams.get("title") ?? `Published at ${new Date().toISOString()}`).slice(0, 120);
-  await writePhase0Title(createHttpDb(env.DATABASE_URL), title);
+  // Probe-only: the route is guarded by PHASE0_PROBE_TOKEN, so the write runs with an admin context under row level security.
+  const db = getDb(env);
+  await inContext(db, { userId: null, role: "admin" }, writePhase0TitleQuery(db, title));
   revalidateTag(PHASE0_CONTENT_TAG);
   return { published: title, revalidatedTag: PHASE0_CONTENT_TAG };
 };
 
-function signin(variant: string): Probe {
-  return async ({ url }) => {
-    if (!isHashVariant(variant)) return { ok: false, note: "unknown variant" };
-    const role: ProbeRole = url.searchParams.get("role") === "student" ? "student" : "admin";
-    const result = await runSigninProbe(variant, role);
-    return { ...result };
-  };
-}
+/**
+ * S0.10 (ADR-038): the runtime role is not the owner and cannot bypass row level security. Asks the live database who this
+ * connection is, whether an unauthenticated read of `app_user` returns rows, and whether Neon Auth's own tables are closed.
+ */
+const rls: Probe = async ({ env }) => ({ ...(await rlsProbe(getDb(env))) });
+
+/**
+ * S0.10 (ADR-039): store a small test object under its own hash, then read it back through the public bucket URL.
+ * Proves the Worker can sign a write and fetch a public read. Probe objects live under their hash and are never deleted by code.
+ */
+const storage: Probe = async ({ env, url }) => {
+  const store = getMediaStore(env);
+  const bytes = new TextEncoder().encode(`scollarly-probe-${url.searchParams.get("n") ?? "1"}`);
+  const sha = await sha256Hex(bytes);
+  const put = await timed(() => store.put(sha, bytes));
+  const read = await timed(async () => {
+    const response = await store.get(sha);
+    return response ? new Uint8Array(await response.arrayBuffer()).byteLength : null;
+  });
+  return { sha256: sha, putWallMs: put.ms, readBytes: read.value, readWallMs: read.ms, publicUrl: store.publicUrl(sha) };
+};
 
 export const probes: Record<string, Probe> = {
   cache,
@@ -130,7 +148,6 @@ export const probes: Record<string, Probe> = {
   "neon-cu": neonCu,
   do: durableObjects,
   publish,
-  "signin-default": signin("default"),
-  "signin-pbkdf2": signin("pbkdf2"),
-  "signin-passwordless": signin("passwordless"),
+  rls,
+  storage,
 };

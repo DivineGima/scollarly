@@ -4,8 +4,12 @@ name: Stage 0 deploy and measure
 # free workers.dev address, then runs the functional probes and the CPU measurement from architecture section 17.
 # Deploys run only from `main` after merge (architecture 13.3). Nothing here runs on a push or a pull request.
 #
-# Secrets used (repository secrets): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, PHASE0_DATABASE_URL (pooled),
-# PHASE0_MIGRATION_DATABASE_URL (direct), PHASE0_BETTER_AUTH_SECRET, PHASE0_PROBE_TOKEN, PHASE0_OWNER_EMAIL.
+# Secrets used (repository secrets): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, PHASE0_DATABASE_URL (owner, pooled),
+# PHASE0_MIGRATION_DATABASE_URL (owner, direct), PHASE0_RUNTIME_DB_PASSWORD (password of the non-owner app_runtime role),
+# PHASE0_NEON_AUTH_BASE_URL, PHASE0_NEON_AUTH_COOKIE_SECRET, PHASE0_TOTP_ENCRYPTION_KEY, PHASE0_RATE_LIMIT_SECRET,
+# PHASE0_NEON_STORAGE_ENDPOINT, PHASE0_NEON_STORAGE_REGION, PHASE0_NEON_STORAGE_ACCESS_KEY_ID, PHASE0_NEON_STORAGE_SECRET_ACCESS_KEY,
+# PHASE0_PROBE_TOKEN, PHASE0_OWNER_EMAIL.
+# The Worker connects as app_runtime, never as the owner (ADR-038). Throwaway probe sessions are created and always removed.
 on:
   workflow_dispatch:
     inputs:
@@ -36,7 +40,7 @@ jobs:
     name: Deploy to workers.dev and measure
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -50,12 +54,20 @@ jobs:
         env:
           HAVE_DB: ${{ secrets.PHASE0_DATABASE_URL != '' }}
           HAVE_MIGRATION_DB: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL != '' }}
-          HAVE_AUTH_SECRET: ${{ secrets.PHASE0_BETTER_AUTH_SECRET != '' }}
+          HAVE_RUNTIME_PW: ${{ secrets.PHASE0_RUNTIME_DB_PASSWORD != '' }}
+          HAVE_AUTH_URL: ${{ secrets.PHASE0_NEON_AUTH_BASE_URL != '' }}
+          HAVE_COOKIE_SECRET: ${{ secrets.PHASE0_NEON_AUTH_COOKIE_SECRET != '' }}
+          HAVE_TOTP_KEY: ${{ secrets.PHASE0_TOTP_ENCRYPTION_KEY != '' }}
+          HAVE_RATE_SECRET: ${{ secrets.PHASE0_RATE_LIMIT_SECRET != '' }}
+          HAVE_STORAGE_ENDPOINT: ${{ secrets.PHASE0_NEON_STORAGE_ENDPOINT != '' }}
+          HAVE_STORAGE_REGION: ${{ secrets.PHASE0_NEON_STORAGE_REGION != '' }}
+          HAVE_STORAGE_KEY_ID: ${{ secrets.PHASE0_NEON_STORAGE_ACCESS_KEY_ID != '' }}
+          HAVE_STORAGE_SECRET: ${{ secrets.PHASE0_NEON_STORAGE_SECRET_ACCESS_KEY != '' }}
           HAVE_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN != '' }}
           HAVE_OWNER_EMAIL: ${{ secrets.PHASE0_OWNER_EMAIL != '' }}
         run: |
           missing=0
-          for name in HAVE_DB HAVE_MIGRATION_DB HAVE_AUTH_SECRET HAVE_PROBE_TOKEN HAVE_OWNER_EMAIL; do
+          for name in HAVE_DB HAVE_MIGRATION_DB HAVE_RUNTIME_PW HAVE_AUTH_URL HAVE_COOKIE_SECRET HAVE_TOTP_KEY HAVE_RATE_SECRET HAVE_STORAGE_ENDPOINT HAVE_STORAGE_REGION HAVE_STORAGE_KEY_ID HAVE_STORAGE_SECRET HAVE_PROBE_TOKEN HAVE_OWNER_EMAIL; do
             if [ "${!name}" != "true" ]; then echo "::error::A required PHASE0_* secret is missing ($name)"; missing=1; fi
           done
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is missing"; missing=1; fi
@@ -87,14 +99,30 @@ jobs:
           MIGRATION_DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
         run: npm run db:migrate
 
-      - name: Store the 300 KB test image in Neon
+      - name: Set the password of the non-owner runtime role and build the Worker's connection string
+        id: runtime
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
+          POOLED_DATABASE_URL: ${{ secrets.PHASE0_DATABASE_URL }}
+          RUNTIME_DB_PASSWORD: ${{ secrets.PHASE0_RUNTIME_DB_PASSWORD }}
+        run: node scripts/ci/ensure-runtime-role.mjs
+
+      - name: Store 10 test images (about 300 KB each) in Neon Object Storage
         id: seed
         env:
           DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
+          NEON_STORAGE_ENDPOINT: ${{ secrets.PHASE0_NEON_STORAGE_ENDPOINT }}
+          NEON_STORAGE_REGION: ${{ secrets.PHASE0_NEON_STORAGE_REGION }}
+          NEON_STORAGE_ACCESS_KEY_ID: ${{ secrets.PHASE0_NEON_STORAGE_ACCESS_KEY_ID }}
+          NEON_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.PHASE0_NEON_STORAGE_SECRET_ACCESS_KEY }}
         run: |
-          npm run phase0:seed-image | tee /tmp/seed.log
-          sha=$(grep -i '^sha256:' /tmp/seed.log | head -1 | awk '{print $2}')
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          npm run phase0:seed-image -- --count 10
+          echo "sha=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("scripts/.generated/phase0-images.json","utf8")).shas[0])')" >> "$GITHUB_OUTPUT"
+
+      - name: Create throwaway Neon Auth sessions for an admin and a student (removed again at the end)
+        env:
+          DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
+        run: node scripts/ci/seed-probe-sessions.mjs
 
       - name: Build the Worker
         run: npx opennextjs-cloudflare build
@@ -107,14 +135,20 @@ jobs:
 
       - name: Set the Worker secrets
         env:
-          DATABASE_URL: ${{ secrets.PHASE0_DATABASE_URL }}
-          BETTER_AUTH_SECRET: ${{ secrets.PHASE0_BETTER_AUTH_SECRET }}
+          DATABASE_URL: ${{ steps.runtime.outputs.runtime_url }}
+          NEON_AUTH_BASE_URL: ${{ secrets.PHASE0_NEON_AUTH_BASE_URL }}
+          NEON_AUTH_COOKIE_SECRET: ${{ secrets.PHASE0_NEON_AUTH_COOKIE_SECRET }}
+          TOTP_ENCRYPTION_KEY: ${{ secrets.PHASE0_TOTP_ENCRYPTION_KEY }}
+          RATE_LIMIT_SECRET: ${{ secrets.PHASE0_RATE_LIMIT_SECRET }}
+          NEON_STORAGE_ENDPOINT: ${{ secrets.PHASE0_NEON_STORAGE_ENDPOINT }}
+          NEON_STORAGE_REGION: ${{ secrets.PHASE0_NEON_STORAGE_REGION }}
+          NEON_STORAGE_ACCESS_KEY_ID: ${{ secrets.PHASE0_NEON_STORAGE_ACCESS_KEY_ID }}
+          NEON_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.PHASE0_NEON_STORAGE_SECRET_ACCESS_KEY }}
           OWNER_EMAIL: ${{ secrets.PHASE0_OWNER_EMAIL }}
           PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
-          BETTER_AUTH_URL: ${{ steps.url.outputs.url }}
         run: |
           node -e '
-            const names = ["DATABASE_URL","BETTER_AUTH_SECRET","OWNER_EMAIL","PHASE0_PROBE_TOKEN","BETTER_AUTH_URL"];
+            const names = ["DATABASE_URL","NEON_AUTH_BASE_URL","NEON_AUTH_COOKIE_SECRET","TOTP_ENCRYPTION_KEY","RATE_LIMIT_SECRET","NEON_STORAGE_ENDPOINT","NEON_STORAGE_REGION","NEON_STORAGE_ACCESS_KEY_ID","NEON_STORAGE_SECRET_ACCESS_KEY","OWNER_EMAIL","PHASE0_PROBE_TOKEN"];
             const out = {};
             for (const n of names) { if (!process.env[n]) { console.error("::error::" + n + " is empty"); process.exit(1); } out[n] = process.env[n]; }
             // Cloudflare documents this always-pass test secret. It is used only so Stage 0 can call the lead endpoint with a dummy token.
@@ -141,6 +175,7 @@ jobs:
           node scripts/stage0-probes.mjs
           --base "${{ steps.url.outputs.url }}"
           --media "${{ steps.seed.outputs.sha }}"
+          --sessions scripts/.generated/probe-sessions.json
           --cold-wait "${{ inputs.cold_wait_seconds }}"
 
       - name: CPU measurement (needs a fresh rate-limit window first)
@@ -150,8 +185,14 @@ jobs:
           PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
         run: |
           sleep 70
-          node scripts/measure-cpu.mjs --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" | tee /tmp/measure.txt
+          node scripts/measure-cpu.mjs --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" --media-list scripts/.generated/phase0-images.json --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
           { echo; echo "### CPU measurement (milliseconds of Worker CPU, from wrangler tail)"; echo; echo '```'; cat /tmp/measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the throwaway Neon Auth users and sessions
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
+        run: node scripts/ci/seed-probe-sessions.mjs --cleanup
 
       - name: Save the reports
         if: always()
@@ -159,7 +200,8 @@ jobs:
         with:
           name: stage0-reports
           path: |
-            scripts/.generated/*.json
+            scripts/.generated/measurements-*.json
+            scripts/.generated/stage0-probes-*.json
             scripts/.generated/*.log
           # The reports live in a hidden folder (scripts/.generated), which upload-artifact skips by default.
           include-hidden-files: true

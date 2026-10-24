@@ -11,42 +11,58 @@ async function violations(filePath: string, code: string): Promise<string[]> {
   return (result?.messages ?? []).filter((m) => m.ruleId === "no-restricted-imports").map((m) => m.message);
 }
 
+const importLine = (what: string, from: string) => `import ${what} from "${from}";\nexport const a = 1;\n`;
+
 // The first ESLint run loads the Next.js plugins and can take over a minute on a cold machine.
 describe("import boundaries (architecture 5, CLAUDE.md guardrails)", { timeout: 300_000 }, () => {
   it("rejects Drizzle and the Neon driver outside the repository layer", async () => {
     for (const dir of ["src/modules/x/service.ts", "src/app/api/v1/x/route.ts", "src/server/auth/x.ts", "src/lib/x.ts"]) {
-      expect(await violations(dir, 'import { eq } from "drizzle-orm";\nexport const a = eq;\n')).not.toEqual([]);
-      expect(await violations(dir, 'import { neon } from "@neondatabase/serverless";\nexport const a = neon;\n')).not.toEqual([]);
+      expect(await violations(dir, importLine("{ eq }", "drizzle-orm"))).not.toEqual([]);
+      expect(await violations(dir, importLine("{ neon }", "@neondatabase/serverless"))).not.toEqual([]);
     }
   });
 
   it("allows Drizzle inside repositories and the db internals", async () => {
     for (const dir of ["src/server/repositories/x.ts", "src/server/db/x.ts"]) {
-      expect(await violations(dir, 'import { eq } from "drizzle-orm";\nexport const a = eq;\n')).toEqual([]);
+      expect(await violations(dir, importLine("{ eq }", "drizzle-orm"))).toEqual([]);
     }
   });
 
-  it("rejects Better Auth outside src/server/auth, and allows it inside", async () => {
-    const code = 'import { betterAuth } from "better-auth";\nexport const a = betterAuth;\n';
-    for (const dir of ["src/modules/x/service.ts", "src/app/x/page.tsx", "src/server/repositories/x.ts", "src/server/email/x.ts"]) {
-      expect(await violations(dir, code)).not.toEqual([]);
+  it("rejects the Neon Auth SDK, otpauth and Better Auth outside src/server/auth, and allows them inside", async () => {
+    const imports = [
+      importLine("{ handleAuthProxyRequest }", "@neondatabase/auth/server"),
+      importLine("* as OTPAuth", "otpauth"),
+      importLine("{ betterAuth }", "better-auth"),
+      importLine("{ createAuthClient }", "better-auth/client"),
+    ];
+    for (const code of imports) {
+      for (const dir of ["src/modules/x/service.ts", "src/app/x/page.tsx", "src/server/repositories/x.ts", "src/server/media/x.ts"]) {
+        expect(await violations(dir, code), `${dir}: ${code}`).not.toEqual([]);
+      }
+      expect(await violations("src/server/auth/x.ts", code)).toEqual([]);
     }
-    expect(await violations("src/server/auth/x.ts", code)).toEqual([]);
-    expect(await violations("src/modules/x/service.ts", 'import { createAuthClient } from "better-auth/client";\nexport const a = createAuthClient;\n')).not.toEqual([]);
   });
 
-  it("rejects Resend outside src/server/email, and allows it inside", async () => {
-    const code = 'import { Resend } from "resend";\nexport const a = Resend;\n';
-    expect(await violations("src/modules/x/service.ts", code)).not.toEqual([]);
-    expect(await violations("src/server/auth/x.ts", code)).not.toEqual([]);
-    expect(await violations("src/server/email/x.ts", code)).toEqual([]);
+  it("rejects the object storage client outside src/server/media, and allows it inside", async () => {
+    const code = importLine("{ AwsClient }", "aws4fetch");
+    for (const dir of ["src/modules/x/service.ts", "src/server/auth/x.ts", "src/server/repositories/x.ts", "src/server/edge/x.ts"]) {
+      expect(await violations(dir, code), dir).not.toEqual([]);
+    }
+    expect(await violations("src/server/media/x.ts", code)).toEqual([]);
+  });
+
+  it("rejects Resend everywhere: it was removed (ADR-036)", async () => {
+    const code = importLine("{ Resend }", "resend");
+    for (const dir of ["src/modules/x/service.ts", "src/server/auth/x.ts", "src/server/email/x.ts", "src/server/media/x.ts"]) {
+      expect(await violations(dir, code), dir).not.toEqual([]);
+    }
   });
 
   it("keeps admin libraries out of public components and public routes", async () => {
-    const code = 'import { LineChart } from "recharts";\nexport const a = LineChart;\n';
+    const code = importLine("{ LineChart }", "recharts");
     expect(await violations("src/components/public/x.tsx", code)).not.toEqual([]);
     expect(await violations("src/app/[locale]/(public)/page.tsx", code)).not.toEqual([]);
-    expect(await violations("src/components/public/x.tsx", 'import { A } from "@/components/admin/a";\nexport const a = A;\n')).not.toEqual([]);
+    expect(await violations("src/components/public/x.tsx", importLine("{ A }", "@/components/admin/a"))).not.toEqual([]);
   });
 });
 
@@ -67,12 +83,33 @@ describe("source scan: belt and braces over the lint rules", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("only src/server/auth imports better-auth", () => {
-    expect(importsOf(/from\s+["']better-auth/).filter((f) => !f.startsWith("src/server/auth/"))).toEqual([]);
+  it("only src/server/auth imports the Neon Auth SDK, otpauth or Better Auth", () => {
+    expect(importsOf(/from\s+["'](@neondatabase\/auth|otpauth|better-auth|@better-auth)/).filter((f) => !f.startsWith("src/server/auth/"))).toEqual([]);
   });
 
-  it("only src/server/email references Resend", () => {
-    expect(importsOf(/from\s+["']resend["']/).filter((f) => !f.startsWith("src/server/email/"))).toEqual([]);
+  it("only src/server/media imports the object storage client", () => {
+    expect(importsOf(/from\s+["'](aws4fetch|@aws-sdk)/).filter((f) => !f.startsWith("src/server/media/"))).toEqual([]);
+  });
+
+  it("does not import Resend anywhere, and has no email folder (ADR-036)", () => {
+    expect(importsOf(/from\s+["']resend["']/)).toEqual([]);
+    expect(existsSync(join(ROOT, "src/server/email"))).toBe(false);
+  });
+
+  it("gives every table in the schema row level security, forced, and a policy in a migration (ADR-038)", () => {
+    const schema = readFileSync(join(ROOT, "src/server/db/schema.ts"), "utf8");
+    const dir = join(ROOT, "src/server/db/migrations");
+    const migrations = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .map((f) => readFileSync(join(dir, f), "utf8"))
+      .join("\n");
+    const tables = [...schema.matchAll(/pgTable\(\s*"([a-z0-9_]+)"/g)].map((m) => m[1] ?? "");
+    expect(tables.length).toBeGreaterThanOrEqual(7);
+    for (const table of tables) {
+      expect(migrations, `${table}: ENABLE`).toMatch(new RegExp(`ALTER TABLE public\\.${table} ENABLE ROW LEVEL SECURITY`));
+      expect(migrations, `${table}: FORCE`).toMatch(new RegExp(`ALTER TABLE public\\.${table} FORCE ROW LEVEL SECURITY`));
+      expect(migrations, `${table}: policy`).toMatch(new RegExp(`CREATE POLICY \\w+ ON public\\.${table} `));
+    }
   });
 
   it("has no Next.js middleware, so access control can never live there (ADR-005)", () => {

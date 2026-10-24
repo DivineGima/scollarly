@@ -5,8 +5,9 @@
  * Wall-clock time seen by a client is NOT CPU time and is never reported as such.
  *
  *   node scripts/measure-cpu.mjs --base https://scollarly.<you>.workers.dev --token $PHASE0_PROBE_TOKEN \
- *        [--worker scollarly] [--samples 50] [--only public,signin,admin,student,lead,media] [--staff-variant pbkdf2] \
- *        [--media <sha256>] [--warmup 3]
+ *        [--worker scollarly] [--samples 50] [--only public,admin,student,lead,media,media-miss,rls,storage] \
+ *        [--sessions scripts/.generated/probe-sessions.json] [--media <sha256>] [--media-list scripts/.generated/phase0-images.json] \
+ *        [--lead-samples 50] [--lead-interval-ms 12500] [--warmup 3]
  *
  * Statistics are given twice: "all" (every request, including the first ones that pay the isolate start-up cost)
  * and "warm" (after the first --warmup requests of the scenario). The gate verdict uses warm p95, and the worst
@@ -16,7 +17,7 @@
  * The deployed Worker must use Turnstile's documented always-pass TEST secret during measurement.
  */
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cpuStats, drainJsonObjects } from "./ci/lib.mjs";
 
@@ -28,8 +29,10 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const staffVariant = args["staff-variant"] ?? "pbkdf2";
-const only = new Set((args.only ?? "public,signin,admin,student,lead,media").split(","));
+const only = new Set((args.only ?? "public,admin,student,lead,media,media-miss,rls,storage").split(","));
+const sessionsFile = args.sessions ?? "";
+const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
+const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
 const REQUEST_TIMEOUT_MS = 90_000;
 
 if (!base || !token) {
@@ -38,7 +41,8 @@ if (!base || !token) {
 }
 
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
-const LIMITS = { public: 5, signin: 10, admin: 8, student: null, lead: 8, media: 8 };
+// The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
+const LIMITS = { public: 5, admin: 8, student: null, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -80,7 +84,7 @@ async function call(path, init = {}) {
 
 const probeHeaders = { "x-phase0-token": token };
 
-async function scenario(name, key, fn, count = samples) {
+async function scenario(name, key, fn, count = samples, delayMs = 150) {
   if (!only.has(key)) return null;
   const marker = `m=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const statuses = [];
@@ -89,7 +93,7 @@ async function scenario(name, key, fn, count = samples) {
     const r = await fn(marker, i);
     statuses.push(r.status);
     clientMs.push(r.ms);
-    await sleep(150);
+    await sleep(delayMs);
   }
   await sleep(3000); // let the tail deliver the last events
   const mine = events.filter((e) => urlOf(e).includes(marker)).sort((a, b) => a.eventTimestamp - b.eventTimestamp);
@@ -121,30 +125,26 @@ try {
   // Cached public page (static, prerendered). Gate: at most 5 ms.
   rows.push(await scenario("Public page (prerendered)", "public", (m) => call(`/?${m}`)));
 
-  // Password sign-in for each hash variant. Gate: at most 10 ms, no Error 1102 over 50 sign-ins.
-  for (const variant of ["default", "pbkdf2", "passwordless"]) {
-    rows.push(await scenario(`Sign-in: ${variant}`, "signin", (m) => call(`/api/v1/probe/signin-${variant}?${m}`, { headers: probeHeaders })));
+  // Authenticated stub pages with REAL Neon Auth sessions of throwaway users (scripts/ci/seed-probe-sessions.mjs): the cookie, the one
+  // session query, the role from our table and row level security are all real. Gate: at most 8 ms for staff.
+  if (sessionsFile && existsSync(sessionsFile)) {
+    const sessions = JSON.parse(readFileSync(sessionsFile, "utf8"));
+    const cookieOf = (who) => `__Secure-neon-auth.session_token=${sessions[who].token}.c2lnbmF0dXJl`;
+    rows.push(await scenario("Admin page: one session query + one query under row level security", "admin", (m) => call(`/admin/phase0?${m}`, { headers: { cookie: cookieOf("admin") } })));
+    rows.push(await scenario("Student page: the same one-query session check", "student", (m) => call(`/me/phase0?${m}`, { headers: { cookie: cookieOf("student") } })));
+  } else if (only.has("admin") || only.has("student")) {
+    console.error("No --sessions file: the admin and student scenarios were skipped.");
   }
 
-  // Authenticated stub pages. Gate: at most 8 ms for staff (fresh lookup); the student cookie-cache path is recorded.
-  const sessionCookie = async (role) => {
-    const res = await fetch(`${base}/api/v1/probe/signin-${staffVariant}?role=${role}`, { headers: probeHeaders, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-    await res.arrayBuffer();
-    return (res.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
-  };
-  if (only.has("admin")) {
-    const cookie = await sessionCookie("admin");
-    rows.push(await scenario(`Admin page, fresh session lookup (cookie ${cookie ? "present" : "MISSING"})`, "admin", (m) => call(`/admin/phase0?${m}`, { headers: { cookie } })));
-  }
-  if (only.has("student")) {
-    const cookie = await sessionCookie("student");
-    rows.push(await scenario(`Student page, cookie cache (cookie ${cookie ? "present" : "MISSING"})`, "student", (m) => call(`/me/phase0?${m}`, { headers: { cookie } })));
-  }
+  // Row level security and Neon Object Storage probes (recorded; their CPU is the cost of the check itself).
+  rows.push(await scenario("Probe: runtime role and row level security", "rls", (m) => call(`/api/v1/probe/rls?${m}`, { headers: probeHeaders }), 10));
+  rows.push(await scenario("Probe: signed write and public read to Neon Object Storage", "storage", (m) => call(`/api/v1/probe/storage?n=${Date.now()}&${m}`, { headers: probeHeaders }), 10));
 
-  // Lead POST stub. Gate: at most 8 ms. The limiter allows 5 a minute per caller, so only 4 requests are sent.
+  // Lead POST, run by the Worker entry before Next.js starts. Gate: at most 8 ms over at least 50 requests. The limiter allows
+  // 5 a minute per caller, so the requests are spaced out (about 10 minutes for 50).
   rows.push(
     await scenario(
-      "Lead POST (stub)",
+      "Lead POST (stub), edge handler",
       "lead",
       (m) =>
         call(`/api/v1/leads?${m}`, {
@@ -152,12 +152,20 @@ try {
           headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
           body: JSON.stringify({ name: "Measure Probe", whatsapp: "+237651232301", country_code: "CM", turnstile_token: "dummy" }),
         }),
-      Math.min(samples, 4),
+      leadSamples,
+      leadIntervalMs,
     ),
   );
 
-  // Image served through the Cache API (cache hits after the first request).
-  if (args.media) rows.push(await scenario("Image serve (300 KB)", "media", (m) => call(`/media/${args.media}.webp?${m}`)));
+  // Image hit: one image requested many times (the first request fills the cache, the rest are hits). Gate: at most 8 ms, no database.
+  if (args.media) rows.push(await scenario("Image serve, cache hit (300 KB)", "media", (m) => call(`/media/${args.media}.webp?${m}`)));
+
+  // Image miss: each image is requested once, so every request is a first request (read from Neon Object Storage, then cached).
+  if (args["media-list"] && existsSync(args["media-list"])) {
+    const list = JSON.parse(readFileSync(args["media-list"], "utf8"));
+    const fresh = list.shas.slice(1); // the first image is the one used for the hit scenario
+    rows.push(await scenario("Image serve, first request (cache miss, read from storage)", "media-miss", (m, i) => call(`/media/${fresh[i]}.webp?${m}`), fresh.length));
+  }
 } finally {
   tail.kill();
 }

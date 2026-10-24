@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createStubLead, type StubLeadDeps } from "@/modules/leads/stub-intake";
-import { countStubLeads } from "@/server/repositories/phase0-leads";
 import { createTestDb, type TestDb } from "./helpers/db";
 
 let t: TestDb;
@@ -12,6 +11,7 @@ afterAll(async () => {
   await t.close();
 });
 
+const countStubLeads = async () => ((await t.run("select count(*)::int as n from phase0_lead_stub")) as { n: number }[])[0]?.n ?? 0;
 const valid = { name: "Amina", whatsapp: "+237 651 232 301", country_code: "CM", turnstile_token: "tok" };
 const deps = (over: Partial<StubLeadDeps> = {}): StubLeadDeps => ({
   db: t.db,
@@ -40,19 +40,19 @@ describe("stub lead intake against a real database (S0.3)", () => {
 
   it("stores exactly one row when the same request is sent several times at once (double submit, two tabs)", async () => {
     const key = randomUUID();
-    const before = await countStubLeads(t.db);
+    const before = await countStubLeads();
     const results = await Promise.all(Array.from({ length: 6 }, () => createStubLead(deps(), { idempotencyKey: key, body: valid })));
     expect(results.every((r) => r.ok)).toBe(true);
     expect(results.filter((r) => r.ok && r.status === 201)).toHaveLength(1);
-    expect(await countStubLeads(t.db)).toBe(before + 1);
+    expect(await countStubLeads()).toBe(before + 1);
   });
 
   it("stores nothing when validation, the rate limit or Turnstile refuse the request", async () => {
-    const before = await countStubLeads(t.db);
+    const before = await countStubLeads();
     await createStubLead(deps(), { idempotencyKey: randomUUID(), body: { ...valid, country_code: "XX" } });
     await createStubLead(deps({ limit: async () => ({ allowed: false, remaining: 0, retryAfterSeconds: 30 }) }), { idempotencyKey: randomUUID(), body: valid });
     await createStubLead(deps({ verifyTurnstile: async () => "failed" }), { idempotencyKey: randomUUID(), body: valid });
-    expect(await countStubLeads(t.db)).toBe(before);
+    expect(await countStubLeads()).toBe(before);
   });
 
   it("persists a trimmed name, a digits-only number and the server received time", async () => {

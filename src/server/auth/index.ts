@@ -1,24 +1,30 @@
-import { toNextJsHandler } from "better-auth/next-js";
+import { getDb } from "@/server/db/runtime";
+import { getEnv } from "@/server/env";
+import { resolveSession } from "@/server/repositories/identity";
 import { createAuthFacade } from "./facade";
-import { getAuth } from "./instance";
 
 /**
- * Public surface of the auth module. Everything outside `src/server/auth` imports from here and
- * never from `better-auth`. `mintActor` is intentionally not exported.
+ * Public surface of the auth module (ADR-005, ADR-037). Everything outside `src/server/auth` imports from here and
+ * never from `@neondatabase/auth` or `otpauth`. `mintActor` is intentionally not exported.
  */
 export { type Actor, AuthError, type AuthErrorCode, isStepUpFresh, type Role, STEP_UP_WINDOW_MS } from "./actor";
-export { createAuthFacade, type AuthFacade, type CheckSessionOptions } from "./facade";
-export { HASH_VARIANTS, isHashVariant, type HashVariant, hashPasswordPbkdf2, timingSafeEqual, verifyPasswordPbkdf2 } from "./password";
-export type { Auth } from "./auth";
-export { getAuth } from "./instance";
-export { runSigninProbe, type ProbeRole, type SigninProbeResult } from "./probe";
+export { createAuthFacade, type AuthFacade, type ResolveSession } from "./facade";
+export { completeSignIn, proxyAuthRequest, readSessionToken, type NeonAuthConfig } from "./session";
+export {
+  createSecondFactor,
+  decryptSecret,
+  encryptSecret,
+  generateRecoveryCodes,
+  hashRecoveryCode,
+  LOCKOUT_MS,
+  MAX_FAILED_ATTEMPTS,
+  type SecondFactor,
+  type SecondFactorStore,
+  type VerifyResult,
+} from "./second-factor";
 
-const facade = createAuthFacade(() => getAuth());
+/** The facade bound to the real database. Every call is one query (ADR-034), so there is no cache to go stale (ADR-020). */
+const facade = createAuthFacade((token) => resolveSession(getDb(getEnv()), token));
 export const checkSession = facade.checkSession;
 export const requireRole = facade.requireRole;
 export const requireOwner = facade.requireOwner;
-
-/** `/api/auth/*` route handlers (GET and POST) for the Next.js route file. */
-export function authRouteHandlers() {
-  return toNextJsHandler(getAuth());
-}

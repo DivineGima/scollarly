@@ -1,6 +1,6 @@
 import { jsonResponse, newRequestId, errorResponse } from "@/lib/http";
 import { probes } from "@/modules/phase0/probes";
-import { timingSafeEqual } from "@/server/auth";
+import { timingSafeEqual } from "@/lib/timing-safe";
 import { getEnv } from "@/server/env";
 
 /**
@@ -25,12 +25,7 @@ async function handle(request: Request, { params }: { params: Promise<{ name: st
 
   try {
     const result = await probe({ env, url: new URL(request.url) });
-    // Set-Cookie values from the sign-in probe are returned as headers so a script can reuse the session.
-    const cookies = Array.isArray(result.setCookie) ? (result.setCookie as string[]) : [];
-    const { setCookie: _omit, ...body } = result;
-    const response = jsonResponse({ probe: name, ...body, ...(cookies.length ? { cookiesIssued: cookies.length } : {}) });
-    for (const cookie of cookies) response.headers.append("Set-Cookie", cookie);
-    return response;
+    return jsonResponse({ probe: name, ...result });
   } catch (error) {
     // Probe failures are the measurement: report the error class, never the message (it may carry connection details).
     return jsonResponse({ probe: name, ok: false, error: error instanceof Error ? error.name : "Error" }, 500);

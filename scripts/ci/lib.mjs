@@ -88,3 +88,15 @@ export function cpuStats(values, warmup = 3) {
   const stat = (v) => ({ n: v.length, p50: quantile(v, 0.5), p95: quantile(v, 0.95), max: v.length ? Math.max(...v) : null });
   return { all: stat(all), warm: stat(warm) };
 }
+
+/**
+ * The Worker's connection string (ADR-038): the pooled OWNER string with its credentials swapped for the non-owner `app_runtime`
+ * role. Host, database and parameters are kept, so the Worker uses the same pooled endpoint. Throws on a string that is not a URL.
+ */
+export function buildRuntimeUrl(pooledOwnerUrl, password) {
+  const url = new URL(pooledOwnerUrl);
+  if (!/^postgres(ql)?:$/.test(url.protocol)) throw new Error("Not a Postgres connection string");
+  url.username = "app_runtime";
+  url.password = password;
+  return url.toString();
+}
