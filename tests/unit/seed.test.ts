@@ -22,7 +22,7 @@ describe("seed files: the format (S1.7)", () => {
     expect(bundle.universities[0]?.programmes[1]?.status).toBe("draft");
     expect(bundle.faqs[1]?.status).toBe("draft");
     expect(parse({}).success).toBe(true);
-    expect(parse({}).data).toEqual({ universities: [], faqs: [], process_steps: [], content_blocks: [] });
+    expect(parse({}).data).toEqual({ universities: [], faqs: [], process_steps: [], content_blocks: [], site_settings: [] });
   });
 
   it("rejects unknown fields and bad values", () => {
@@ -65,6 +65,16 @@ describe("seed files: the format (S1.7)", () => {
   it("content blocks need English text", () => {
     expect(issuesOf({ content_blocks: [{ key: "why.us", translations: { fr: "Non" } }] })).not.toEqual([]);
     expect(issuesOf({ content_blocks: [{ key: "why.us", translations: { en: "Yes" } }] })).toEqual([]);
+  });
+
+  it("accepts only the two contact settings, with a valid E.164 number", () => {
+    const settings = (site_settings: unknown[]) => issuesOf({ site_settings });
+    expect(settings([{ key: "whatsapp_number_e164", value: "+237612345678" }, { key: "contact_phone_display", value: "+237 612 345 678" }])).toEqual([]);
+    for (const bad of ["237612345678", "+0123456", "+12", "0803 123 4567", ""]) expect(settings([{ key: "whatsapp_number_e164", value: bad }]), bad).not.toEqual([]);
+    expect(settings([{ key: "whatsapp_number_e164", value: 237612345678 }])).not.toEqual([]);
+    expect(settings([{ key: "media_budget_bytes", value: 1 }])).not.toEqual([]);
+    expect(settings([{ key: "contact_phone_display", value: " " }])).not.toEqual([]);
+    expect(settings([{ key: "whatsapp_number_e164", value: "+237612345678" }, { key: "whatsapp_number_e164", value: "+237612345679" }]).join()).toMatch(/Duplicate site_settings/);
   });
 });
 
@@ -115,8 +125,11 @@ describe("buildSeedRows", () => {
 
   it("every id is unique", async () => {
     const rows = await buildSeedRows(fixtureBundle(), media());
-    const ids = (Object.values(rows) as { id: string }[][]).flatMap((list) => list.map((row) => row.id));
+    // Settings are keyed by name, not by id, so they are not part of this check.
+    const { siteSettings, ...withIds } = rows;
+    const ids = (Object.values(withIds) as { id: string }[][]).flatMap((list) => list.map((row) => row.id));
     expect(new Set(ids).size).toBe(ids.length);
+    expect(siteSettings.map((s) => s.key)).toEqual(["whatsapp_number_e164", "contact_phone_display"]);
   });
 
   it("draft rows have no publication time; published rows get it", async () => {

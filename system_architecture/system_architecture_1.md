@@ -60,7 +60,7 @@ Owner estimate: about 1 to 100 leads a month. Sessions per month are unknown. Th
 | Leads | up to about 3.3 per day | 100 per month |
 | Lead data | about 5 KB per lead including timeline | about 6 MB per year at 100 per month |
 | Content text | under 5 MB | 9 universities, programmes, FAQs, posts |
-| Images | budget 150 MB (about 500 photos at 300 KB) | The only thing that can fill Neon's 0.5 GB |
+| Images | budget 3.5 GB (about 11,000 photos at 300 KB), owner confirmed 2026-10-24 | The only thing that can fill Neon Object Storage's free 5 GB |
 | Neon compute | about 44 CU-hours a month if staff keep the database awake 8 hours on each of 22 weekdays at 0.25 CU | Assumes a 0.25 CU minimum, which is unverified. Dashboard use is the main cost. |
 | Worker requests | Ceiling of about 12,500 sessions a day if each session costs 8 Worker invocations (100,000 / 8) | Static asset requests may not count; unverified |
 | Anonymous events | Unknown, because sessions are unknown | Handled by the collector design and a kill switch (ADR-003) |
@@ -307,7 +307,7 @@ All content tables have: status (`draft` / `published` / `archived`), published_
 | `process_step` | kind (`application` / `visa`), position, title, body |
 | `content_block` | key (unique), translations. Holds services copy, Why Scollarly, mission and values. |
 | `message_template` | stage_code, locale, body with placeholders `{name}` `{ref}` `{university}`. Used for admin-to-student WhatsApp messages. |
-| `site_setting` | key (PK), value jsonb. Keys: whatsapp_number_e164, contact_phone_display, sla_weekday_hours (4), sla_weekend_hours (24), timezone (`Africa/Douala`), media_budget_bytes (150 MB), stale_fee_days (180), stale_tour_days (90), pipeline_freshness_days (unset), collect_page_views (kill switch) |
+| `site_setting` | key (PK), value jsonb. Keys: whatsapp_number_e164, contact_phone_display, sla_weekday_hours (4), sla_weekend_hours (24), timezone (`Africa/Douala`), media_budget_bytes (3.5 GB), stale_fee_days (180), stale_tour_days (90), pipeline_freshness_days (unset), collect_page_views (kill switch) |
 
 ### 7.4 Media
 
@@ -1167,7 +1167,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | Google does not accept a `workers.dev` redirect address | Sign-in cannot be tested before the domain works | Checked early in Stage 2; the domain is needed anyway before launch (tracker F10) |
 | Password hashing exceeds 10 ms | Sign-in fails | Measured: it does. Resolved by design: no passwords (ADR-032) |
 | Neon CU-hours exhausted, compute suspended | Leads and admin down | Database off public paths, kill switch, 70% alert, no keep-warm |
-| Neon storage full from images | Writes fail | Caps, 150 MB budget, meter, alert, swappable `MediaStore` |
+| Neon storage full from images | Writes fail | Caps, 3.5 GB budget, meter, alert, swappable `MediaStore` |
 | Neon Object Storage limits on the free plan (requests, transfer) are not stated on the pages read | Image delivery could hit a cap | Owner confirms Neon's plans page (tracker H12). Phase 0 measures reads; the usage meter alerts at 70%. If a cap is too low the decision returns to the owner; images stay in Neon `bytea` behind the same interface. |
 | Pre-hijacking or account takeover | Data exposure | Google sign-in only with an email Google reports as verified, no password accounts, owner 2FA |
 | Authorisation gap | Student sees others' data | `Actor` type, authz matrix test, no middleware auth |

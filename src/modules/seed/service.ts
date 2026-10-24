@@ -35,6 +35,7 @@ export async function buildSeedRows(bundle: SeedBundle, mediaIds: ReadonlyMap<st
     faqs: [],
     processSteps: [],
     contentBlocks: [],
+    siteSettings: bundle.site_settings.map(({ key, value }) => ({ key, value })),
   };
   const mediaId = (ref: ImageRef | undefined): string | null => {
     if (!ref) return null;

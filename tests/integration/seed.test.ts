@@ -42,6 +42,11 @@ async function snapshot(): Promise<Record<string, string>> {
   return out;
 }
 
+async function settings(): Promise<Record<string, unknown>> {
+  const rows = (await t.run(`select key, value from site_setting where key in ('whatsapp_number_e164', 'contact_phone_display')`)) as { key: string; value: unknown }[];
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
 function ingestDeps(): IngestDeps {
   return {
     store: {
@@ -83,16 +88,17 @@ const makeImages = async () =>
 describe("S1.7: the seed", () => {
   it("inserts every row on the first run", async () => {
     const { report, statuses } = await runSeed(images);
-    expect(report).toEqual({ universities: 3, programmes: 6, feeStructures: 6, campusExperiences: 6, officialResources: 3, faqs: 2, processSteps: 3, contentBlocks: 1 });
+    expect(report).toEqual({ universities: 3, programmes: 6, feeStructures: 6, campusExperiences: 6, officialResources: 3, faqs: 2, processSteps: 3, contentBlocks: 1, siteSettings: 2 });
     expect(statuses).toEqual(["created", "created", "created", "created"]);
   });
 
   it("leaves the database unchanged when run a second time", async () => {
     const before = await snapshot();
     const { report, statuses } = await runSeed(images);
-    expect(report).toEqual({ universities: 0, programmes: 0, feeStructures: 0, campusExperiences: 0, officialResources: 0, faqs: 0, processSteps: 0, contentBlocks: 0 });
+    expect(report).toEqual({ universities: 0, programmes: 0, feeStructures: 0, campusExperiences: 0, officialResources: 0, faqs: 0, processSteps: 0, contentBlocks: 0, siteSettings: 0 });
     expect(statuses).toEqual(["existing", "existing", "existing", "existing"]);
     expect(await snapshot()).toEqual(before);
+    expect(await settings()).toEqual({ whatsapp_number_e164: "+237612345678", contact_phone_display: "+237 612 345 678" });
   });
 
   it("each university's logo exists as a media_asset row (WebP, hash-keyed, with its alt text)", async () => {
@@ -137,6 +143,17 @@ describe("S1.7: the seed", () => {
     await runSeed(images);
     const [row] = (await t.run(`select name from university where slug = 'test-university-1'`)) as { name: string }[];
     expect(row?.name).toBe("Edited in the admin screen");
+  });
+
+  it("fills a contact setting only while it is not set, and never overwrites one an admin changed", async () => {
+    await t.run(`update site_setting set value = '"+237699999999"'::jsonb where key = 'whatsapp_number_e164'`);
+    const { report } = await runSeed(images);
+    expect(report.siteSettings).toBe(0);
+    expect((await settings()).whatsapp_number_e164).toBe("+237699999999");
+    // Cleared back to "not set": the seed fills it again.
+    await t.run(`update site_setting set value = 'null'::jsonb where key = 'whatsapp_number_e164'`);
+    expect((await runSeed(images)).report.siteSettings).toBe(1);
+    expect((await settings()).whatsapp_number_e164).toBe("+237612345678");
   });
 
   it("every seeded row satisfies the database constraints, because the files were validated first", () => {
