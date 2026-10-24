@@ -1,6 +1,6 @@
 # Essentials 1: Scollarly v2 full build (MVP for PRD_1)
 
-*Amended pre-build on 2026-10-23 by the owner after the engineering review, and again on 2026-10-23 after the Stage 0 measurements (owner decisions D13 and D14). See the Amendment logs at the end. Version stays 1.*
+*Amended pre-build on 2026-10-23 by the owner after the engineering review, again on 2026-10-23 after the Stage 0 measurements (owner decisions D13 and D14), and again on 2026-10-24 for the Neon-centred redesign (owner decision D15). See the Amendment logs at the end. Version stays 1.*
 
 ## Aim & Outcome
 
@@ -53,18 +53,19 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S0.1 | Repo skeleton in the final structure (section 5): pinned Next.js version, OpenNext, Wrangler config, Drizzle config, strict TypeScript, lint, minimal CI, `CLAUDE.md` in place. **First probe:** do the Cache API and cache purge work on the `workers.dev` hostname? Record the answer in the tracker. If they are no-ops, stop and tell the owner that H7 (domain on Cloudflare) is blocking before S0.2, S0.5 and S0.6. **Result 2026-10-23: they work on `workers.dev`, so H7 does not block the cache gates.** |
 | S0.2 | A prerendered public page with Lighthouse CI |
 | S0.3 | Neon through the serverless driver: one HTTP query, one WebSocket transaction, cold-start measurement. A stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert) so the lead POST CPU gate can be measured. A non-gating probe of whether Neon's API can report CU-hours (info row in the tracker). |
-| S0.4 | Better Auth behind the auth facade: Google sign-in only (no passwords), cookie cache for students, TOTP 2FA with recovery codes, the 10-minute step-up check, role field, and the partial unique owner index. A stub authenticated admin page (session read, one Neon query, render) measured on the fresh session lookup path used for staff and on the cookie-cache path used for students. *The first slice also measured email-and-password sign-in with three hash variants (Better Auth default, PBKDF2, magic link); all failed the CPU gate (architecture section 17), and that work is kept only as evidence.* |
-| S0.5 | One 300 KB WebP stored in `media_blob` and served from `/media/[hash]` through the Cache API, with `bytea` read cost measured |
+| S0.4 | Auth behind the auth facade on **Neon Auth** (D15): Google sign-in only (no passwords), student session cache of at most 60 seconds, owner TOTP 2FA on the otpauth library with recovery codes (Neon Auth has no authenticator-app 2FA), the 10-minute step-up check in our `step_up` table, the `app_user` role and the partial unique owner index. A stub authenticated admin page (session read, one Neon query, render) measured on the fresh session lookup path used for staff and on the cached path used for students. *The first slice used self-hosted Better Auth and also measured email-and-password sign-in with three hash variants (Better Auth default, PBKDF2, magic link); all failed the CPU gate (architecture section 17), and that work is kept only as evidence.* |
+| S0.5 | One 300 KB WebP stored in a Neon Object Storage bucket (`images`, public-read; create it with the Neon CLI or console) and served from `/media/[hash]` through the Cache API, with the storage read cost measured on a miss and a hit, and a signed upload tested. The Stage 0 `media_blob` result (about 31 ms on a miss) is kept as evidence. |
 | S0.6 | Tag revalidation: a publish updates a public page without a deploy. Name the OpenNext incremental cache and tag-cache bindings used (the read-only static-assets cache cannot revalidate; KV is discouraged) and record whether any of them needs a payment method. If one does, stop and ask the owner (G6). |
 | S0.7 | One Cron Trigger run, one Durable Object counter, one Durable Object rate limiter |
 | S0.8 | Serwist offline page with a pinned compatible Next.js, bundler and Serwist combination, tested with Playwright offline mode |
-$1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the lean design on the deployed Worker: (a) the edge fast path in the Worker entry for public pages and images (ADR-033); (b) the one-query session check in the auth facade, with Better Auth used only for sign-in, sign-out and two-factor routes (ADR-034); (c) a session-issuing path with no password hashing (the magic-link probe stands in for the Google callback), reusing one Better Auth instance as the real app does; (d) the lead POST thinned until it meets its gate; (e) an image cache miss and a hit; (f) the stub admin and student pages with a real session. Measure each with at least 50 requests and record warm p50 and p95, the worst request, and how many were cut at the limit. If a gate still fails after reasonable thinning, stop and bring the owner the measured value and the remaining options (paid plan, object storage for images, or another design). |
+| S0.9 | Measurement report recorded in the tracker, one row per gate in architecture section 17 |
+| S0.10 | **Free-plan proof (added 2026-10-23, D14; extended 2026-10-24, D15).** Build and measure the redesign on the deployed Worker: (a) the edge fast path in the Worker entry for public pages and images (ADR-033); (b) Neon Auth session verification in the auth facade, measured two ways, the Neon Auth SDK and our own check of the signed cookie, with one query for the `app_user` role (ADR-034, ADR-037); pick by number; (c) the sign-in return trip with a throwaway Google test account on Neon Auth; (d) the staff page query with the row-level-security context set in the same Neon HTTP request, through a non-owner runtime role with `FORCE ROW LEVEL SECURITY` (ADR-038); (e) the lead POST thinned until it meets its gate; (f) a Neon Object Storage image read on a cache miss and a hit, and a signed upload (ADR-039); (g) the stub admin and student pages with a real session. Measure each with at least 50 requests and record warm p50 and p95, the worst request, and how many were cut at the limit. Owner prerequisites: Neon Auth switched on with Google credentials (tracker H8, H13) and the Object Storage free-plan limits read (H12). If a gate still fails after reasonable thinning, stop and bring the owner the measured value and the remaining options (D1 back to self-hosted Better Auth, D3 back to Neon `bytea` images, D5 row level security off, a paid plan, or another design). |
 
 **Exit criteria**
 - Every gate in architecture section 17 has a recorded measured result. The first slice's results are recorded; Module S0.10 supplies the results for the redesigned gates.
 - All Module S0.10 gates pass with no request cut at the CPU limit. Otherwise the decision returns to the owner.
 - If any gate fails, stop. Report the failing gate, the measured value, and the options for that gate from architecture section 17 (for example lighter hash, passwordless path, paid plan, fallback in ADR-003; an admin Worker split reduces size only, not CPU per request). The owner decides. Do not continue to Stage 1.
-- The owner confirms the commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans (a human action; record the answer in the tracker). Confirmed by the owner on 2026-10-23.
+- The owner confirms the commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans, now also Neon Auth and Neon Object Storage (a human action; record the answer in the tracker). The owner's 2026-10-23 confirmation covered Cloudflare, Neon, Resend and Turnstile. The Neon Auth and Neon Object Storage terms are not yet confirmed (owner action).
 
 ---
 
@@ -76,7 +77,7 @@ $1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the l
 
 | ID | Module |
 |---|---|
-| S1.1 | Migrations for every table in 7.1 to 7.6, all CHECK constraints, indexes (7.8), the owner partial unique index. This includes `lead.intake_kind`, `lead_note`, `lead_claim.verification_method` and `placement_payment.submission_token` (unique). Seed `pipeline_stage` and default `site_setting` values. |
+| S1.1 | Migrations for every table in 7.1 to 7.6, all CHECK constraints, indexes (7.8), the owner partial unique index. This includes `lead.intake_kind`, `lead_note`, `lead_claim.verification_method` and `placement_payment.submission_token` (unique). Seed `pipeline_stage` and default `site_setting` values. Every table's migration also adds its row level security policy and enables `FORCE ROW LEVEL SECURITY`, and the migrations run as the owner role while the app connects as the non-owner runtime role (ADR-038). A CI test fails if any table has no policy. |
 | S1.2 | Repository layer with the branded `Actor` type. Auth facade interface: `checkSession`, `requireRole`, `requireOwner`. |
 | S1.3 | Shared libraries: WAT time helpers, Result type, WhatsApp URL helper (FR-4), phone normaliser (ADR-025), reference generator (ADR-006), error envelope, shared Zod schemas |
 | S1.4 | SLA module as a pure function (10.7) with table tests |
@@ -102,11 +103,11 @@ $1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the l
 
 | ID | Module |
 |---|---|
-| S2.1 | Production Better Auth configuration behind the facade: Google sign-in only, with the one-query session check for page reads (ADR-032, ADR-034). The Resend adapter and an invite email template are built only if the owner chooses to email invites. |
-| S2.2 | Pages: sign-in with Google and sign-out (A9, A10). There is no sign-up form and no verify, forgot or reset page. A line for students without a Google account (lead intake and WhatsApp still work). **Check early whether Google accepts a `workers.dev` redirect address** (tracker H8, F10). |
-| S2.3 | Owner bootstrap from `OWNER_EMAIL` on the first Google sign-in with that verified email, 2FA enrol and verify (TOTP must work for an account that has no password), recovery codes, 10-minute step-up (C0, C1, 9.3) |
-| S2.4 | `Actor` issuance and role guards. An owner session without 2FA verification has no admin or owner powers. Admin and owner requests and every Server Action do a fresh session lookup, done by the facade with one query; only student `/me` reads use a cookie cache of at most 60 seconds (ADR-020, ADR-034). |
-| S2.5 | Admin invites (a copyable link; emailing it is optional), accept-invite page, Team page with invite, resend, revoke and remove (B0, C2, 9.4) |
+| S2.1 | Production Neon Auth configuration behind the facade: Google sign-in only, with the one-query session check for page reads (ADR-032, ADR-034, ADR-037). No email adapter exists (Resend is removed, ADR-036). |
+| S2.2 | Pages: sign-in with Google and sign-out (A9, A10). There is no sign-up form and no verify, forgot or reset page. A line for students without a Google account (lead intake and WhatsApp still work). Google's redirect address is Neon Auth's, not the `workers.dev` address; confirm this when the credentials are created (tracker H8, F10). |
+| S2.3 | Owner bootstrap from `OWNER_EMAIL` on the first Google sign-in with that verified email, the first sign-in creates the `app_user` row idempotently, 2FA enrol and verify (our own code on the otpauth library, with an encrypted secret, 10 hashed recovery codes, a 5-failure lockout and replay refusal), 10-minute step-up in `step_up` (C0, C1, 9.3, ADR-037) |
+| S2.4 | `Actor` issuance and role guards. An owner session without 2FA verification has no admin or owner powers. Admin and owner requests and every Server Action do a fresh session lookup, done by the facade with one query; only student `/me` reads use a cookie cache of at most 60 seconds (ADR-020, ADR-034). Row level security is a second lock under the facade (ADR-038). |
+| S2.5 | Admin invites (a copyable link; no email is sent, ADR-036), accept-invite page, Team page with invite, resend, revoke and remove (B0, C2, 9.4) |
 | S2.6 | Admin shell: role-based menu, shadcn/ui isolated to admin routes, offline banner, My profile page (B11), Security page (C6) |
 | S2.7 | Audit log writer and Audit page (C5) |
 
@@ -115,6 +116,9 @@ $1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the l
 - Authorisation matrix passes for every action implemented so far.
 - A test proves a session is issued only for an email Google reports as verified, and that no password account can be created.
 - A test proves a second owner cannot exist and the owner cannot be demoted.
+- Row level security: a test connects as the runtime role and is denied on every table without the right user; the CI list of tables equals the list of policies (ADR-038).
+- Owner 2FA: enrol, verify, wrong code, clock drift, lockout after 5 failures, single-use recovery codes and refusal of a replayed code are tested.
+- Provisioning: two simultaneous first sign-ins create one `app_user` row.
 - A test proves a removed admin loses access immediately and their leads return to the unassigned pool.
 - No middleware performs access control (grep check in CI).
 - A removed admin is refused on their very next request, including a Server Action sent with the old cookie (no cached session).
@@ -135,7 +139,7 @@ $1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the l
 |---|---|
 | S3.1 | Content read layer and prerender with tag revalidation, and the edge fast path for public pages (ADR-033) |
 | S3.2 | Pages: home, universities, university detail, fees, campus tours, process, visa, FAQ, about, blog and post, contact, privacy, terms, offline (A1 to A8). All strings through translation keys. |
-| S3.3 | Fee gating (FR-2), thumbnail-first video and tour facade (FR-3), YouTube ID validation, `/media/[hash]` delivery handler and its edge fast path (ADR-033) |
+| S3.3 | Fee gating (FR-2), thumbnail-first video and tour facade (FR-3), YouTube ID validation, `/media/[hash]` delivery handler reading Neon Object Storage, with its edge fast path (ADR-033, ADR-039) |
 | S3.4 | Trust components: stats, testimonials, journeys, team, rendered only when confirmed, verified and consented |
 | S3.5 | Performance pass: first load under 200 KB excluding lazy images, public JavaScript within the 100 KB gzip budget, no splash, reduced-motion support |
 
@@ -160,7 +164,7 @@ $1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the l
 | S4.1 | Serwist service worker, manifest, install prompt, never-cache rules for admin, student, auth and API routes |
 | S4.2 | IndexedDB queue and sync engine: backoff, Web Locks, 30-day expiry, delete on success, "Remove from this phone" |
 | S4.3 | Full apply form (A5) and the quick WhatsApp form (A5b, ADR-030), lazy Turnstile, and the send-first order: online, wait up to 4 seconds for the server before opening WhatsApp; offline or slow, queue and open WhatsApp; a visible "Open WhatsApp" button if the browser blocks the jump (ADR-031) |
-$1. The handler stays thin enough for its 8 ms CPU gate, checked against the deployed endpoint (S0.10)$2
+| S4.4 | `POST /api/v1/leads`: idempotency, payload hash, Turnstile verification, layered rate limiting (Durable Object limiter, per-number database limit of 5 per 24 hours), phone normalisation, `received_at` and SLA target, reference collision handling. The handler stays thin enough for its 8 ms CPU gate, checked against the deployed endpoint (S0.10) |
 | S4.5 | WhatsApp tap events and `POST /api/v1/events` (collector or the ADR-003 fallback decided in Stage 0). Anonymous events are counts only; a `wa_tap` with a lead ref is stored, at most 10 per ref per day. |
 | S4.6 | Contact page and every WhatsApp button reading the number from `site_setting` |
 
@@ -213,7 +217,7 @@ $1. The handler stays thin enough for its 8 ms CPU gate, checked against the dep
 |---|---|
 | S6.1 | The standard content flow as a reusable framework: list, form, draft, publish gates, unpublish, archive, restore, conflict handling |
 | S6.2 | Content types: universities, programmes, fees, campus experiences, resources, testimonials with consent records, journeys, team, FAQs, trust stats, process steps, page copy, blog (sanitised Markdown), message templates |
-| S6.3 | Media: in-browser resize and WebP conversion, upload action with size caps, file-signature check, SVG rejected, hash deduplication, media page with usage meter, blur step and confirmation for document images |
+| S6.3 | Media: in-browser resize and WebP conversion, upload action to Neon Object Storage with size caps, file-signature check, SVG rejected, hash deduplication (an existing hash is never overwritten and no delete path exists, D17), media page with usage meter against the 3.5 GB budget, blur step and confirmation for document images |
 | S6.4 | Revalidation wired to every publish and unpublish |
 | S6.5 | Stale content report as queries on `last_updated_at` and `url_last_checked_at` (fees 180 days, tours 90 days) with "Mark checked". No scheduled flag job. |
 
@@ -301,8 +305,8 @@ $1. The handler stays thin enough for its 8 ms CPU gate, checked against the dep
 |---|---|
 | S10.1 | Settings page with 2FA step-up. Settings consumed everywhere (WhatsApp number, SLA hours, stale thresholds, image budget, page-view switch). |
 | S10.2 | Health page, usage checks (database size, image budget, GitHub artifact storage, Neon usage if the Stage 0 API check passed), banners at 70% |
-| S10.3 | Owner full export, the weekly encrypted `pg_dump` GitHub Actions workflow without `media_blob` data (kept 28 days), and a monthly encrypted images-only dump (kept 60 days). Repository secrets, not environment secrets. First confirm the GitHub Free artifact quota in GitHub's own documentation and record it in the tracker. |
-| S10.4 | Written recovery procedures in the repo: owner locked out of 2FA, restoring from a dump |
+| S10.3 | Owner full export, the weekly encrypted `pg_dump` GitHub Actions workflow (kept 28 days; image bytes are in Neon Object Storage, not in the dump). The monthly images-only artifact is dropped (D17). Instead `scripts/backup-images.mjs` lets the owner copy missing images from the public bucket to their own disk, checked by sha256 against the `media_asset` manifest (no credential, no GitHub storage). Repository secrets, not environment secrets. First confirm the GitHub Free artifact quota in GitHub's own documentation and record it in the tracker. |
+| S10.4 | Written recovery procedures in the repo: owner locked out of 2FA, restoring from a dump, restoring missing or corrupt images from the owner's copy |
 
 **Exit criteria**
 - Changing the WhatsApp number in Settings updates every WhatsApp link without a deploy.
@@ -323,9 +327,9 @@ $1. The handler stays thin enough for its 8 ms CPU gate, checked against the dep
 | S11.1 | Enforce CSP (if compatible with Next.js on Workers) and audit all security headers |
 | S11.2 | The complete Playwright suite for every click flow in architecture section 16, Parts A, B and C |
 | S11.3 | Accessibility, 375 px layout, reduced motion, and Lighthouse on every public route |
-| S11.4 | Free-quota review: Worker size, CPU, request estimates, Neon storage and CU-hours, Resend daily cap |
+| S11.4 | Free-quota review: Worker size, CPU, request estimates, Neon storage and CU-hours, Neon Object Storage usage |
 | S11.5 | Traceability table in the tracker: each of FR-1 to FR-18 mapped to at least one passing test |
-| S11.6 | Pre-launch checklist with the owner (PRD 12.2): confirmed WhatsApp and contact numbers, confirmed trust content only, legal review status for minors and data protection recorded, mailbox and Resend DNS (only if invite emails are used), Cloudflare DNS, Google OAuth, vendor terms |
+| S11.6 | Pre-launch checklist with the owner (PRD 12.2): confirmed WhatsApp and contact numbers, confirmed trust content only, legal review status for minors and data protection recorded, Cloudflare DNS, Neon Auth and Google OAuth, vendor terms (no mailbox or Resend DNS: email is removed, ADR-036) |
 | S11.7 | Production deploy, owner bootstrap, smoke test of every role |
 | S11.8 | Hourly uptime check: a scheduled GitHub Actions workflow calls `/api/v1/health` and fails, so GitHub notifies the owner, when the response is not 200. It checks the Worker, not Neon. |
 
@@ -361,3 +365,21 @@ Edited in place by the owner's instruction (D13: edit the existing documents, no
 - Stage 2: Google sign-in only. S2.1, S2.2, S2.3, S2.4, S2.5 changed; the exit criteria for pre-hijack, sign-up and email caps are replaced by a Google-verified-email test, a sign-in CPU check and a record of whether Google accepts a `workers.dev` redirect address.
 - Stage 3: S3.1 and S3.3 use the edge fast path. Stage 4: S4.4 carries a CPU check. Stage 11: S11.6 treats Resend and the mailbox as optional.
 - The module count in the tracker registry goes from 67 to 68 (S0.10).
+
+## Amendment log (Neon-centred redesign, 2026-10-24, decision D15)
+
+Edited in place by the owner's instruction (D13). Version stays 1. Cause: the owner asked to move authentication, authorisation and images onto Neon after an engineering review.
+
+- Neon Auth replaces self-hosted Better Auth (S0.4, S2.1 to S2.5). Owner 2FA is our own code on the otpauth library. Resend and all email are removed (S2.1, S2.5, S11.6).
+- Images move to a Neon Object Storage bucket (S0.5, S3.3, S6.3, S10.3, S11.4). Image backup is decided (D17). R2 was dropped (D16) because its checkout asked for a payment method.
+- Row level security with a non-owner runtime role is added (S1.1, S2.4, Stage 2 exit criteria).
+- S0.10 is extended with the proofs for all of this and lists the owner prerequisites. The module count stays 68.
+- Fixed a mistake from the 2026-10-23 amendment: the S0.9 row had been lost and a stray `$1` was left in front of S0.10. Both are restored.
+
+## Amendment (images in Neon Object Storage, 2026-10-24, decision D16)
+
+R2 is replaced by Neon Object Storage in S0.5, S0.10, S3.3, S6.3, S10.3, S11.4 and S11.6. No other module changes.
+
+## Amendment (image backup, 2026-10-24, decision D17)
+
+S6.3 gains the immutability rule, S10.3 swaps the monthly images artifact for the owner-run copy script, S10.4 gains an image-restore procedure. No module is added.
