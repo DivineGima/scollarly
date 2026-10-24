@@ -46,7 +46,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 
 ### Stage 0: Proof of fit (hard gate)
 
-**Goal:** prove the stack fits Cloudflare Workers Free before anything else is built. Architecture section 17 defines the gates and thresholds. **Status (2026-10-23): the first slice was deployed and measured and several CPU gates failed (password sign-in, lead POST, image serving). The owner chose to redesign for the free plan (D14). Stage 0 stays open until Module S0.10 passes.**
+**Goal:** prove the stack fits Cloudflare Workers Free before anything else is built. Architecture section 17 defines the gates and thresholds. **Status (2026-10-24): Stage 0 is complete. The first slice (2026-10-23) failed several CPU gates and the owner chose to redesign for the free plan (D14, then D15 and D18). Module S0.10 passed every gate on the deployed Worker on 2026-10-24; the results are in the tracker.**
 
 | ID | Module |
 |---|---|
