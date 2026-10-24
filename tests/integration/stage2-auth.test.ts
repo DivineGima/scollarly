@@ -558,9 +558,12 @@ describe("S2.7: the audit log", () => {
   });
 
   it("pages without repeating or skipping a row", async () => {
-    for (let i = 0; i < 60; i++) {
-      await t.run(`insert into audit_log (id, actor_id, action, entity_type, meta) values (gen_random_uuid(), ${q(owner.userId)}, 'test.page', 'x', '{}')`);
-    }
+    // 60 rows inside one millisecond, told apart only by microseconds: a cursor that keeps only milliseconds skips rows here.
+    await t.run(
+      `insert into audit_log (id, actor_id, action, entity_type, meta, at)
+       select gen_random_uuid(), ${q(owner.userId)}, 'test.page', 'x', '{}', date_trunc('milliseconds', now()) + (n || ' microseconds')::interval
+         from generate_series(1, 60) as n`,
+    );
     const seen: string[] = [];
     let before: string | null = null;
     for (let page = 0; page < 5; page++) {

@@ -41,8 +41,8 @@ export interface AuditFilter {
   action?: string;
   from?: Date;
   to?: Date;
-  /** Keyset cursor: the last row of the previous page. */
-  before?: { at: Date; id: string };
+  /** Keyset cursor: the id of the last row of the previous page. Postgres compares against that row's own timestamp, which has microseconds a JavaScript Date would lose. */
+  before?: { id: string };
   limit?: number;
 }
 
@@ -66,7 +66,7 @@ export async function listAudit(db: Db, actor: Actor, filter: AuditFilter = {}):
     filter.action ? eq(auditLog.action, filter.action) : undefined,
     filter.from ? gte(auditLog.at, filter.from) : undefined,
     filter.to ? lt(auditLog.at, filter.to) : undefined,
-    filter.before ? sql`(${auditLog.at}, ${auditLog.id}) < (${filter.before.at.toISOString()}::timestamptz, ${filter.before.id}::uuid)` : undefined,
+    filter.before ? sql`(${auditLog.at}, ${auditLog.id}) < (select a.at, a.id from audit_log a where a.id = ${filter.before.id}::uuid)` : undefined,
   ];
   const [rows] = await runAs(
     db,

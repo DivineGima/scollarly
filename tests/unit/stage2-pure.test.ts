@@ -83,7 +83,7 @@ describe("audit filters (C5)", () => {
     expect(watRange("2026-05-01", "2026-05-01")).not.toBeNull();
   });
   it("accepts only the query a screen can produce", () => {
-    expect(auditQuery.safeParse({ actor: "u-1", action: "team.invite", from: "2026-10-01", to: "2026-10-31", before: "2026-10-24T12:00:00.000Z_0194f3c2-8a4b-7c1d-9e2f-3a4b5c6d7e8f" }).success).toBe(true);
+    expect(auditQuery.safeParse({ actor: "u-1", action: "team.invite", from: "2026-10-01", to: "2026-10-31", before: "0194f3c2-8a4b-7c1d-9e2f-3a4b5c6d7e8f" }).success).toBe(true);
     for (const bad of [{ action: "bad action" }, { action: "1bad" }, { from: "yesterday" }, { before: "x" }, { unknown: "1" }, { actor: "a b" }]) {
       expect(auditQuery.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
     }

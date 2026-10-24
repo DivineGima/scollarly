@@ -572,7 +572,7 @@ test.describe("C5 audit log", () => {
       if (url.searchParams.has("from") && url.searchParams.has("to") && url.searchParams.get("from")! > url.searchParams.get("to")!) return fail(route, 400, "VALIDATION");
       if (url.searchParams.get("action") === "team.invite") return json(route, { ...AUDIT(), entries: [], nextBefore: null });
       if (url.searchParams.has("before")) return json(route, { ...AUDIT(), entries: [AUDIT().entries[2]], nextBefore: null });
-      return json(route, AUDIT({ nextBefore: "2026-10-22T10:00:00.000Z_e3" }));
+      return json(route, AUDIT({ nextBefore: "0194f3c2-8a4b-7c1d-9e2f-3a4b5c6d7e8f" }));
     });
     await page.goto("/admin/audit");
     await page.getByRole("button", { name: "Show older entries" }).click();

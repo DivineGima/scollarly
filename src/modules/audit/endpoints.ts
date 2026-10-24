@@ -19,14 +19,13 @@ export function auditDataCalls(env: EndpointEnv): Record<string, DataCall> {
       // A filter the screen could not have produced. Say so plainly instead of silently showing everything.
       if (!parsed.success || !range) return errorResponseFor("VALIDATION", "Check the filters.", newRequestId());
       const { actor: actorId, action, before } = parsed.data;
-      const [at, id] = before ? before.split("_") : [];
 
       const [rows, team, actions] = await Promise.all([
         listAudit(env.db, actor, {
           ...(actorId ? { actorId } : {}),
           ...(action ? { action } : {}),
           ...range,
-          ...(at && id ? { before: { at: new Date(at), id } } : {}),
+          ...(before ? { before: { id: before } } : {}),
           limit: AUDIT_PAGE_SIZE + 1,
         }),
         listTeam(env.db, actor),
@@ -50,7 +49,7 @@ export function auditDataCalls(env: EndpointEnv): Record<string, DataCall> {
         })),
         people: team.map((m) => ({ id: m.userId, email: m.email })),
         actions,
-        nextBefore: rows.length > AUDIT_PAGE_SIZE && last ? `${last.at.toISOString()}_${last.id}` : null,
+        nextBefore: rows.length > AUDIT_PAGE_SIZE && last ? last.id : null,
       };
     },
   };

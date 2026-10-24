@@ -13,8 +13,8 @@ export const auditQuery = z.strictObject({
   action: z.string().regex(/^[A-Za-z][A-Za-z0-9._]{0,63}$/).optional(),
   from: day.optional(),
   to: day.optional(),
-  // `<ISO instant>_<uuid>` of the last row already shown.
-  before: z.string().regex(/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z_[0-9a-f-]{36}$/).optional(),
+  // The id of the last row already shown.
+  before: z.uuid().optional(),
 });
 
 export type AuditQuery = z.infer<typeof auditQuery>;
