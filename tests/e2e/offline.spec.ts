@@ -34,7 +34,7 @@ async function cachedUrls(page: Page): Promise<string[]> {
 test.describe("service worker and offline page (S0.8)", () => {
   test("registers a service worker and precaches the offline page", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Scollarly" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Study in India from Africa" })).toBeVisible();
     await waitForServiceWorkerControl(page);
     expect(await cachedUrls(page)).toContain("/offline");
   });
@@ -44,8 +44,8 @@ test.describe("service worker and offline page (S0.8)", () => {
     await waitForServiceWorkerControl(page);
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Scollarly" })).toBeVisible();
-    await expect(page.getByText("Stage 0 proof of fit")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Study in India from Africa" })).toBeVisible();
+    await expect(page.getByText("Our help is free for students.")).toBeVisible();
   });
 
   test("shows the offline page for a page that was never visited", async ({ page, context }) => {

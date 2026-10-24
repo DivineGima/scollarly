@@ -552,7 +552,8 @@ describe("S2.7: the audit log", () => {
     const byPerson = await get(`/api/v1/admin/audit?actor=${admin.userId}`, ownerFresh);
     expect(byPerson.json.entries.every((e: Json) => e.actorId === admin.userId)).toBe(true);
 
-    const today = new Date().toISOString().slice(0, 10);
+    // The audit filter is by WAT date (UTC+1), so "today" is the WAT date, not the UTC one.
+    const today = new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
     expect((await get(`/api/v1/admin/audit?from=${today}&to=${today}`, ownerFresh)).json.entries.length).toBeGreaterThan(0);
     expect((await get("/api/v1/admin/audit?from=2001-01-01&to=2001-01-02", ownerFresh)).json.entries).toHaveLength(0);
   });

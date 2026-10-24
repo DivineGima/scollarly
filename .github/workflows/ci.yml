@@ -96,5 +96,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
+      # The site is built from the test content snapshot, so every public page has content to measure (src/modules/content/fixture.ts).
       - run: npx next build
+        env:
+          CONTENT_FIXTURE_FILE: tests/fixtures/content-snapshot.json
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+      # First-load JavaScript of every public route, and no admin library in any of them (S3.5).
+      - run: npm run check:bundle
       - run: npx lhci autorun

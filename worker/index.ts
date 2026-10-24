@@ -11,6 +11,7 @@ import { authedDeps, landingDeps, mutationDeps } from "../src/server/edge/authed
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
 import { handleLanding } from "../src/server/edge/landing";
 import { handleMutation } from "../src/server/edge/mutations";
+import { EVENTS_PATH, handleEventsPost } from "../src/server/edge/events";
 import { handleLeadPost, LEADS_PATH } from "../src/server/edge/leads";
 import { serveMedia } from "../src/server/edge/media";
 import { handleSignIn } from "../src/server/edge/sign-in";
@@ -20,7 +21,7 @@ import { getMediaStore } from "../src/server/media/runtime";
  * Free-plan CPU fast path (ADR-033). Workers Free allows about 10 ms of CPU per request and the Next.js server layer
  * alone costs several milliseconds, so the requests that must be cheapest never reach it:
  *  - public pages and content-hashed images are answered from the Cache API (images are read from the public bucket on a miss);
- *  - `POST /api/v1/leads` runs as a plain function;
+ *  - `POST /api/v1/leads` and `POST /api/v1/events` run as plain functions;
  *  - the two sign-in steps of ours, `/auth/start` and `/auth/return`, are plain functions (`edge/sign-in.ts`);
  *  - the first request after sign-in, `/auth/landing`, is a plain function too (`edge/landing.ts`);
  *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`),
@@ -30,6 +31,7 @@ import { getMediaStore } from "../src/server/media/runtime";
 async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "POST" && url.pathname === LEADS_PATH) return handleLeadPost(request, env);
+  if (request.method === "POST" && url.pathname === EVENTS_PATH) return handleEventsPost(request, env);
 
   const signIn = handleSignIn(request, env);
   if (signIn) return signIn;

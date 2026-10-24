@@ -1,13 +1,27 @@
 {
   "home": {
-    "title": "Scollarly",
-    "promise": "Study in India from Africa, with a team that answers on WhatsApp.",
-    "phase0": "Stage 0 proof of fit. This page is prerendered and served from the edge cache.",
-    "offlineLink": "See the offline page"
+    "metaTitle": "Study in India from Africa",
+    "metaDescription": "Scollarly helps African students find and apply to Indian universities. Free for students, with a team that answers on WhatsApp.",
+    "hero": {
+      "title": "Study in India from Africa",
+      "subtitle": "We connect African students with Indian universities and help with every step, from results to arrival."
+    },
+    "startApplication": "Start your application",
+    "freeForStudents": "Our help is free for students.",
+    "universitiesHeading": "Universities",
+    "universitiesEmpty": "Our universities are being added. Message us on WhatsApp and we will suggest one that fits your results.",
+    "allUniversities": "See all universities",
+    "processHeading": "How it works",
+    "whyHeading": "Why Scollarly",
+    "servicesHeading": "What we do for you",
+    "faqHeading": "Questions students ask",
+    "faqGeneral": "General",
+    "allFaq": "See all questions"
   },
   "offline": {
     "title": "You are offline",
-    "body": "This page is not saved on your phone yet. Pages you have already opened still work. Reconnect to see the rest."
+    "body": "This page is not saved on your phone yet. Pages you have already opened still work. Reconnect to see the rest.",
+    "pagesHeading": "Pages to try"
   },
   "phase0": {
     "publishedHeading": "Published content",
@@ -205,5 +219,311 @@
       "signOutEverywhere": "Sign out everywhere else",
       "signedOutEverywhere": "Signed out of {count} other sessions."
     }
+  },
+  "site": {
+    "name": "Scollarly",
+    "skip": "Skip to main content",
+    "apply": "Apply",
+    "signIn": "Sign in",
+    "nav": {
+      "label": "Main",
+      "home": "Home",
+      "universities": "Universities",
+      "fees": "Fees",
+      "tours": "Campus tours",
+      "process": "How it works",
+      "visa": "Visa",
+      "faq": "FAQ",
+      "blog": "Blog",
+      "about": "About",
+      "contact": "Contact"
+    },
+    "footer": {
+      "tagline": "Helping African students study in India. Free for students.",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    },
+    "whatsapp": {
+      "chat": "Chat on WhatsApp",
+      "ask": "Ask about this university on WhatsApp"
+    }
+  },
+  "trust": {
+    "statsHeading": "Scollarly in numbers",
+    "asOf": "As of {date}",
+    "testimonialsHeading": "What students say",
+    "journeysHeading": "Student journeys",
+    "teamHeading": "Our team"
+  },
+  "universities": {
+    "metaTitle": "Universities",
+    "metaDescription": "Indian universities Scollarly works with: location, accreditation and fees where confirmed.",
+    "title": "Universities",
+    "intro": "Indian universities we work with. Open one to see its programmes, fees and campus.",
+    "search": "Search",
+    "searchPlaceholder": "University or city",
+    "filterLevel": "Filter by level",
+    "filterCity": "Filter by city",
+    "all": "All",
+    "noMatch": "No university matches. Clear the search or a filter.",
+    "results": "{count} universities shown",
+    "empty": "Our universities are being added. Message us on WhatsApp and we will suggest one that fits your results.",
+    "naac": "NAAC {grade}",
+    "fromFee": "Fees from {amount} {period}",
+    "feesTbcShort": "Fees to be confirmed"
+  },
+  "university": {
+    "back": "All universities",
+    "naac": "NAAC {grade}",
+    "overviewHeading": "Overview",
+    "programmesHeading": "Programmes",
+    "duration": "{months} months",
+    "feesHeading": "Fees",
+    "feeUpdated": "Last updated {date}",
+    "feeDisclaimer": "Fees are set by the university and can change. We confirm them with the university before you pay anything.",
+    "feesTbc": "Fees to be confirmed. Ask us and we will check with the university.",
+    "campusHeading": "Campus",
+    "resourcesHeading": "Official links",
+    "officialWebsite": "University website",
+    "opensNewTab": "(opens in a new tab)",
+    "nextHeading": "Ready to take the next step?",
+    "apply": "Start your application",
+    "embed": {
+      "play": "Play video",
+      "openTour": "View 360° tour",
+      "needsConnection": "Needs a connection. Try again when you are online.",
+      "dataNotice": "The tour is loaded from the university's own site and may use a lot of mobile data.",
+      "dataNoticeConfirm": "Open the tour",
+      "viewGallery": "View gallery",
+      "noThumbnail": "Preview not available"
+    }
+  },
+  "fees": {
+    "metaTitle": "Fees",
+    "metaDescription": "University fees in USD or INR, shown only when confirmed. Others: contact us.",
+    "title": "Fees",
+    "intro": "Fee ranges for universities where we have confirmed them. Each amount shows its currency and when it was last updated.",
+    "university": "University",
+    "fee": "Fee",
+    "updated": "Updated {date}",
+    "contactUs": "Contact us",
+    "filterCurrency": "Filter by currency",
+    "all": "All",
+    "disclaimer": "Fees are set by the universities and can change. Amounts in different currencies are never added together.",
+    "empty": "Fees will appear here once the universities are added."
+  },
+  "tours": {
+    "metaTitle": "Campus tours",
+    "metaDescription": "Videos and 360° tours of partner campuses. Nothing loads until you tap.",
+    "title": "Campus tours",
+    "intro": "See the campuses before you decide. Videos and tours load only when you tap them, so they use no data until then.",
+    "empty": "Campus tours will appear here once the universities are added.",
+    "onRequest": "Available on request."
+  },
+  "process": {
+    "metaTitle": "How it works",
+    "metaDescription": "The steps from sharing your results to arriving in India, and what Scollarly does at each step.",
+    "title": "How it works",
+    "intro": "From your results to your arrival, here is each step and what we do for you.",
+    "empty": "The steps will appear here soon.",
+    "stepLabel": "Step {number}",
+    "apply": "Start your application"
+  },
+  "visa": {
+    "metaTitle": "Visa",
+    "metaDescription": "The steps to get your Indian student visa.",
+    "title": "Visa",
+    "intro": "Once you have your admission, these are the visa steps.",
+    "empty": "The visa steps will appear here soon.",
+    "noteLabel": "Visa note"
+  },
+  "faq": {
+    "metaTitle": "FAQ",
+    "metaDescription": "Answers to the questions African students ask about studying in India.",
+    "title": "Frequently asked questions",
+    "intro": "Tap a question to read the answer.",
+    "general": "General",
+    "empty": "Questions will appear here soon. You can always ask us on WhatsApp."
+  },
+  "about": {
+    "metaTitle": "About",
+    "metaDescription": "Why Scollarly exists and the people behind it.",
+    "title": "About Scollarly",
+    "fallback": "Scollarly helps African students find and apply to Indian universities.",
+    "missionHeading": "Our mission",
+    "valuesHeading": "Our values"
+  },
+  "blog": {
+    "metaTitle": "Blog",
+    "metaDescription": "Guides and news for African students planning to study in India.",
+    "title": "Blog",
+    "intro": "Guides and news for students planning to study in India.",
+    "empty": "No posts yet.",
+    "back": "All posts"
+  },
+  "contact": {
+    "metaTitle": "Contact",
+    "metaDescription": "How to reach Scollarly: WhatsApp, phone and email.",
+    "title": "Contact us",
+    "intro": "The fastest way to reach us is WhatsApp.",
+    "whatsappHeading": "WhatsApp",
+    "whatsappPending": "Our WhatsApp number will be published here soon. You can still start your application and we will contact you.",
+    "copyNumber": "Copy WhatsApp number",
+    "copied": "Copied",
+    "otherHeading": "Other ways to reach us",
+    "phone": "Phone",
+    "email": "Email",
+    "otherPending": "More contact details will be published here soon.",
+    "apply": "Start your application"
+  },
+  "privacy": {
+    "metaTitle": "Privacy",
+    "metaDescription": "How Scollarly handles your personal data.",
+    "title": "Privacy notice",
+    "pending": "Our full privacy notice is being finalised. This is a summary of how we handle your data.",
+    "summaryHeading": "In short",
+    "summary": {
+      "collect": "When you apply we keep your name, WhatsApp number, country, results and chosen programmes. We keep your email only if you give it.",
+      "use": "We use them only to advise you, answer you on WhatsApp and help with your application.",
+      "share": "We share your details with a university only for your application and only when you agree.",
+      "rights": "You can ask us to send you your data or erase it, by WhatsApp or from your account."
+    }
+  },
+  "terms": {
+    "metaTitle": "Terms",
+    "metaDescription": "The terms for using the Scollarly website.",
+    "title": "Terms of use",
+    "pending": "Our full terms are being finalised. This is a summary.",
+    "summary": {
+      "free": "Scollarly's help is free for students. We never ask students to pay us.",
+      "accuracy": "University information can change. Check fees and dates with us before you decide.",
+      "contact": "Questions about these terms: contact us on WhatsApp."
+    }
+  },
+  "apply": {
+    "page": {
+      "metaTitle": "Start your application",
+      "metaDescription": "Tell us your results and the programmes you like. We save it on your phone and message you on WhatsApp."
+    },
+    "fields": {
+      "name": "Your full name",
+      "whatsapp": "Your WhatsApp number",
+      "whatsappHelp": "Start with your country code, for example +237 for Cameroon, then your number.",
+      "country": "Your country",
+      "chooseCountry": "Choose your country",
+      "email": "Email (optional)",
+      "emailHelp": "Only if you want us to be able to write to you by email.",
+      "university": "University you are interested in",
+      "chooseUniversity": "Choose a university",
+      "qualification": "Your qualification",
+      "qualOlevel": "O-level and A-level",
+      "qualGrade": "Grade 10 and 11 (or equivalent)",
+      "results": "Your results (optional)",
+      "resultsHelp": "Add each subject with its grade. You can also send them to us on WhatsApp later.",
+      "subject": "Subject",
+      "grade": "Grade",
+      "addResult": "Add a subject",
+      "removeRow": "Remove"
+    },
+    "programmes": {
+      "title": "Programmes you like",
+      "help": "Choose at least 3. The first is your first choice; you can change the order.",
+      "search": "Search programmes or universities",
+      "noMatch": "No programme matches your search.",
+      "chosen": "Your choices",
+      "rank": "Choice {rank}",
+      "add": "Add",
+      "remove": "Remove",
+      "moveUp": "Move up",
+      "moveDown": "Move down"
+    },
+    "consent": {
+      "text": "I have read the {link} and I agree that Scollarly may contact me about my application.",
+      "link": "privacy notice"
+    },
+    "actions": {
+      "continue": "Continue",
+      "saving": "Saving…",
+      "sending": "Sending…",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "quick": {
+      "title": "Chat with us on WhatsApp",
+      "intro": "Tell us who you are and we will open the chat. We keep this so we can answer you.",
+      "about": "About: {university}"
+    },
+    "apply": {
+      "title": "Start your application",
+      "intro": "A few details and your programme choices. It is saved on your phone first, so nothing is lost if your signal drops.",
+      "savedBanner": "Saved on this phone",
+      "removeFromPhone": "Remove from this phone",
+      "confirmRemove": "Remove this saved application from your phone?",
+      "keep": "Keep it",
+      "resendNow": "Send now",
+      "noscript": "This form needs JavaScript. You can message us on WhatsApp instead.",
+      "soon": "Applications will open here soon. In the meantime, message us on WhatsApp."
+    },
+    "status": {
+      "saved": "Saved",
+      "sending": "Sending",
+      "sent": "Sent",
+      "notSent": "Not sent",
+      "rejected": "Not accepted",
+      "offlineNote": "You are offline. You can still fill this in: it is saved on your phone and sent when you are back online."
+    },
+    "done": {
+      "sentTitle": "We have your application",
+      "savedTitle": "Saved on your phone",
+      "sentBody": "We received it. Continue in WhatsApp and a Scollarly adviser will answer you.",
+      "savedBody": "It is saved on your phone and will be sent when you are online. Continue in WhatsApp now; just keep this page or the app open when you are back online.",
+      "reference": "Your reference",
+      "openWhatsApp": "Open WhatsApp",
+      "whatsappBlocked": "If WhatsApp did not open, tap the button above.",
+      "noWhatsApp": "We will contact you as soon as we can.",
+      "completeApplication": "Complete your application",
+      "couldntSave": "We could not save this on your phone",
+      "couldntSaveHelp": "Copy your details and send them to us on WhatsApp.",
+      "copyDetails": "Copy my details",
+      "copied": "Copied",
+      "limitedRate": "Too many attempts. Try again in a minute.",
+      "limitedNumber": "This number has already sent several applications today. Message us on WhatsApp instead.",
+      "turnstilePrompt": "Confirm you are human to send your application.",
+      "turnstileFailed": "We could not confirm you are human. Please try again."
+    },
+    "whatsapp": {
+      "quick": "Hello Scollarly! I am {name} from {country}. My reference is {ref}. {about}",
+      "full": "Hello Scollarly! I am {name} from {country}. I have sent my application, reference {ref}. {programmes}",
+      "aboutUniversity": "I would like to know more about {university}.",
+      "aboutProgramme": "I am interested in {programme} at {university}.",
+      "programmes": "I chose {count} programmes. My first choice: {first}."
+    },
+    "errors": {
+      "REQUIRED": "This field is required.",
+      "TOO_LONG": "This is too long.",
+      "INVALID": "This is not valid.",
+      "UNKNOWN_VALUE": "Choose one of the options.",
+      "DUPLICATE": "Each choice must be different.",
+      "PHONE_INVALID": "Check this number and its country code.",
+      "PROGRAMMES_MIN_3": "Choose at least 3 different programmes.",
+      "UNIVERSITY_OR_PROGRAMME_REQUIRED": "Choose the university you are interested in.",
+      "CONSENT_REQUIRED": "Please tick this box to continue."
+    },
+    "countries": {
+      "CM": "Cameroon",
+      "NG": "Nigeria",
+      "GH": "Ghana",
+      "CI": "Ivory Coast",
+      "SN": "Senegal",
+      "GN": "Guinea",
+      "ZA": "South Africa"
+    }
+  },
+  "pwa": {
+    "offline": "You are offline. Pages you opened before still work.",
+    "queued": "Waiting to send from this phone: {count}",
+    "installPrompt": "Install Scollarly on your phone for quick access.",
+    "install": "Install app",
+    "dismiss": "Not now"
   }
 }

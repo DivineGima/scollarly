@@ -131,3 +131,13 @@ export function normalisePhone(input: string, defaultCountry?: string): Result<N
   const national = nationalFor(country, digits);
   return national.ok ? ok(build(country, national.value)) : national;
 }
+
+/**
+ * A `tel:` link for a number written for people, for example `+91 98157 25968` becomes `tel:+919815725968`.
+ * Null when the text is empty or is not a valid international number, so a page never links to a broken dialler.
+ */
+export function telHref(display: string | null | undefined): string | null {
+  if (!display) return null;
+  const compact = display.replace(/[\s().-]/g, "");
+  return isE164(compact) ? `tel:${compact}` : null;
+}
