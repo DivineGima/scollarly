@@ -28,3 +28,4 @@ const facade = createAuthFacade((token) => resolveSession(getDb(getEnv()), token
 export const checkSession = facade.checkSession;
 export const requireRole = facade.requireRole;
 export const requireOwner = facade.requireOwner;
+export { ACTION_PERMISSION, type ActionId, can, canDo, PERMISSION_ROLES, PERMISSIONS, type PermissionId, type PermissionRole } from "./permissions";

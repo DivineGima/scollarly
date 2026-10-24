@@ -48,6 +48,53 @@ export function errorResponse(
   return jsonResponse(body, status, extra.headers);
 }
 
+/** The HTTP status each error code is sent with (architecture 8.1, 8.2). */
+export const STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
+  VALIDATION: 400,
+  UNAUTHENTICATED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  TURNSTILE_FAILED: 403,
+  IDEMPOTENCY_KEY_REUSED: 409,
+  PAYLOAD_TOO_LARGE: 413,
+  RATE_LIMITED: 429,
+  TEMPORARILY_UNAVAILABLE: 503,
+  INTERNAL: 500,
+};
+
+/** The envelope for a code, with its standard status. `RATE_LIMITED` and `TEMPORARILY_UNAVAILABLE` should pass a `Retry-After` header. */
+export function errorResponseFor(
+  code: ErrorCode,
+  message: string,
+  requestId: string,
+  extra: { fields?: Record<string, string>; headers?: Record<string, string> } = {},
+): Response {
+  return errorResponse(STATUS_BY_CODE[code], code, message, requestId, extra);
+}
+
+/** What a Zod issue looks like, so this file needs no import of Zod. */
+export interface FieldIssue {
+  path: readonly PropertyKey[];
+  message: string;
+}
+
+/**
+ * Turns validation issues into the `fields` of the error envelope: dotted path to message token. The first issue for a
+ * path wins. The messages are tokens such as `REQUIRED` that the UI maps to a translation key (FR-15).
+ */
+export function fieldErrors(issues: readonly FieldIssue[]): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const issue of issues) {
+    const key = issue.path.map(String).join(".") || "body";
+    if (!(key in fields)) fields[key] = issue.message;
+  }
+  return fields;
+}
+
+export function validationErrorResponse(issues: readonly FieldIssue[], requestId: string): Response {
+  return errorResponseFor("VALIDATION", "Check the highlighted fields.", requestId, { fields: fieldErrors(issues) });
+}
+
 /**
  * State-changing endpoints check the Origin header (architecture 8.1). A missing Origin (server to
  * server calls, curl) is allowed; a present Origin must match this request's own origin.

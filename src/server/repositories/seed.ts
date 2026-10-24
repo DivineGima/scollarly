@@ -1,0 +1,58 @@
+import type { Db } from "@/server/db/client";
+import { campusExperience, contentBlock, faq, feeStructure, officialResource, processStep, programme, university } from "@/server/db/schema";
+
+/**
+ * Inserts the seed rows (S1.7). It is run by `scripts/seed.ts` with the OWNER database role, which is how migrations run
+ * (architecture 13.3): the runtime role cannot write content without a signed-in staff member, and a one-off script has none.
+ *
+ * Insert-only and idempotent: every row has a deterministic id (`src/modules/seed/ids.ts`), and a row that already exists
+ * is left exactly as it is (`ON CONFLICT DO NOTHING`), so a second run changes nothing and never overwrites an edit made
+ * later in the admin screens.
+ */
+
+export interface SeedRows {
+  universities: (typeof university.$inferInsert)[];
+  programmes: (typeof programme.$inferInsert)[];
+  feeStructures: (typeof feeStructure.$inferInsert)[];
+  campusExperiences: (typeof campusExperience.$inferInsert)[];
+  officialResources: (typeof officialResource.$inferInsert)[];
+  faqs: (typeof faq.$inferInsert)[];
+  processSteps: (typeof processStep.$inferInsert)[];
+  contentBlocks: (typeof contentBlock.$inferInsert)[];
+}
+
+/** Rows newly inserted per table. A second run reports zeros. */
+export type SeedReport = Record<keyof SeedRows, number>;
+
+const CHUNK = 100;
+
+function chunks<T>(rows: readonly T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < rows.length; i += CHUNK) out.push(rows.slice(i, i + CHUNK));
+  return out;
+}
+
+export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
+  const report: SeedReport = {
+    universities: 0,
+    programmes: 0,
+    feeStructures: 0,
+    campusExperiences: 0,
+    officialResources: 0,
+    faqs: 0,
+    processSteps: 0,
+    contentBlocks: 0,
+  };
+
+  // Parents before children, so every foreign key resolves.
+  for (const batch of chunks(rows.universities)) report.universities += (await db.insert(university).values(batch).onConflictDoNothing().returning({ id: university.id })).length;
+  for (const batch of chunks(rows.programmes)) report.programmes += (await db.insert(programme).values(batch).onConflictDoNothing().returning({ id: programme.id })).length;
+  for (const batch of chunks(rows.feeStructures)) report.feeStructures += (await db.insert(feeStructure).values(batch).onConflictDoNothing().returning({ id: feeStructure.id })).length;
+  for (const batch of chunks(rows.campusExperiences)) report.campusExperiences += (await db.insert(campusExperience).values(batch).onConflictDoNothing().returning({ id: campusExperience.id })).length;
+  for (const batch of chunks(rows.officialResources)) report.officialResources += (await db.insert(officialResource).values(batch).onConflictDoNothing().returning({ id: officialResource.id })).length;
+  for (const batch of chunks(rows.faqs)) report.faqs += (await db.insert(faq).values(batch).onConflictDoNothing().returning({ id: faq.id })).length;
+  for (const batch of chunks(rows.processSteps)) report.processSteps += (await db.insert(processStep).values(batch).onConflictDoNothing().returning({ id: processStep.id })).length;
+  for (const batch of chunks(rows.contentBlocks)) report.contentBlocks += (await db.insert(contentBlock).values(batch).onConflictDoNothing().returning({ id: contentBlock.id })).length;
+
+  return report;
+}

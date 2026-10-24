@@ -5,6 +5,7 @@
 // @ts-ignore
 import { default as handler } from "../.open-next/worker.js";
 
+import { applySecurityHeaders } from "../src/lib/security-headers";
 import { handleAuthed } from "../src/server/edge/authed";
 import { authedDeps } from "../src/server/edge/authed-runtime";
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
@@ -13,42 +14,50 @@ import { serveMedia } from "../src/server/edge/media";
 import { handleSignIn } from "../src/server/edge/sign-in";
 import { getMediaStore } from "../src/server/media/runtime";
 
+/**
+ * Free-plan CPU fast path (ADR-033). Workers Free allows about 10 ms of CPU per request and the Next.js server layer
+ * alone costs several milliseconds, so the requests that must be cheapest never reach it:
+ *  - public pages and content-hashed images are answered from the Cache API (images are read from the public bucket on a miss);
+ *  - `POST /api/v1/leads` runs as a plain function;
+ *  - the two sign-in steps of ours, `/auth/start` and `/auth/return`, are plain functions (`edge/sign-in.ts`);
+ *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`).
+ * Everything else, and every page miss, goes to OpenNext unchanged.
+ */
+async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  if (request.method === "POST" && url.pathname === LEADS_PATH) return handleLeadPost(request, env);
+
+  const signIn = handleSignIn(request, env);
+  if (signIn) return signIn;
+
+  const authed = await handleAuthed(request, () =>
+    authedDeps(env, {
+      cache: (caches as unknown as { default: Cache }).default,
+      next: (shellRequest) => handler.fetch(shellRequest, env, ctx),
+      waitUntil: (task) => ctx.waitUntil(task),
+    }),
+  );
+  if (authed) return authed;
+
+  const kind = classify(request.method, url, request.headers.has("cookie"));
+  if (!kind) return handler.fetch(request, env, ctx);
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const waitUntil = (task: Promise<unknown>) => ctx.waitUntil(task);
+  const next =
+    kind === "media"
+      ? () => serveMedia({ hashParam: url.pathname.slice("/media/".length), requestUrl: request.url, cache, store: getMediaStore(env), waitUntil })
+      : () => handler.fetch(request, env, ctx);
+  return serveFastPath(request, kind, { cache, next, waitUntil });
+}
+
 export default {
   /**
-   * Free-plan CPU fast path (ADR-033). Workers Free allows about 10 ms of CPU per request and the Next.js server layer
-   * alone costs several milliseconds, so the requests that must be cheapest never reach it:
-   *  - public pages and content-hashed images are answered from the Cache API (images are read from the public bucket on a miss);
-   *  - `POST /api/v1/leads` runs as a plain function;
-   *  - the two sign-in steps of ours, `/auth/start` and `/auth/return`, are plain functions (`edge/sign-in.ts`);
-   *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`).
-   * Everything else, and every page miss, goes to OpenNext unchanged.
+   * Every response, from the fast paths and from Next.js alike, leaves with the security headers of architecture 13.1
+   * (`src/lib/security-headers.ts`). Only headers the response does not already carry are added.
    */
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    if (request.method === "POST" && url.pathname === LEADS_PATH) return handleLeadPost(request, env);
-
-    const signIn = handleSignIn(request, env);
-    if (signIn) return signIn;
-
-    const authed = await handleAuthed(request, () =>
-      authedDeps(env, {
-        cache: (caches as unknown as { default: Cache }).default,
-        next: (shellRequest) => handler.fetch(shellRequest, env, ctx),
-        waitUntil: (task) => ctx.waitUntil(task),
-      }),
-    );
-    if (authed) return authed;
-
-    const kind = classify(request.method, url, request.headers.has("cookie"));
-    if (!kind) return handler.fetch(request, env, ctx);
-
-    const cache = (caches as unknown as { default: Cache }).default;
-    const waitUntil = (task: Promise<unknown>) => ctx.waitUntil(task);
-    const next =
-      kind === "media"
-        ? () => serveMedia({ hashParam: url.pathname.slice("/media/".length), requestUrl: request.url, cache, store: getMediaStore(env), waitUntil })
-        : () => handler.fetch(request, env, ctx);
-    return serveFastPath(request, kind, { cache, next, waitUntil });
+    return applySecurityHeaders(await route(request, env, ctx));
   },
 
   /**

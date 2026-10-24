@@ -30,6 +30,8 @@
     "src/**/*.tsx",
     "worker/**/*.ts",
     "tests/**/*.ts",
+    "scripts/seed.ts",
+    "scripts/lib/**/*.ts",
     "*.ts",
     ".next/types/**/*.ts"
   ],

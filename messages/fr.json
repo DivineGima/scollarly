@@ -1,0 +1,19 @@
+{
+  "home": {
+    "title": "Scollarly",
+    "promise": "Étudiez en Inde depuis l'Afrique, avec une équipe qui répond sur WhatsApp.",
+    "phase0": "Étape 0 : preuve de faisabilité. Cette page est pré-rendue et servie depuis le cache en périphérie.",
+    "offlineLink": "Voir la page hors ligne"
+  },
+  "offline": {
+    "title": "Vous êtes hors ligne",
+    "body": "Cette page n'est pas encore enregistrée sur votre téléphone. Les pages que vous avez déjà ouvertes fonctionnent toujours. Reconnectez-vous pour voir le reste."
+  },
+  "phase0": {
+    "publishedHeading": "Contenu publié",
+    "adminHeading": "Vérification administrateur (étape 0)",
+    "meHeading": "Vérification étudiant (étape 0)",
+    "leadCount": "Demandes de test enregistrées",
+    "role": "Votre rôle"
+  }
+}
