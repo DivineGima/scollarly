@@ -217,7 +217,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 |---|---|
 | S6.1 | The standard content flow as a reusable framework: list, form, draft, publish gates, unpublish, archive, restore, conflict handling |
 | S6.2 | Content types: universities, programmes, fees, campus experiences, resources, testimonials with consent records, journeys, team, FAQs, trust stats, process steps, page copy, blog (sanitised Markdown), message templates |
-| S6.3 | Media: in-browser resize and WebP conversion, upload action to Neon Object Storage with size caps, file-signature check, SVG rejected, hash deduplication, media page with usage meter against the 3.5 GB budget, blur step and confirmation for document images |
+| S6.3 | Media: in-browser resize and WebP conversion, upload action to Neon Object Storage with size caps, file-signature check, SVG rejected, hash deduplication (an existing hash is never overwritten and no delete path exists, D17), media page with usage meter against the 3.5 GB budget, blur step and confirmation for document images |
 | S6.4 | Revalidation wired to every publish and unpublish |
 | S6.5 | Stale content report as queries on `last_updated_at` and `url_last_checked_at` (fees 180 days, tours 90 days) with "Mark checked". No scheduled flag job. |
 
@@ -305,8 +305,8 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 |---|---|
 | S10.1 | Settings page with 2FA step-up. Settings consumed everywhere (WhatsApp number, SLA hours, stale thresholds, image budget, page-view switch). |
 | S10.2 | Health page, usage checks (database size, image budget, GitHub artifact storage, Neon usage if the Stage 0 API check passed), banners at 70% |
-| S10.3 | Owner full export, the weekly encrypted `pg_dump` GitHub Actions workflow (kept 28 days; image bytes are in Neon Object Storage, not in the dump). Whether to keep a monthly bucket copy is the owner's open flag F12. Repository secrets, not environment secrets. First confirm the GitHub Free artifact quota in GitHub's own documentation and record it in the tracker. |
-| S10.4 | Written recovery procedures in the repo: owner locked out of 2FA, restoring from a dump |
+| S10.3 | Owner full export, the weekly encrypted `pg_dump` GitHub Actions workflow (kept 28 days; image bytes are in Neon Object Storage, not in the dump). The monthly images-only artifact is dropped (D17). Instead `scripts/backup-images.mjs` lets the owner copy missing images from the public bucket to their own disk, checked by sha256 against the `media_asset` manifest (no credential, no GitHub storage). Repository secrets, not environment secrets. First confirm the GitHub Free artifact quota in GitHub's own documentation and record it in the tracker. |
+| S10.4 | Written recovery procedures in the repo: owner locked out of 2FA, restoring from a dump, restoring missing or corrupt images from the owner's copy |
 
 **Exit criteria**
 - Changing the WhatsApp number in Settings updates every WhatsApp link without a deploy.
@@ -371,7 +371,7 @@ Edited in place by the owner's instruction (D13: edit the existing documents, no
 Edited in place by the owner's instruction (D13). Version stays 1. Cause: the owner asked to move authentication, authorisation and images onto Neon after an engineering review.
 
 - Neon Auth replaces self-hosted Better Auth (S0.4, S2.1 to S2.5). Owner 2FA is our own code on the otpauth library. Resend and all email are removed (S2.1, S2.5, S11.6).
-- Images move to a Neon Object Storage bucket (S0.5, S3.3, S6.3, S10.3, S11.4). Backup of the bucket is the open flag F12. R2 was dropped (D16) because its checkout asked for a payment method.
+- Images move to a Neon Object Storage bucket (S0.5, S3.3, S6.3, S10.3, S11.4). Image backup is decided (D17). R2 was dropped (D16) because its checkout asked for a payment method.
 - Row level security with a non-owner runtime role is added (S1.1, S2.4, Stage 2 exit criteria).
 - S0.10 is extended with the proofs for all of this and lists the owner prerequisites. The module count stays 68.
 - Fixed a mistake from the 2026-10-23 amendment: the S0.9 row had been lost and a stray `$1` was left in front of S0.10. Both are restored.
@@ -379,3 +379,7 @@ Edited in place by the owner's instruction (D13). Version stays 1. Cause: the ow
 ## Amendment (images in Neon Object Storage, 2026-10-24, decision D16)
 
 R2 is replaced by Neon Object Storage in S0.5, S0.10, S3.3, S6.3, S10.3, S11.4 and S11.6. No other module changes.
+
+## Amendment (image backup, 2026-10-24, decision D17)
+
+S6.3 gains the immutability rule, S10.3 swaps the monthly images artifact for the owner-run copy script, S10.4 gains an image-restore procedure. No module is added.
