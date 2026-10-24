@@ -13,12 +13,16 @@ describe("classify: only public, cookie-free GETs are eligible", () => {
     expect(classify("GET", url("/sign-in?error=failed"), false)).toBe("page");
     expect(classify("GET", url("/sign-out"), false)).toBe("page");
     expect(classify("GET", url("/sign-in"), true)).toBeNull(); // a signed-in visitor is not served from the shared cache
+    // Stage 3: every public page, and the slug pages of universities and posts.
+    for (const path of ["/universities", "/fees", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/universities/jain-university", "/blog/how-to-apply-2026"]) {
+      expect(classify("GET", url(path), false), path).toBe("page");
+    }
     expect(classify("GET", url(`/media/${SHA}.webp`), false)).toBe("media");
     expect(classify("GET", url(`/media/${SHA}`), true)).toBe("media");
   });
 
   it("never touches private areas, the API, build assets or unknown paths", () => {
-    for (const path of ["/admin", "/admin/phase0", "/me", "/me/phase0", "/api/v1/health", "/api/auth/session", "/_next/static/x.js", "/two-factor/enrol", "/accept-invite/abc", "/auth/landing", "/universities", "/media/short.webp", `/media/${SHA}.png`, `/media/${SHA}/x`]) {
+    for (const path of ["/admin", "/admin/phase0", "/me", "/me/phase0", "/api/v1/health", "/api/auth/session", "/_next/static/x.js", "/two-factor/enrol", "/accept-invite/abc", "/auth/landing", "/universities/", "/universities/Bad_Slug", "/universities/a/b", "/blog/", "/apply/x", "/media/short.webp", `/media/${SHA}.png`, `/media/${SHA}/x`]) {
       expect(classify("GET", url(path), false), path).toBeNull();
     }
   });

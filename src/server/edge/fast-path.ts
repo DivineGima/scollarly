@@ -13,7 +13,32 @@
 export type FastPathKind = "page" | "media";
 
 /** Public pages that are prerendered and identical for every visitor. Extend as public pages are added. */
-export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set(["/", "/offline", "/phase0/published", "/sign-in", "/sign-out"]);
+export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set([
+  "/",
+  "/universities",
+  "/fees",
+  "/campus-tours",
+  "/process",
+  "/visa",
+  "/faq",
+  "/about",
+  "/blog",
+  "/contact",
+  "/apply",
+  "/privacy",
+  "/terms",
+  "/offline",
+  "/phase0/published",
+  "/sign-in",
+  "/sign-out",
+]);
+
+/** Pages whose last segment is a slug the content team chose (a university or a post). A slug page that does not exist answers 404, which is never stored. */
+const SLUG_PAGE = /^\/(universities|blog)\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isPublicPagePath(pathname: string): boolean {
+  return PUBLIC_PAGE_PATHS.has(pathname) || SLUG_PAGE.test(pathname);
+}
 
 const MEDIA_PATH = /^\/media\/([a-f0-9]{64})(?:\.webp)?$/;
 
@@ -23,7 +48,7 @@ export const PAGE_EDGE_TTL_SECONDS = 30;
 export function classify(method: string, url: URL, hasCookieHeader: boolean): FastPathKind | null {
   if (method !== "GET") return null;
   if (MEDIA_PATH.test(url.pathname)) return "media"; // immutable by content hash, so cookies are irrelevant
-  if (PUBLIC_PAGE_PATHS.has(url.pathname) && !hasCookieHeader) return "page";
+  if (isPublicPagePath(url.pathname) && !hasCookieHeader) return "page";
   return null;
 }
 
