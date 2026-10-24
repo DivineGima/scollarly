@@ -22,7 +22,8 @@ describe("security headers (architecture 13.1)", () => {
     expect(directives["connect-src"]).toEqual(["'self'"]);
     expect(directives["img-src"]).toEqual(["'self'", "data:"]);
     expect(directives["frame-src"]).toEqual(expect.arrayContaining(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com"]));
-    expect(directives["frame-ancestors"]).toEqual(["'none'"]);
+    // frame-ancestors is enforced by its own header, because browsers ignore it in a report-only policy.
+    expect(directives["frame-ancestors"]).toBeUndefined();
     expect(directives["object-src"]).toEqual(["'none'"]);
     // No third-party script origin other than Turnstile (CLAUDE.md: no third-party scripts).
     expect(directives["script-src"]?.filter((s) => s.startsWith("https://"))).toEqual(["https://challenges.cloudflare.com"]);

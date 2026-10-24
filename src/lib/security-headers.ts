@@ -20,7 +20,7 @@ export const CSP_REPORT_ONLY = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "frame-ancestors 'none'",
+  // No frame-ancestors here: browsers ignore it in a report-only policy (and log a warning). It is enforced below.
 ].join("; ");
 
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
