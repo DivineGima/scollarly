@@ -1,6 +1,6 @@
 # Essentials 1: Scollarly v2 full build (MVP for PRD_1)
 
-*Amended pre-build on 2026-10-23 by the owner after the engineering review. See the Amendment log at the end. Version stays 1.*
+*Amended pre-build on 2026-10-23 by the owner after the engineering review, and again on 2026-10-23 after the Stage 0 measurements (owner decisions D13 and D14). See the Amendment logs at the end. Version stays 1.*
 
 ## Aim & Outcome
 
@@ -46,24 +46,25 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 
 ### Stage 0: Proof of fit (hard gate)
 
-**Goal:** prove the stack fits Cloudflare Workers Free before anything else is built. Architecture section 17 defines the gates and thresholds.
+**Goal:** prove the stack fits Cloudflare Workers Free before anything else is built. Architecture section 17 defines the gates and thresholds. **Status (2026-10-23): the first slice was deployed and measured and several CPU gates failed (password sign-in, lead POST, image serving). The owner chose to redesign for the free plan (D14). Stage 0 stays open until Module S0.10 passes.**
 
 | ID | Module |
 |---|---|
-| S0.1 | Repo skeleton in the final structure (section 5): pinned Next.js version, OpenNext, Wrangler config, Drizzle config, strict TypeScript, lint, minimal CI, `CLAUDE.md` in place. **First probe:** do the Cache API and cache purge work on the `workers.dev` hostname? Record the answer in the tracker. If they are no-ops, stop and tell the owner that H7 (domain on Cloudflare) is blocking before S0.2, S0.5 and S0.6. |
+| S0.1 | Repo skeleton in the final structure (section 5): pinned Next.js version, OpenNext, Wrangler config, Drizzle config, strict TypeScript, lint, minimal CI, `CLAUDE.md` in place. **First probe:** do the Cache API and cache purge work on the `workers.dev` hostname? Record the answer in the tracker. If they are no-ops, stop and tell the owner that H7 (domain on Cloudflare) is blocking before S0.2, S0.5 and S0.6. **Result 2026-10-23: they work on `workers.dev`, so H7 does not block the cache gates.** |
 | S0.2 | A prerendered public page with Lighthouse CI |
 | S0.3 | Neon through the serverless driver: one HTTP query, one WebSocket transaction, cold-start measurement. A stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert) so the lead POST CPU gate can be measured. A non-gating probe of whether Neon's API can report CU-hours (info row in the tracker). |
-| S0.4 | Better Auth behind the auth facade: Google, email and password with a verification email, password hash CPU measured for three variants in one run (Better Auth default, PBKDF2 through WebCrypto, and a passwordless Google plus email-link path), cookie cache, TOTP 2FA with recovery codes, the 10-minute step-up check, role field, and the partial unique owner index. A stub authenticated admin page (session read, one Neon query, render) measured on the fresh session lookup path used for staff and on the cookie-cache path used for students. |
+| S0.4 | Better Auth behind the auth facade: Google sign-in only (no passwords), cookie cache for students, TOTP 2FA with recovery codes, the 10-minute step-up check, role field, and the partial unique owner index. A stub authenticated admin page (session read, one Neon query, render) measured on the fresh session lookup path used for staff and on the cookie-cache path used for students. *The first slice also measured email-and-password sign-in with three hash variants (Better Auth default, PBKDF2, magic link); all failed the CPU gate (architecture section 17), and that work is kept only as evidence.* |
 | S0.5 | One 300 KB WebP stored in `media_blob` and served from `/media/[hash]` through the Cache API, with `bytea` read cost measured |
 | S0.6 | Tag revalidation: a publish updates a public page without a deploy. Name the OpenNext incremental cache and tag-cache bindings used (the read-only static-assets cache cannot revalidate; KV is discouraged) and record whether any of them needs a payment method. If one does, stop and ask the owner (G6). |
 | S0.7 | One Cron Trigger run, one Durable Object counter, one Durable Object rate limiter |
 | S0.8 | Serwist offline page with a pinned compatible Next.js, bundler and Serwist combination, tested with Playwright offline mode |
-| S0.9 | Measurement report recorded in the tracker, one row per gate in architecture section 17 |
+$1| S0.10 | **Free-plan proof (added 2026-10-23, D14).** Build and measure the lean design on the deployed Worker: (a) the edge fast path in the Worker entry for public pages and images (ADR-033); (b) the one-query session check in the auth facade, with Better Auth used only for sign-in, sign-out and two-factor routes (ADR-034); (c) a session-issuing path with no password hashing (the magic-link probe stands in for the Google callback), reusing one Better Auth instance as the real app does; (d) the lead POST thinned until it meets its gate; (e) an image cache miss and a hit; (f) the stub admin and student pages with a real session. Measure each with at least 50 requests and record warm p50 and p95, the worst request, and how many were cut at the limit. If a gate still fails after reasonable thinning, stop and bring the owner the measured value and the remaining options (paid plan, object storage for images, or another design). |
 
 **Exit criteria**
-- Every gate in architecture section 17 has a recorded measured result.
+- Every gate in architecture section 17 has a recorded measured result. The first slice's results are recorded; Module S0.10 supplies the results for the redesigned gates.
+- All Module S0.10 gates pass with no request cut at the CPU limit. Otherwise the decision returns to the owner.
 - If any gate fails, stop. Report the failing gate, the measured value, and the options for that gate from architecture section 17 (for example lighter hash, passwordless path, paid plan, fallback in ADR-003; an admin Worker split reduces size only, not CPU per request). The owner decides. Do not continue to Stage 1.
-- The owner confirms the commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans (a human action; record the answer in the tracker).
+- The owner confirms the commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans (a human action; record the answer in the tracker). Confirmed by the owner on 2026-10-23.
 
 ---
 
@@ -101,25 +102,26 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 
 | ID | Module |
 |---|---|
-| S2.1 | Production Better Auth configuration behind the facade. Email templates for verification, reset and invite (Resend adapter). |
-| S2.2 | Pages: sign-up, sign-in, verify email, forgot and reset password (A9, A10), with Turnstile on sign-up, forgot-password and resend, the per-address limit of 3 a day, and the student email cap of 60 a day (40 of the 100 daily emails stay reserved for owner and admin mail) |
-| S2.3 | Owner bootstrap from `OWNER_EMAIL`, 2FA enrol and verify, recovery codes, 10-minute step-up (C0, C1, 9.3) |
-| S2.4 | `Actor` issuance and role guards. An owner session without 2FA verification has no admin or owner powers. Admin and owner requests and every Server Action do a fresh session lookup; only student `/me` reads use a cookie cache of at most 60 seconds (ADR-020). |
-| S2.5 | Admin invites, accept-invite page, Team page with invite, resend, revoke and remove (B0, C2, 9.4) |
+| S2.1 | Production Better Auth configuration behind the facade: Google sign-in only, with the one-query session check for page reads (ADR-032, ADR-034). The Resend adapter and an invite email template are built only if the owner chooses to email invites. |
+| S2.2 | Pages: sign-in with Google and sign-out (A9, A10). There is no sign-up form and no verify, forgot or reset page. A line for students without a Google account (lead intake and WhatsApp still work). **Check early whether Google accepts a `workers.dev` redirect address** (tracker H8, F10). |
+| S2.3 | Owner bootstrap from `OWNER_EMAIL` on the first Google sign-in with that verified email, 2FA enrol and verify (TOTP must work for an account that has no password), recovery codes, 10-minute step-up (C0, C1, 9.3) |
+| S2.4 | `Actor` issuance and role guards. An owner session without 2FA verification has no admin or owner powers. Admin and owner requests and every Server Action do a fresh session lookup, done by the facade with one query; only student `/me` reads use a cookie cache of at most 60 seconds (ADR-020, ADR-034). |
+| S2.5 | Admin invites (a copyable link; emailing it is optional), accept-invite page, Team page with invite, resend, revoke and remove (B0, C2, 9.4) |
 | S2.6 | Admin shell: role-based menu, shadcn/ui isolated to admin routes, offline banner, My profile page (B11), Security page (C6) |
 | S2.7 | Audit log writer and Audit page (C5) |
 
 **Exit criteria**
 - Playwright flows A9, A10, B0, C0, C1, C2 pass.
 - Authorisation matrix passes for every action implemented so far.
-- A test proves an unverified email cannot be linked to a Google account (pre-hijack).
+- A test proves a session is issued only for an email Google reports as verified, and that no password account can be created.
 - A test proves a second owner cannot exist and the owner cannot be demoted.
 - A test proves a removed admin loses access immediately and their leads return to the unassigned pool.
 - No middleware performs access control (grep check in CI).
 - A removed admin is refused on their very next request, including a Server Action sent with the old cookie (no cached session).
 - An owner session that has not passed 2FA has no admin or owner powers (test). The 10-minute step-up expires and re-prompts (test).
 - An invite used with a different email, or after expiry or revocation, is refused (test).
-- Sign-up, forgot-password and resend: a Turnstile failure is refused, the fourth request for one address in a day is refused, the student cap of 60 stops student-originated emails, and an owner invite still sends after the cap is reached (tests).
+- Sign-in CPU: the real Google callback is run once with the Worker log open and its CPU time is recorded in the tracker. No request is cut at the limit over 50 session-issuing requests (see S0.10).
+- Whether Google accepts the `workers.dev` redirect address is recorded. If it does not, the owner is told (the domain, tracker F10).
 
 ---
 
@@ -131,9 +133,9 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 
 | ID | Module |
 |---|---|
-| S3.1 | Content read layer and prerender with tag revalidation |
+| S3.1 | Content read layer and prerender with tag revalidation, and the edge fast path for public pages (ADR-033) |
 | S3.2 | Pages: home, universities, university detail, fees, campus tours, process, visa, FAQ, about, blog and post, contact, privacy, terms, offline (A1 to A8). All strings through translation keys. |
-| S3.3 | Fee gating (FR-2), thumbnail-first video and tour facade (FR-3), YouTube ID validation, `/media/[hash]` delivery handler |
+| S3.3 | Fee gating (FR-2), thumbnail-first video and tour facade (FR-3), YouTube ID validation, `/media/[hash]` delivery handler and its edge fast path (ADR-033) |
 | S3.4 | Trust components: stats, testimonials, journeys, team, rendered only when confirmed, verified and consented |
 | S3.5 | Performance pass: first load under 200 KB excluding lazy images, public JavaScript within the 100 KB gzip budget, no splash, reduced-motion support |
 
@@ -158,7 +160,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S4.1 | Serwist service worker, manifest, install prompt, never-cache rules for admin, student, auth and API routes |
 | S4.2 | IndexedDB queue and sync engine: backoff, Web Locks, 30-day expiry, delete on success, "Remove from this phone" |
 | S4.3 | Full apply form (A5) and the quick WhatsApp form (A5b, ADR-030), lazy Turnstile, and the send-first order: online, wait up to 4 seconds for the server before opening WhatsApp; offline or slow, queue and open WhatsApp; a visible "Open WhatsApp" button if the browser blocks the jump (ADR-031) |
-| S4.4 | `POST /api/v1/leads`: idempotency, payload hash, Turnstile verification, layered rate limiting (Durable Object limiter, per-number database limit of 5 per 24 hours), phone normalisation, `received_at` and SLA target, reference collision handling |
+$1. The handler stays thin enough for its 8 ms CPU gate, checked against the deployed endpoint (S0.10)$2
 | S4.5 | WhatsApp tap events and `POST /api/v1/events` (collector or the ADR-003 fallback decided in Stage 0). Anonymous events are counts only; a `wa_tap` with a lead ref is stored, at most 10 per ref per day. |
 | S4.6 | Contact page and every WhatsApp button reading the number from `site_setting` |
 
@@ -323,7 +325,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S11.3 | Accessibility, 375 px layout, reduced motion, and Lighthouse on every public route |
 | S11.4 | Free-quota review: Worker size, CPU, request estimates, Neon storage and CU-hours, Resend daily cap |
 | S11.5 | Traceability table in the tracker: each of FR-1 to FR-18 mapped to at least one passing test |
-| S11.6 | Pre-launch checklist with the owner (PRD 12.2): confirmed WhatsApp and contact numbers, confirmed trust content only, legal review status for minors and data protection recorded, mailbox, Resend DNS, Cloudflare DNS, Google OAuth, vendor terms |
+| S11.6 | Pre-launch checklist with the owner (PRD 12.2): confirmed WhatsApp and contact numbers, confirmed trust content only, legal review status for minors and data protection recorded, mailbox and Resend DNS (only if invite emails are used), Cloudflare DNS, Google OAuth, vendor terms |
 | S11.7 | Production deploy, owner bootstrap, smoke test of every role |
 | S11.8 | Hourly uptime check: a scheduled GitHub Actions workflow calls `/api/v1/health` and fails, so GitHub notifies the owner, when the response is not 200. It checks the Worker, not Neon. |
 
@@ -350,3 +352,12 @@ Edited in place by the owner's instruction after the engineering review. Version
 - S9.1, S9.2 and Stage 9 exit: `submission_token`, CSV formula prefix.
 - S10.2, S10.3 and Stage 10 exit: backup contents and retention, artifact quota.
 - S11.8 added: hourly uptime check.
+
+## Amendment log (after the Stage 0 measurements, 2026-10-23)
+
+Edited in place by the owner's instruction (D13: edit the existing documents, no new versions). Version stays 1. Cause: the Stage 0 slice was measured on Workers Free and failed the CPU gates; the owner chose to redesign for the free plan (D14).
+
+- Stage 0 gains Module S0.10 (free-plan proof) and a new exit criterion. S0.1 records the Cache API result; S0.4 drops password sign-in.
+- Stage 2: Google sign-in only. S2.1, S2.2, S2.3, S2.4, S2.5 changed; the exit criteria for pre-hijack, sign-up and email caps are replaced by a Google-verified-email test, a sign-in CPU check and a record of whether Google accepts a `workers.dev` redirect address.
+- Stage 3: S3.1 and S3.3 use the edge fast path. Stage 4: S4.4 carries a CPU check. Stage 11: S11.6 treats Resend and the mailbox as optional.
+- The module count in the tracker registry goes from 67 to 68 (S0.10).

@@ -9,10 +9,10 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended pre-build 2026-10-23) |
 | Current architecture | `system_architecture_1.md` (amended pre-build 2026-10-23) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended pre-build 2026-10-23) |
-| Phase | Stage 0 (proof of fit) is measured and **several gates FAIL**. By the build contract Claude Code stops here and the owner decides. Stage 1 has not started and must not start until the owner decides (flag F11). |
-| Next stage | Stage 0: Proof of fit (hard gate) |
-| Blocked by | **Owner decision F11**: the Workers Free CPU limit (about 10 ms per request) is exceeded by sign-in (every hash variant tested), the lead POST and image serving, and the public page is above its 5 ms target. Options are in flag F11. The domain lock (F10) is no longer blocking Stage 0, because the Cache API works on `workers.dev`. |
-| Gate before Stage 2 | The owner must decide how email works before Stage 2 starts (see F10 and the Version 2 backlog). Stage 2 modules S2.1 and S2.2 as written need a verified Resend sending domain, which does not exist while the domain is locked. Either the domain is verified, or the documents are amended to version 2 first. Do not start Stage 2 on the current documents otherwise. |
+| Phase | Stage 0 (proof of fit) is open. The first slice was measured and failed the CPU gates; the owner chose to redesign for the free plan (D14) and had the documents edited in place (D13). The PRD, architecture and essentials are amended and still version 1. The redesign is not yet proven: Module S0.10 builds and measures it on the deployed Worker. Stage 1 has not started and must not start until S0.10 passes. |
+| Next stage | Stage 0: Proof of fit (hard gate), now Module S0.10 (free-plan proof) |
+| Blocked by | Nothing from the owner for S0.10: the deployed Worker, the Neon database and the secrets already exist. Owner items that matter later: Google OAuth credentials before Stage 2 (H8), and the domain before launch (F10). If S0.10 fails a gate, the decision returns to the owner. |
+| Gate before Stage 2 | **Resolved by D14**: sign-in is Google only, so Stage 2 no longer needs a verified Resend sending domain. One check remains inside S2.2: whether Google accepts a `workers.dev` redirect address (H8). |
 
 ## Session log
 
@@ -183,6 +183,30 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Stage 0 conclusion:** the stack builds, deploys and runs on Workers Free, and caching, revalidation, the database and Durable Objects work. **The CPU limit is the problem.** Authentication cannot run on the free plan as designed, and the lead POST and image serving also exceed their gates. This is the risk architecture section 1 named ("the 8 ms admin page gate is the likeliest to fail"). The contract says stop and report; the owner decides.
 
+### 2026-10-23: Session 7 (owner decisions D13 and D14: edit in place, and redesign for the free plan)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`. All three were amended in place and stay at version 1. The `Source PRD`, `Source Architecture Version` and `Derived From` lines are unchanged, and all three N values are 1.
+
+**Owner decisions**
+
+| ID | Decision | Result |
+|---|---|---|
+| D13 | How to change the documents after Stage 0 started | **Edit the existing PRD, architecture, essentials and tracker in place. Do not create version 2.** Each document gets an amendment log. This sets aside the architecture's rule that a change after the first stage starts creates a new version (recorded as ADR-035), exactly as D2 did before the build. It replaces the "Version 2 backlog" idea from Session 5. |
+| D14 | How to respond to the failed CPU gates (F11) | **Option 2: redesign for the Workers Free plan.** No paid plan. Google sign-in only; edge fast path for public pages and images; one-query session check; thin handlers; images stay in Neon for now. |
+
+**What the design now says** (details in each document's amendment log)
+
+- **Google sign-in only, no passwords** (ADR-032). No verification, reset or resend emails. Email is optional in v1 and used only for admin invites, which can be copied and sent by WhatsApp. The Resend domain, the mailbox and the student email cap are no longer launch requirements.
+- **Edge fast path** (ADR-033): the Worker entry answers public pages and content-hashed images from the Cache API before Next.js starts. Pages live 30 seconds, so a publish shows within about 30 seconds everywhere.
+- **One-query session check** in the auth facade for page reads (ADR-034). Better Auth runs only for sign-in, sign-out and two-factor routes. The facade interface, the `Actor` type and the rule that only `server/auth` imports Better Auth do not change.
+- **Module S0.10** is added to Stage 0 to prove this on the deployed Worker, with the same thresholds. If a gate still fails, the decision returns to the owner.
+- **Images:** the option 2 description mentioned object storage. Object storage (R2) needs a dashboard step and may need a payment method, so it was **not** adopted. Images stay in Neon (ADR-011) behind the `MediaStore` interface and are served from the edge; R2 is the named fallback if an image's first request proves too costly, and that is the owner's decision.
+- **New trade-off for the owner to accept:** a student without a Google account cannot sign in to track progress (lead intake and WhatsApp still work). Recorded in the PRD risks and ADR-032.
+
+**Still unproven:** the redesign itself (S0.10), Google accepting a `workers.dev` redirect address (Stage 2, S2.2), and the cost of an image's first request.
+
+**Spike code:** a first draft of the edge fast path and a reused-instance probe exists on a local branch (`spike/lean-free-plan`, not pushed, not reviewed). It becomes the S0.10 work when the owner asks to proceed.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -196,8 +220,8 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F7 | The proposed public JavaScript budget (100 KB gzip) is already exceeded by the Next.js baseline (about 104 kB). | See Session 3, finding 5. Affects the Lighthouse gate and S3.5. | **Open.** Owner chooses: raise the budget, or accept a lower Lighthouse score target. |
 | F8 | Architecture 13.8 and `CLAUDE.md` say `main` is protected by a branch protection rule. GitHub refuses to enable it on a private repository on the free plan (HTTP 403, "Upgrade to GitHub Pro or make this repository public"). | Today only discipline stops a push to `main`. Rulesets are also limited on free private repositories. | **Open.** Owner chooses: make the repository public, upgrade to GitHub Pro, or accept discipline-only protection and record it as an accepted risk. |
 | F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not enabled. | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 only if needed. |
-| F10 | `scollarly.co.in` is locked at GoDaddy until .IN KYC is accepted. The owner is an international student without Aadhaar, so DigiLocker is not available. Nameservers and DNS records cannot be changed. | Blocks moving the domain to Cloudflare (H7), a custom domain for the Worker, and the Resend sending domain (H6). The domain still resolves today; a registry server hold would take it offline. | **Open.** Owner action: ask GoDaddy support and email `support@nixi.in` for the foreign-national passport route (message drafted in the conversation). Not marked done by Claude Code. Decision D12: build on `workers.dev` meanwhile. See the Version 2 backlog. |
-| F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Open. The owner decides before any Stage 1 work.** Options, from architecture 17 and what was measured: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
+| F10 | `scollarly.co.in` is locked at GoDaddy until .IN KYC is accepted. The owner is an international student without Aadhaar, so DigiLocker is not available. Nameservers and DNS records cannot be changed. | Blocks moving the domain to Cloudflare (H7), a custom domain for the Worker, and the Resend sending domain (H6). The domain still resolves today; a registry server hold would take it offline. | **Open.** Owner action: ask GoDaddy support and email `support@nixi.in` for the foreign-national passport route (message drafted in the conversation). Not marked done by Claude Code. Decision D12: build on `workers.dev` meanwhile. No longer blocks Stage 0 or the cache gates (the Cache API works on `workers.dev`); it blocks launch only. See the list of applied amendments below. |
+| F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Decided 2026-10-23 (owner): option (b), redesign for the free plan (D14), documents edited in place (D13). Stage 0 stays open until Module S0.10 proves the redesign; if it fails, the decision returns to the owner.** The original options, for the record: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
 
 ## Stage status
 
@@ -205,7 +229,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 
 | Stage | Name | Module IDs | Status |
 |---|---|---|---|
-| 0 | Proof of fit (hard gate) | S0.1 to S0.9 | in-progress |
+| 0 | Proof of fit (hard gate) | S0.1 to S0.10 | in-progress |
 | 1 | Foundation | S1.1 to S1.7 | — |
 | 2 | Authentication, roles, admin shell | S2.1 to S2.7 | — |
 | 3 | Public site | S3.1 to S3.5 | — |
@@ -218,7 +242,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 10 | Owner pages and operations | S10.1 to S10.4 | — |
 | 11 | Hardening and launch readiness | S11.1 to S11.8 | — |
 
-## Module registry (67 modules, status per module ID)
+## Module registry (68 modules, status per module ID)
 
 Update the status column (`in-progress` or `complete`) at the end of each stage. A dash means no entry yet.
 
@@ -233,6 +257,7 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S0.7 | Cron, Durable Object counter and limiter | in-progress |
 | S0.8 | Serwist offline page | in-progress |
 | S0.9 | Measurement report | in-progress |
+| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress |
 | S1.1 | Migrations, constraints, indexes, seeds | — |
 | S1.2 | Repository layer, `Actor`, auth facade interface | — |
 | S1.3 | Shared libraries | — |
@@ -292,7 +317,9 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S11.7 | Production deploy and smoke test | — |
 | S11.8 | Hourly uptime check | — |
 
-## Stage 0 measurement report (module S0.9)
+## Stage 0 measurement report (module S0.9): first slice
+
+The table below is the record of the first slice. Its failed CPU rows are the reason for decision D14. The redesigned gates are in the next section.
 
 One row per gate in architecture section 17. Any failed gate stops the build and goes to the owner with the measured value and the options from section 17.
 
@@ -314,6 +341,21 @@ One row per gate in architecture section 17. Any failed gate stops the build and
 | Terms check | Owner confirms commercial-use terms for Cloudflare, Neon, Resend and Turnstile free plans | Owner: "i checked all ok" (2026-10-23) | Done per the owner |
 | Info only (non-gating): Neon API CU-hours | Can Neon's API report CU-hours to a cron job? | | Not measured |
 
+## Module S0.10 gates (free-plan proof, redesigned)
+
+Same thresholds as architecture section 17, measured as warm p95 over at least 50 requests on the deployed Worker, with no request cut at the CPU limit. Not yet measured.
+
+| Gate | Pass when | Measured | Result |
+|---|---|---|---|
+| Public page through the edge fast path | At most 5 ms | | Not measured |
+| Image cache hit through the edge fast path | At most 8 ms, no database access | | Not measured |
+| Image cache miss (first request per image per region) | Recorded; must not be cut at the limit, or the owner decides on object storage | | Not measured |
+| Session-issuing path with no hashing (stands in for the Google callback) | At most 10 ms, reusing one Better Auth instance | | Not measured |
+| Staff page with the one-query session check | At most 8 ms | | Not measured |
+| Student page, cookie-cache path | Recorded | | Not measured |
+| Lead POST, thinned | At most 8 ms | | Not measured |
+| Real Google callback on `workers.dev` | Works, and its CPU is recorded (Stage 2, S2.2) | | Not measured |
+
 ## Owner actions (human, never marked done by Claude Code)
 
 Recorded only when the owner says so. Source: PRD section 12.2 and essentials Stage 0, S1.7 and S11.6.
@@ -325,25 +367,25 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H3 | Q2: confirm the Scollarly WhatsApp number (+237 651 232 301 today) and the contact number shown on the site (+91 98157 25968 today) | Launch | Open |
 | H4 | Q3: supply real figures for students helped and admitted, confirm the 5 testimonials are real and consented, confirm team bios. Anything unconfirmed is not published. | Launch | Open |
 | H5 | Q6: legal check on consent for 17-year-old applicants and data protection in the student countries | Launch | Open |
-| H6 | Create a mailbox on scollarly.co.in and verify mail.scollarly.co.in in Resend (DNS records) | Launch, and before Stage 2 (see the gate in Current position) | Open. Blocked by F10 |
+| H6 | Create a mailbox on scollarly.co.in and verify mail.scollarly.co.in in Resend (DNS records) | **Optional in v1** (D14): only if invite emails are used. Not needed for launch | Open, optional. Blocked by F10 |
 | H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 (no longer blocking the cache gates: the Cache API works on `workers.dev`) |
-| H8 | Create Google OAuth credentials for scollarly.co.in | Stage 2 testing and launch | Open |
-| H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 150 MB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, student email cap 60 a day with 40 reserved, 3 per address, 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
+| H8 | Create Google OAuth credentials. Sign-in is Google only, so they are needed before Stage 2 testing. Ask Google whether a `workers.dev` redirect address is accepted | Before Stage 2 testing, and at launch | Open |
+| H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 150 MB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, (the student email cap of 60 a day, 40 reserved and 3 per address was removed by D14), 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
 
-## Version 2 backlog (to-do for PRD_2, system_architecture_2, essentials_2)
+## Amendments applied in place (decision D13) and what remains
 
-Added 2026-10-23 at the owner's request (decision D12). After Stage 0 started, the architecture says any change creates a new version, preceded by a PRD bump with the same number, so these items are done together as N = 2. Nothing below is changed yet. When the version 2 documents are written, each changelog must carry the **Downstream Impact** field that `CLAUDE.md` steps 4 and 6 check (`NO_IMPACT` or `IMPACT`); the email and domain items are `IMPACT` for Stage 2 and Stage 11.
+This section replaces the "Version 2 backlog" written in Session 5. No version 2 exists. Each item records where it was applied.
 
-| # | To-do | Documents and modules touched | Depends on |
-|---|---|---|---|
-| V2-1 | **Settle the production domain.** Either record that `scollarly.co.in` is verified and usable, or replace it with a domain the owner controls (candidates seen unregistered on 2026-10-23: `scollarly.com`, `scollarly.org`; recheck and confirm price at a registrar). Update every place that names the domain. | PRD section 4 ("scollarly.co.in is the only domain"), section 12.2 items 4 to 6; architecture 1, 13.7 and 20; essentials S2.1, S2.2, S11.6, S11.7; H6, H7, H8 | F10: GoDaddy and NIXI outcome |
-| V2-2 | **Decide how email works without a verified sending domain**, if the domain is still locked when Stage 2 is due. A possible interim design (owner decision, not yet taken): Google sign-in only for students, admin invites as copyable links sent over WhatsApp, Resend used only for the owner's own address. This would amend F5, FR-7, FR-8, ADR-015 and ADR-027 (the student email cap) and the A9, A10 and B0 page flows. Email and password sign-in and password reset return once a domain is verified. | PRD F5, section 10 (email abuse); architecture 9, 13.1, 16 (A9, A10, B0), ADR-027; essentials S2.1, S2.2, S2.5 | V2-1 |
-| V2-3 | **Record the hosting URL decision.** Stage 0 and early stages run on `<worker>.workers.dev`. Record the Cache API probe result there, which fallback from architecture 17 was used (edge cache with `s-maxage` needs the custom domain), and that a real domain is required before launch. | Architecture 6.1, 17, ADR-002; essentials S0.1, S0.6, S11.7 | S0.1 probe result |
-| V2-4 | **Re-check Google OAuth on `workers.dev`.** Whether Google accepts a `workers.dev` redirect URI for the consent screen is not verified here. Test it in Stage 2; if refused, it is a second reason to settle V2-1 first. | Architecture 9; H8 | Stage 2 |
-| V2-6 | **Refresh the vendor limits the architecture quoted.** Neon Free now says 1 GB per project (the architecture said 0.5 GB); Resend Free allows 3 domains (architecture: 1) with 30-day retention; Workers KV Free allows only 1,000 writes a day. None blocks anything; update the figures and the capacity estimates in section 3. | Architecture 1 and 3 | none |
-| V2-5 | **Fold in the other open flags if the owner agrees:** F5 (physical-delete carve-outs in `CLAUDE.md`), F6 (`server/db` may import Drizzle), F7 (public JavaScript budget), F8 (branch protection on a private free repository). | `CLAUDE.md`, architecture 5, 6.3, 13.8, ADR-014, ADR-029 | Owner answers |
+| # | Item | Status |
+|---|---|---|
+| V2-1 | Settle the production domain | **Remains, for launch only.** The PRD (section 4 and 12.2) now says the build runs on `workers.dev` until the .IN verification is done (D12). Blocked by F10. If the domain cannot be verified, switching domains is a new owner decision. |
+| V2-2 | Decide how email works without a verified sending domain | **Applied (D14).** Google sign-in only, invites by copyable link, Resend optional. PRD sections 4, 6 (F5), 10, 11 and 12.2; architecture ADR-032, sections 9, 13.1, 16; essentials S2.1 to S2.5. |
+| V2-3 | Record the hosting URL decision | **Applied.** PRD section 4; architecture sections 1 and 6.1; the Cache API result is recorded in essentials S0.1. |
+| V2-4 | Re-check Google OAuth on `workers.dev` | **Remains.** Now an explicit Stage 2 check in S2.2 and its exit criteria. |
+| V2-5 | Fold in the other open flags (F5 delete carve-outs in `CLAUDE.md`, F6 `server/db` Drizzle import, F7 JavaScript budget, F8 branch protection) | **Remains.** Waiting for the owner's answers. F7 matters more now that Next.js is bypassed for cached pages. |
+| V2-6 | Refresh vendor limits the architecture quoted | **Applied** in architecture section 1 (Neon plans page says 1 GB per project; capacity estimates stay on the safer 0.5 GB; KV, D1 and the Durable Object queue need no payment method). |
 
 ## Project understanding (for future sessions)
 
@@ -355,6 +397,7 @@ Added 2026-10-23 at the owner's request (decision D12). After Stage 0 started, t
 - **Stack:** Next.js (App Router) and TypeScript on Cloudflare Workers via OpenNext, Neon Postgres with Drizzle, Better Auth, Resend, Turnstile, Serwist and idb, next-intl, Tailwind, shadcn/ui and Recharts (admin only), Vitest, Playwright, Lighthouse CI, axe, GitHub Actions. Free tiers only. No paid service and no change of host without the owner.
 - **Biggest risks:** Workers Free limits (10 ms CPU, 3 MiB size) against Next.js, auth hashing and images (Cloudflare puts auth and server rendering at 10 to 20 ms, so the 8 ms admin gate is the likeliest to fail); Neon scale-to-zero and 100 CU-hours; offline queue interacting with Turnstile; Serwist and Next.js version compatibility; caching behaviour that may need the real domain. This is why Stage 0 is a hard gate.
 - **Hard rules:** never push to `main`; feature branch and merge request for every change; only `server/repositories` imports Drizzle, only `server/auth` imports Better Auth, only `server/email` imports Resend; no access control in middleware; no admin libraries in public routes; one WhatsApp URL helper; no physical deletes of business or content data (carve-outs in ADR-029); no personal data in logs or events; UTC in storage, WAT (`Africa/Douala`) for display; additive-first migrations; unconfirmed stats, testimonials and bios are never published.
+- **Free-plan design (D14):** Google sign-in only (no passwords), an edge fast path that answers public pages and images from the Cache API before Next.js starts, a one-query session check, thin handlers, images in Neon behind `MediaStore`. Stage 0 stays open until Module S0.10 proves it on the deployed Worker.
 - **Build order:** Stage 0 proof of fit, then Foundation, Auth and admin shell, Public site, Offline and lead intake, Lead management, Content and images, Analytics, Student portal, Payments, Owner pages, Hardening and launch.
 
 ## Traceability (to be filled at S11.5)

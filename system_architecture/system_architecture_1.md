@@ -2,7 +2,7 @@
 
 **Derived From:** PRD_1.md
 **Date:** 2026-10-23
-**Status:** Locked on 2026-10-23 by owner confirmation, then amended pre-build on 2026-10-23 by the owner's instruction after the engineering review (see the Amendment log at the end). Nothing had been built or committed against the first text, so it was edited in place and the version stays 1. After the first stage starts, any change creates a new version, preceded by a PRD bump with the same number.
+**Status:** Locked on 2026-10-23 by owner confirmation, then amended pre-build on 2026-10-23 by the owner's instruction after the engineering review (see the Amendment logs at the end). Nothing had been built or committed against the first text, so it was edited in place and the version stays 1. The rule that a change after the first stage starts creates a new version (and a PRD bump) was set aside by the owner on 2026-10-23 (decision D13, ADR-035): the documents are edited in place and an amendment log records every change. Amended a second time on 2026-10-23 after the Stage 0 measurements (decision D14: redesign for the Workers Free CPU limit).
 
 ---
 
@@ -21,15 +21,17 @@ Everything in PRD_1 (F1 to F11) is built in version 1. Hosting is Cloudflare Wor
 
 | Fact | Consequence |
 |---|---|
-| Workers Free: 10 ms CPU per request, 3 MiB Worker size (compressed), 100,000 requests per day, 1,000 requests per minute burst | Prerender and cache public pages. Keep the server bundle small. Batch client events. |
+| Workers Free: 10 ms CPU per request, 3 MiB Worker size (compressed), 100,000 requests per day, 1,000 requests per minute burst | Prerender and cache public pages. Keep the server bundle small. Batch client events. **Measured 2026-10-23: a prerendered page costs 7 to 9 ms and an image cache hit about 10 ms when they pass through Next.js on OpenNext, so public pages and images are answered from the Cache API in the Worker entry before Next.js starts (ADR-033).** |
 | OpenNext: 3 MiB limit applies to the compressed size. Documented support covers all Next.js 15 minor versions. | Phase 0 pins the Next.js version. Next.js 16 support is unconfirmed. |
-| Neon Free: 100 CU-hours and 0.5 GB per project. Compute scales to zero after 5 minutes and this cannot be disabled. Compute suspends when the monthly limit is reached. Restore window is 6 hours. | The database stays off the public read path. No keep-warm pings. A usage alert is required. The 6-hour restore window is not a backup (section 13.7). |
-| Resend Free: 100 emails per day, 3,000 per month, one verified domain | Email is used only for verification, password reset, invites. No email codes at volume. |
+| Neon Free: 100 CU-hours and 0.5 GB per project (the source used here; Neon's plans page on 2026-10-23 says 1 GB per project, and capacity estimates stay on the safer 0.5 GB). Compute scales to zero after 5 minutes and this cannot be disabled. Compute suspends when the monthly limit is reached. Restore window is 6 hours. | The database stays off the public read path. No keep-warm pings. A usage alert is required. The 6-hour restore window is not a backup (section 13.7). |
+| Resend Free: 100 emails per day, 3,000 per month, one verified domain | Email is optional in v1 and used only for admin invites (ADR-032). There are no verification or reset emails. No email codes at volume. |
 | Next.js 16 uses Turbopack by default. Serwist has a separate Turbopack package from its webpack plugin. | Phase 0 pins a compatible Next.js, bundler and Serwist combination. |
 
-**Unverified (Phase 0 gates):** Better Auth password hashing cost against 10 ms CPU; Better Auth with Neon's serverless driver on Workers; Neon driver handling of `bytea` (image) reads; OpenNext revalidation cache bindings on free; Durable Objects and Cron Triggers on free; Turnstile, Cloudflare, Neon and Resend commercial-use terms on free plans; whether Neon's API can report CU-hours to a cron job (a non-gating probe, section 17); whether the Cache API and cache purge work on the `workers.dev` hostname (a Cloudflare community reply says the Cache API does not; official docs not found); which OpenNext cache and tag-cache bindings work on free (OpenNext says the read-only static-assets cache cannot revalidate and KV is discouraged; whether R2 needs a payment method is unchecked).
+**Unverified (Phase 0 gates):** Better Auth with Neon's serverless driver on Workers; Neon driver handling of `bytea` (image) reads; OpenNext revalidation cache bindings on free; Durable Objects and Cron Triggers on free; Turnstile, Cloudflare, Neon and Resend commercial-use terms on free plans; whether Neon's API can report CU-hours to a cron job (a non-gating probe, section 17); whether the Cache API and cache purge work on the `workers.dev` hostname (**measured 2026-10-23: put, match and delete work there**; a community reply had said otherwise); which OpenNext cache and tag-cache bindings work on free (**measured 2026-10-23: the KV incremental cache, the D1 tag cache and the Durable Object queue work on the free plan with no payment method**; OpenNext discourages KV, and R2 is not enabled on the account).
 
 Cloudflare's own limits page puts authentication and server-rendering work at typically 10 to 20 ms of CPU, so the 8 ms admin page gate in section 17 is the likeliest to fail.
+
+**Measured on 2026-10-23 (Stage 0 slice on Workers Free, details in section 17):** password sign-in used 95 to 293 ms with scrypt and was cut at the 10 ms limit with PBKDF2 (100,000 iterations) and with a magic-link probe; the lead POST used 12 ms against 8 ms; image serving used about 10 ms against 8 ms; a prerendered page used 7 to 9 ms against a 5 ms target; the admin page could not be measured because no session could be issued. The owner chose to redesign for the free plan (D14): Google sign-in only (ADR-032), an edge fast path (ADR-033), a lean session check (ADR-034), thin handlers, and Module S0.10 to prove it.
 
 ## 2. Requirements traceability
 
@@ -153,8 +155,7 @@ scollarly/
       [locale]/
         (public)/            home, universities, fees, campus-tours, process, visa,
                              faq, blog, about, contact, apply, privacy, terms, offline
-        (auth)/              sign-in, sign-up, verify-email, forgot-password,
-                             reset-password, accept-invite/[token], two-factor/{enrol,verify}
+        (auth)/              sign-in (Google only), accept-invite/[token], two-factor/{enrol,verify}
         (student)/me/        progress, profile, link-application, data
         (admin)/admin/       overview, leads, content, analytics, payments, profile,
                              and owner-only: team, settings, audit, security, health
@@ -169,7 +170,8 @@ scollarly/
                              importer of better-auth; exports branded Actor type
       repositories/          the ONLY importer of Drizzle; every protected method takes an Actor
       db/                    per-request client factory, schema, migrations
-      security/              turnstile verify, rate limit, origin check, input limits
+$1
+      edge/                  fast path: Cache API lookup for public pages and images (used by worker/)
       email/                 Resend adapter, templates
     lib/                     whatsapp url helper, phone normaliser, ref generator,
                              time (WAT helpers), i18n config, result type
@@ -177,7 +179,7 @@ scollarly/
     components/public/       light components, no admin libraries
     components/admin/        shadcn/ui and Recharts, imported only from (admin)
   messages/                  en.json, fr.json (split by namespace)
-  worker/                    custom Worker entry that adds the scheduled handler
+  worker/$1custom Worker entry: edge fast path (public pages, images), scheduled handler
   tests/                     unit, integration, e2e, offline, a11y, lighthouse, authz-matrix
   wrangler.jsonc  open-next.config.ts  drizzle.config.ts  .github/workflows/
 ```
@@ -194,15 +196,17 @@ scollarly/
 
 | Area | Rendering | Caching | Auth |
 |---|---|---|---|
-| `(public)` | Prerendered, revalidated on publish | Edge cache plus service worker stale-while-revalidate | None |
+| `(public)` | Prerendered, revalidated on publish | Worker-entry fast path from the Cache API with a 30 second lifetime (ADR-033), Next.js on a miss, plus service worker stale-while-revalidate | None |
 | `/apply` | Prerendered shell, client island for the form | As above | None |
 | `(auth)` | Dynamic | None | None |
 | `(student)` | Dynamic, per user | Never cached by the service worker | Student |
 | `(admin)` | Dynamic, per user, online-only | Never cached by the service worker | Admin or owner |
-| `/media/[hash]` | Route Handler reading `media_blob` | `public, max-age=31536000, immutable` plus Cache API | None |
+| `/media/[hash]` | Route Handler reading `media_blob` | `public, max-age=31536000, immutable` plus Cache API, checked in the Worker entry before Next.js starts (ADR-033) | None |
 | `/api/v1/*` | Route Handlers | `no-store` | Per endpoint |
 
-**Rule:** a public page read never touches Neon. Content is read at build or revalidate time and served from cache. Publishing calls tag revalidation (ADR-002). If Phase 0 shows OpenNext cannot do tag revalidation on the free plan, the fallback is edge caching with `s-maxage` plus stale-while-revalidate and an explicit purge on publish. Phase 0 (S0.6) names the OpenNext incremental cache and tag cache bindings it uses and records whether any of them needs a payment method; if one does, work stops and the owner decides (G6).
+**Rule:** a public page read never touches Neon. Content is read at build or revalidate time and served from cache. Publishing calls tag revalidation (ADR-002). If Phase 0 shows OpenNext cannot do tag revalidation on the free plan, the fallback is edge caching with `s-maxage` plus stale-while-revalidate and an explicit purge on publish. Phase 0 (S0.6) names the OpenNext incremental cache and tag cache bindings it uses and records whether any of them needs a payment method; if one does, work stops and the owner decides (G6). **Measured 2026-10-23:** KV, D1 and the Durable Object queue need no payment method, and a publish showed on the page within 5 seconds.
+
+**Free-plan CPU rule (D14, ADR-033):** Next.js costs several milliseconds of CPU on every request that reaches it, so the Worker entry (`worker/index.ts`, logic in `src/server/edge/fast-path.ts`) answers eligible requests from the Cache API first. Eligible means a cookie-free GET for a known public path, or a content-hashed image. A cached page lives for 30 seconds, so a publish becomes visible within about 30 seconds in every region (the Cache API is per data centre, so a purge cannot reach every region and the short lifetime does the work). Nothing under `/admin`, `/me`, `/api` or `/_next` can ever enter this cache.
 
 ### 6.2 Request flow
 
@@ -363,7 +367,7 @@ erDiagram
 | `POST /api/v1/leads` | Lead form, offline sync engine | **Headers:** `Idempotency-Key` (uuid). **Body:** intake_kind (`full` or `quick`), name, whatsapp (as typed), country_code, email?, qualification_type (full only), results[] (full only), programme_ids[] (3 or more for full; for quick, the page's university in `source` or at least 1 programme), source{}, locale, client_ref, client_created_at, consent{notice_version}, turnstile_token. **Success:** `201 {status:"created", ref}`; replay of the same key and payload returns `200 {status:"replayed", ref}`. **Errors:** 400 VALIDATION, 403 TURNSTILE_FAILED, 409 IDEMPOTENCY_KEY_REUSED (same key, different payload), 429 RATE_LIMITED (with `Retry-After`), 503 TEMPORARILY_UNAVAILABLE (client retries). |
 | `POST /api/v1/events` | Client event flusher | Batch of up to 50 events. `page_view`, `form_start`, `form_submit` and `install` go to the collector as counts only. A `wa_tap` with a lead_ref goes to Neon, at most 10 per lead_ref per day (the collector enforces the cap). Returns `202`. The server ignores any client-supplied country. |
 | `GET /api/v1/health` | CI, uptime checks | `200 {status, version}`. Never touches the database unless `?deep=1` and the caller is an admin. |
-| `/api/auth/*` | Better Auth | Sign-up, sign-in, OAuth callbacks, verification, reset, 2FA |
+| `/api/auth/*` | Better Auth | Google sign-in, OAuth callbacks, sign-out, 2FA. No passwords, so no verification or reset |
 | `GET /media/[hash]` | Public pages | Returns `image/webp` with immutable cache headers. 404 if not found. |
 
 ### 8.3 Server Actions (UI mutations; Origin check is built into Next.js)
@@ -401,8 +405,8 @@ Runs from a Cron Trigger (Phase 0 confirms availability on free), once a day at 
 1. All auth logic sits behind the facade in `server/auth`: `checkSession()`, `requireRole(role)`, `requireOwner()`. No other module talks to Better Auth.
 2. Authorisation is enforced in the server and data layer. Next.js middleware is never used for access control (a 2025 middleware bypass vulnerability, CVE-2025-29927, is the reason).
 3. The facade returns a branded `Actor`. Protected repository methods require it.
-4. Session cookies are HttpOnly, Secure, SameSite=Lax. A signed session cookie cache (at most 60 seconds) is used only for student `/me` reads. Admin and owner requests and every Server Action do a fresh session lookup, because a cached copy keeps a revoked session valid until it expires (Better Auth documentation) and removal must cut access on the next request. Phase 0 measures the admin page CPU gate on the fresh lookup path.
-5. Email verification is mandatory before any session is issued. Google and email accounts link only when the email is verified (prevents pre-hijacking).
+4. Session cookies are HttpOnly, Secure, SameSite=Lax. A signed session cookie cache (at most 60 seconds) is used only for student `/me` reads. Admin and owner requests and every Server Action do a fresh session lookup, because a cached copy keeps a revoked session valid until it expires (Better Auth documentation) and removal must cut access on the next request. Phase 0 measures the admin page CPU gate on the fresh lookup path. **Free-plan CPU (D14, ADR-034, target design):** Better Auth's full request machinery is too costly for every page read, so for page requests the facade verifies the signed session cookie itself and reads the session row with one query. Better Auth handles only the sign-in, sign-out and two-factor routes. This stays inside `server/auth`. Module S0.10 proves or rejects it.
+5. Sign-in is Google only (ADR-032). A session is issued only for an email that Google reports as verified, and no password accounts exist, so there is nothing to pre-hijack.
 
 ### 9.2 Sign-in and request flow
 
@@ -412,7 +416,7 @@ sequenceDiagram
   participant W as Worker
   participant A as Auth facade
   participant D as Neon
-  B->>W: sign in (Google or email and password)
+  B->>W: sign in with Google
   W->>A: Better Auth handler
   A->>D: user, account, session
   A-->>B: signed session cookie
@@ -432,8 +436,8 @@ sequenceDiagram
 
 ### 9.4 Admin invite and removal
 
-- Owner enters an email and the system sends a single-use token (hash stored, expires in 7 days [Mine, confirm]).
-- The invitee opens the link, signs in or signs up with that exact verified email, and the role becomes `admin` in one transaction. A different email cannot use the token.
+- Owner enters an email and the system creates a single-use invite link (token hash stored, expires in 7 days [Mine, confirm]). The link is shown with a Copy button so the owner can send it by WhatsApp; emailing it through Resend is optional.
+- The invitee opens the link, signs in with Google using that exact verified email, and the role becomes `admin` in one transaction. A different email cannot use the token.
 - Removing an admin sets the role to `student`, revokes sessions, and returns that admin's leads to the unassigned pool with an activity entry. The user record is kept for the audit trail.
 
 ### 9.5 Permission matrix
@@ -598,7 +602,7 @@ Admin pages show an "You're offline" banner and keep entered form data in memory
 
 | Concern | Design |
 |---|---|
-| 10 ms CPU | Cache public pages, keep route handlers thin, student-only session cookie cache (staff do a fresh lookup), measure in Phase 0 |
+| 10 ms CPU | Public pages and images are answered from the Cache API before Next.js starts (ADR-033). Page reads verify the session cookie and make one query (ADR-034). Route handlers stay thin. No password hashing. Measured in Phase 0 and again in S0.10 |
 | 3 MiB Worker | Bundle analysis in CI, fail above 2.6 MiB compressed (about 15% headroom), admin routes isolated so they can be split into a second Worker |
 | Cold Neon | Public reads avoid it. Student-only session cookie cache. One query per page where possible. Accept first-request latency on admin and auth. |
 | Neon CU-hours | No keep-warm pings. Batch events. Alert at 70%. Kill switch (ADR-003). |
@@ -613,7 +617,7 @@ Admin pages show an "You're offline" banner and keep entered form data in memory
 
 - **Headers:** HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` limiting sensors, `frame-ancestors 'none'`. CSP starts in report-only (`frame-src` for youtube-nocookie and Turnstile, `connect-src 'self'`, `img-src 'self' data:`) and is enforced before launch if it works with Next.js inline scripts (Phase 0).
 - **Input:** Zod on every boundary, body size limits, Markdown rendered with a sanitiser (no raw HTML), YouTube IDs validated, SVG rejected, uploads checked by file signature. CSV exports prefix any cell that starts with `=`, `+`, `-` or `@` with a single quote so a payment note cannot run as a spreadsheet formula.
-- **Email abuse:** sign-up, forgot-password and resend-verification are protected by Turnstile and the layered limiter (ADR-027). Student-originated emails are capped at 60 per day and 3 per address per day; 40 of the 100 daily Resend emails stay reserved for owner invites, admin invites and owner resets, which are exempt from the student cap [Mine, confirm the numbers]. When the cap is reached the page says so and points to WhatsApp.
+- **Email abuse:** there is no password sign-up, forgot-password or resend-verification form, so none can be abused to use up the 100 daily Resend emails. Email is used only for optional admin invites (ADR-032). The lead forms keep Turnstile and the layered limiter (ADR-027). *(Amended 2026-10-23, D14; the earlier student email cap of 60 a day no longer applies.)*
 - **Secrets:** Worker secrets only (never committed): database URL, Better Auth secret, Google OAuth, Resend key, Turnstile secret, `OWNER_EMAIL`. Local `.dev.vars` is git-ignored.
 - **Privacy:** no personal data in events or logs (log the lead ref, never names or numbers). Raw IPs are never stored. Consent notice version is stored with each lead.
 - **Device data:** the offline queue holds personal data in plaintext on the device until synced. The queue is deleted on success, expires after 30 days, and the student can remove it. This is accepted and documented because encrypting it gives little real protection.
@@ -776,26 +780,23 @@ Conventions: each flow is a table of **Step | You click or do | You see | System
 
 Offline shows what is available offline and a link to cached pages. Privacy and Terms are content blocks (the privacy text needs the legal review in PRD item Q6).
 
-#### A9. Create an account `/sign-up`
+#### A9. Sign in with Google `/sign-in` (the only way to create or use an account)
 
 | # | Click or do | You see | System does |
 |---|---|---|---|
-| 1 | Tap "Sign in or create account" in the menu | Sign-in page | |
-| 2 | Tap "Create an account" | Form: name, email, password, "Continue with Google" | |
-| 3a | Tap "Continue with Google" | Google consent screen, then `/me` | Better Auth creates a student. Offline: "You need a connection to sign in." |
-| 3b | Submit email and password | "Check your email" | Turnstile check and rate limit first. Account created unverified. Resend sends a verification link. No session yet. |
-| 4 | Open the email link | "Email verified", signed in, taken to `/me` | Session issued only now |
-| 5 | If the email never arrives | "Resend email" button (limited) | Turnstile, at most 3 per address per day, counts against the student cap of 60 per day (40 of the 100 daily emails are reserved for owner mail). At the cap: "We can't send more emails right now. Try again later or message us on WhatsApp." |
+| 1 | Tap "Sign in" in the menu | The sign-in page with one button, "Continue with Google". No form, no password | |
+| 2 | Tap "Continue with Google" | Google's consent screen, then `/me` (student), `/admin` (admin) or the 2FA page (owner) | Better Auth creates a Student on the first sign-in, only for an email Google reports as verified. Redirect by role. Offline: "You need a connection to sign in." |
+| 3 | If Google refuses or the student cancels | Back on `/sign-in` with a plain message | No account or session is created |
+| 4 | A student without a Google account | A line under the button: "No Google account? You can still apply and message us on WhatsApp." | Lead intake and WhatsApp never need an account |
 
-#### A10. Sign in `/sign-in`, Forgot password `/forgot-password`, Reset `/reset-password`
+#### A10. Sign out `/sign-out` and expired sessions
 
 | # | Click or do | You see | System does |
 |---|---|---|---|
-| 1 | Enter email and password, tap "Sign in" | `/me` (student), `/admin` (admin), or the 2FA page (owner) | Redirect by role |
-| 2 | Wrong password | Generic "Email or password is wrong" | Rate limited |
-| 3 | Tap "Forgot password" | Email field, then "If that email exists, we sent a link" | Same message whether or not the email exists. Turnstile, at most 3 per address per day, student cap applies. |
-| 4 | Open the emailed link | New password form | Single-use token |
-| 5 | Submit | "Password changed", signed in | Other sessions revoked |
+| 1 | Tap "Sign out" | The home page | The session is removed on the server and the local `progressSnapshot` is deleted |
+| 2 | Open a protected page with an expired or revoked session | The sign-in page | The facade finds no session (a removed admin is refused on the next request, ADR-020) |
+
+*(Amended 2026-10-23, D14: sign-up with a password, email verification, forgot password and reset password were removed with password sign-in.)*
 
 #### A11. Student portal `/me`
 
@@ -830,7 +831,7 @@ An admin signs in at `/sign-in` and lands on `/admin`. The left menu shows: Over
 | # | Click or do | You see | System does |
 |---|---|---|---|
 | 1 | Open the emailed link | "You were invited as an admin" with the invited email shown | Token checked (single use, not expired, not revoked) |
-| 2 | Tap "Continue with Google" or set a password with that same email | Email verification if needed, then `/admin` | Role becomes admin only if the verified email matches the invite |
+| 2 | Tap "Continue with Google" | Google consent screen, then `/admin` | Role becomes admin only if Google's verified email matches the invite |
 | 3 | Wrong email or expired link | "This invite can't be used. Ask the owner for a new one." | |
 
 #### B1. Overview `/admin`
@@ -967,7 +968,7 @@ Cards for: Universities, Programmes, Fees, Campus experiences, Resources, Testim
 
 #### B11. My profile `/admin/profile`
 
-Edit name, change password, sign out, sign out of other devices.
+Edit name, sign out, sign out of other devices.
 
 ### Part C: Owner (everything an admin does, plus these pages)
 
@@ -995,7 +996,7 @@ The owner signs in, completes the 2FA challenge, and sees extra menu items: Team
 |---|---|---|---|
 | 1 | Open | Admins (name, email, leads held), pending invites | |
 | 2 | Tap "Invite admin" | Dialog with an email field | |
-| 3 | Tap "Send invite" | The invite appears as Pending | Single-use token, 7-day expiry, Resend email. Step-up 2FA if the last check was over 10 minutes ago. |
+| 3 | Tap "Send invite" | The invite appears as Pending | Single-use link, 7-day expiry, shown with a Copy link button (emailing it through Resend is optional). Step-up 2FA if the last check was over 10 minutes ago. |
 | 4 | Tap "Resend" or "Revoke" on a pending invite | Status updates | Revoking invalidates the token |
 | 5 | Tap "Remove" on an admin | Dialog: "This admin holds N leads. They will return to the unassigned pool." | |
 | 6 | Confirm (with 2FA step-up) | Admin disappears from the list | Role set to student, sessions revoked, leads unassigned, audit entry |
@@ -1041,15 +1042,15 @@ The owner signs in, completes the 2FA challenge, and sees extra menu items: Team
 
 Phase 0 is the first stage of `essential_1`. Nothing else is built until it passes. If a gate fails, work stops and the decision returns to the owner. No paid service is added without the owner's decision.
 
-**Slice to build and deploy to Workers Free:** first, a probe of whether the Cache API and cache purge work on the `workers.dev` hostname (if they are no-ops, the owner's domain action, tracker H7, becomes blocking before the cache gates); then a prerendered public page, Google sign-in with Better Auth, an email and password sign-up with verification, three password-hash variants measured in CPU, one Neon query through the serverless driver, a stub authenticated admin page (session read, one Neon query, render) measured on both the fresh-lookup path and the cookie-cache path, a stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert), the 10-minute 2FA step-up check, one 300 KB image stored in `media_blob` and served through the Cache API, tag revalidation, one cron run, one Durable Object counter, one Serwist offline page, and Lighthouse CI.
+**Slice to build and deploy to Workers Free:** first, a probe of whether the Cache API and cache purge work on the `workers.dev` hostname (measured 2026-10-23: they work, so the owner's domain action, tracker H7, does not block the cache gates); then a prerendered public page, Google sign-in with Better Auth (the first slice also measured an email-and-password path with three password-hash variants; results below), one Neon query through the serverless driver, a stub authenticated admin page (session read, one Neon query, render) measured on both the fresh-lookup path and the cookie-cache path, a stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert), the 10-minute 2FA step-up check, one 300 KB image stored in `media_blob` and served through the Cache API, tag revalidation, one cron run, one Durable Object counter, one Serwist offline page, and Lighthouse CI. **Module S0.10 (added 2026-10-23, D14)** re-runs the failing gates against the lean design: the edge fast path, a one-query session check, a thin lead POST, and image delivery from the edge.
 
 **Pass criteria (proposed thresholds, [Mine, confirm]):**
 
 | Gate | Pass when |
 |---|---|
 | Worker size | Compressed size at most 2.6 MiB with auth, Drizzle, next-intl and Zod included |
-| Public page CPU | Cached public page at most 5 ms per request |
-| Password sign-in CPU | At most 10 ms hard limit, with no Error 1102 over 50 sign-ins. Phase 0 measures the Better Auth default, PBKDF2 through WebCrypto and a passwordless Google plus email-link path in one run, so the owner receives every option together. If it fails: options are a lighter hash or Google plus another passwordless path, or the owner approves a paid plan. |
+| Public page CPU | Cached public page at most 5 ms per request, served by the edge fast path |
+| Sign-in CPU (no password) | The path that issues a session at most 10 ms hard limit, with no Error 1102 over 50 sign-ins. Measured with the magic-link probe, which has no hashing; the real Google flow is confirmed once in Stage 2 with real credentials. The first slice measured password variants and failed all of them (results below). |
 | Authenticated admin page CPU | At most 8 ms on the fresh session lookup path used for staff (ADR-020). The cookie-cache path used for student `/me` is recorded too. |
 | Lead POST CPU | At most 8 ms |
 | Image serve (300 KB) | At most 8 ms CPU on a cache miss, and no database access on a hit |
@@ -1057,7 +1058,7 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | Version pinning | Next.js, OpenNext, Serwist and next-intl combination builds, runs and passes offline tests |
 | Revalidation | A publish updates a public page without a deploy |
 | Cron and Durable Objects | Available on the free plan and working. If not, the fallback in ADR-003 and the DB-based rate limit are used. |
-| Better Auth features | Cookie cache, 2FA (TOTP and recovery codes), the 10-minute step-up, role field and email verification all work with the Neon driver |
+| Better Auth features | Cookie cache, 2FA (TOTP and recovery codes), the 10-minute step-up, and the role field all work with the Neon driver |
 | Lighthouse | Mobile performance at least 85, first load under 200 KB |
 | Cache API and purge | Work on the production hostname. If they are no-ops on `workers.dev`, record it and the owner's domain action (H7) becomes blocking before the cache gates. The OpenNext cache and tag-cache bindings used are named, and any payment-method requirement is recorded. |
 | Terms check | Owner confirms commercial-use terms for Cloudflare, Neon, Resend and Turnstile free plans |
@@ -1070,7 +1071,7 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 |---|---|
 | Worker size | Split admin routes into a second Worker, drop or replace heavy libraries, paid plan |
 | Public page CPU, Lead POST CPU | Move work to build time or the edge cache, thinner handler, paid plan |
-| Password sign-in CPU | Lighter hash, Google plus an email link with no passwords, paid plan |
+| Sign-in CPU | Google sign-in only (chosen, D14), paid plan |
 | Authenticated admin page CPU | Fewer queries and lighter server rendering, paid plan |
 | Image serve | Base64 text column, object storage by owner decision (R2 may need a payment method, unchecked), paid plan |
 | Neon cold start | Accept it with a loading state, paid Neon |
@@ -1080,12 +1081,28 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | Better Auth features | A different auth library behind the same facade (one module changes) |
 | Lighthouse | Trim JavaScript, defer islands |
 
+**Measured on 2026-10-23: the first Stage 0 slice on Workers Free** (Worker CPU time from `wrangler tail`; 20 requests per scenario, 4 for the lead POST; the tail samples under load; a value of 10 means the request was cut at the limit)
+
+| Scenario | Warm p50 / p95 ms | Worst ms | Cut at the limit | Gate | Verdict |
+|---|---|---|---|---|---|
+| Public page, prerendered, through OpenNext | 7 / 9 | 14 | 0 | 5 | above target, never cut |
+| Sign-in, scrypt (Better Auth default) | 95 / 173 | 293 | 1 | 10 | fail |
+| Sign-in, PBKDF2 100,000 iterations | 10 / 10 | 10 | all | 10 | fail |
+| Sign-in, magic link (no hashing, Better Auth rebuilt per request) | 10 / 10 | 10 | all | 10 | fail, overstated |
+| Admin page, fresh lookup | not measurable | | | 8 | no session could be issued |
+| Lead POST stub | 12 / 12 | 12 | 2 of 4 | 8 | fail |
+| Image, mostly Cache API hits through OpenNext | 10 / 11 | 11 | 3 of 10 | 8 | fail |
+
+Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.44 s after 330 s idle, Neon WebSocket transaction, Durable Object counter and limiter, revalidation within 5 seconds of a publish, Worker size 1.24 MiB, Lighthouse, KV and D1 with no payment method. The first requests after a deploy were not cut even at 195 to 236 ms of CPU, so the platform appears to allow a grace period before it enforces the limit.
+
+**Redesign gates (Module S0.10, D14).** The fast path, the one-query session check, the thin lead POST and edge image delivery are built and measured on the deployed Worker. Pass criteria are the thresholds in the table above, measured as warm p95 over at least 50 requests with no request cut at the limit. Fail means the decision returns to the owner (paid plan or a different design).
+
 ## 18. Decision Log (ADR format, cumulative)
 
 | ID | Decision | Why | Status |
 |---|---|---|---|
 | ADR-001 | One Next.js app on one Worker as a modular monolith. Admin routes in an isolated route group that can become a second Worker. | One developer. The 3 MiB limit is the one thing that may force a split. | Accepted |
-| ADR-002 | Public pages are prerendered and cached. A public read never touches Neon. Publish triggers tag revalidation, with edge-cache stale-while-revalidate as the fallback. | 10 ms CPU, cold Neon, CU-hour budget | Accepted, Phase 0 gate |
+| ADR-002 | Public pages are prerendered and cached. A public read never touches Neon. Publish triggers tag revalidation, with edge-cache stale-while-revalidate as the fallback. On the free plan a cached page is answered from the Cache API in the Worker entry before Next.js starts, with a 30 second lifetime (ADR-033). | 10 ms CPU, cold Neon, CU-hour budget | Accepted, Phase 0 gate |
 | ADR-003 | Anonymous events (`page_view`, `form_start`, `form_submit`, `install`) go to an edge collector as counts, not Neon rows. Only `wa_tap` with a lead_ref is stored, capped at 10 per ref per day. A `collect_page_views` kill switch turns page views off at 70% of the budget. | Sessions are unknown. An always-awake database would use about 180 CU-hours against 100. An endpoint anyone can call must not write unbounded Neon rows. | Accepted, Phase 0 gate. Amended 2026-10-23 |
 | ADR-004 | Replayable and public writes use Route Handlers under `/api/v1`. UI mutations use Server Actions. Reads use server components through repositories. | The service worker cannot replay Server Actions. Versioned contracts follow the Extensibility rules. | Accepted |
 | ADR-005 | Authorisation lives in the auth facade and repository layer, never in middleware. Repositories require an `Actor`. | A 2025 Next.js middleware bypass (CVE-2025-29927). Type-level enforcement. | Accepted |
@@ -1094,7 +1111,7 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | ADR-008 | Translatable content uses a JSONB `translations` column. | Adding French is additive. One row read per item. | Accepted |
 | ADR-009 | Server time is authoritative. The SLA clock starts at `received_at`, is set once by WAT weekday (Mon to Fri 4 h, Sat and Sun 24 h), runs continuously and is stored on the lead. | A lead queued offline must not be overdue before an admin can see it. History must not change when settings do. | Accepted (owner agreed) |
 | ADR-010 | A Cron Trigger runs the scheduled handler for rollups, purges, flags and checks. | No other place to run periodic work | Accepted, Phase 0 gate |
-| ADR-011 | Content images are stored in Neon (`media_asset` and `media_blob`) with browser resizing, size caps, content-hash URLs and edge caching. A `MediaStore` interface allows a later move. | Owner decision. Avoids a separate service and payment method. | Accepted, Phase 0 gate |
+| ADR-011 | Content images are stored in Neon (`media_asset` and `media_blob`) with browser resizing, size caps, content-hash URLs and edge caching. A `MediaStore` interface allows a later move. | Owner decision. Avoids a separate service and payment method. Amended 2026-10-23 (D14): delivery is answered from the Cache API in the Worker entry; object storage (R2) is the named fallback and needs an owner decision because it may need a payment method. | Accepted, Phase 0 gate |
 | ADR-012 | Payments are an append-only USD ledger in integer cents. Corrections are void and re-enter. Admins and owner can record, void and view. | Owner decision. Admins can type amounts, so history must be tamper-evident. | Accepted |
 | ADR-013 | One owner, enforced by a partial unique index. Owner powers require a 2FA-verified session. Destructive owner actions need a 10-minute step-up. | Owner decision (single owner, 2FA). Stronger than "enrolled". | Accepted |
 | ADR-014 | No business or content data is physically deleted in v1. Content is archived. Carve-outs are in ADR-029. | Extensibility rule on removal | Accepted. Amended 2026-10-23 |
@@ -1103,29 +1120,35 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | ADR-017 | Optimistic concurrency on admin edits using `updated_at`. | Several admins, one record | Accepted |
 | ADR-018 | v1 uses no locale middleware. Rewrites map unprefixed paths to `/en`. | Fewer moving parts on Workers. French is additive. | Accepted, Phase 0 gate |
 | ADR-019 | Neon is accessed per request through the serverless driver. Single queries use HTTP, transactions use WebSocket. No global connection pool. | Workers do not keep connections between requests | Accepted, Phase 0 gate |
-| ADR-020 | Better Auth sessions use a signed cookie cache of at most 60 seconds for student `/me` reads only. Admin and owner requests and every Server Action do a fresh session lookup. | A cached session stays valid after revocation until it expires (Better Auth docs), and removal must cut staff access on the next request. Staff pages query Neon anyway. | Accepted, Phase 0 gate. Amended 2026-10-23 |
+| ADR-020 | Better Auth sessions use a signed cookie cache of at most 60 seconds for student `/me` reads only. Admin and owner requests and every Server Action do a fresh session lookup, done by the facade with one query (ADR-034). | A cached session stays valid after revocation until it expires (Better Auth docs), and removal must cut staff access on the next request. Staff pages query Neon anyway. | Accepted, Phase 0 gate. Amended 2026-10-23 |
 | ADR-021 | A new lead starts at stage `share_results`. "New" means no reply logged yet. | PRD defines six stages and no "new" stage | Accepted [Mine, confirm] |
 | ADR-022 | Erasure anonymises the lead and deletes the account. Payment records remain, unlinked. Admins and the owner can run erasure after an identity checklist. | Data rights without losing financial records | Accepted [Mine, confirm admin erasure] |
 | ADR-023 | Phase 0 is a hard gate with the measurable criteria in section 17. | The PRD's own risk: no fallback host | Accepted |
 | ADR-024 | No Next.js image optimiser. Plain `<img>` with stored dimensions. | It needs a paid service on this platform | Accepted |
 | ADR-025 | Phone numbers use a custom normaliser for the 7 student countries plus India, with a generic E.164 check for others. | A full phone library is too heavy for the 200 KB budget | Accepted |
 | ADR-026 | Weekly encrypted `pg_dump` without `media_blob` data (kept 28 days) plus a monthly encrypted images-only dump (kept 60 days), from GitHub Actions with repository secrets, outside Cloudflare, plus an owner export. | Neon Free restore is 6 hours only. A weekly dump with 150 MB of images would overrun GitHub's free artifact storage. | Accepted [Mine, confirm]. Amended 2026-10-23 |
-| ADR-027 | Rate limiting is layered: a Durable Object limiter, a per-number database limit, and Turnstile. It also covers sign-up, forgot-password and resend-verification, with a student email cap of 60 per day and 3 per address. Raw IPs are never stored. | In-memory limiting does not work on Workers. The 100 emails per day must not be used up by abuse. | Accepted, Phase 0 gate. Amended 2026-10-23 |
+| ADR-027 | Rate limiting is layered: a Durable Object limiter, a per-number database limit, and Turnstile on the lead forms. Raw IPs are never stored. *(Amended 2026-10-23, D14: there is no password sign-up, forgot-password or resend form, so the student email cap of 60 per day and 3 per address no longer applies.)* | In-memory limiting does not work on Workers. | Accepted, Phase 0 gate. Amended 2026-10-23 |
 | ADR-028 | Markdown for blog posts, sanitised on render. No raw HTML. | Stored XSS from admin content | Accepted |
 | ADR-029 | "No physical deletes" applies to business and content data. The only carve-outs are: erasure (the account row and the lead's personal fields), raw `event` rows after rollup, and expired Better Auth session and verification rows. | The rule and the data rights and retention rules contradicted each other. Naming the exceptions keeps both true. | Accepted 2026-10-23 |
 | ADR-030 | Two lead intake kinds: `full` (the `/apply` form, 3 or more programmes) and `quick` (name, number, country and the page's university, opened by every WhatsApp button). Both create a stored lead with a reference. | Every WhatsApp handoff must carry a stored reference (PRD F4 and the primary metric), and a visitor on a university page has no 3-programme list yet. | Accepted 2026-10-23 |
 | ADR-031 | When online, the form sends the lead and waits up to 4 seconds before opening WhatsApp. Offline, slow or failed: queue and open WhatsApp anyway. A visible "Open WhatsApp" button is the fallback. | A phone may suspend the browser once WhatsApp opens, so sending later can lose the lead. | Accepted 2026-10-23 |
+| ADR-032 | Sign-in is Google only. There are no passwords, no verification emails, no reset and no resend. | Password hashing does not fit the Workers Free CPU limit: scrypt used 95 to 293 ms and PBKDF2 and a no-hash magic-link probe were cut at 10 ms. It also removes the email abuse surface and the dependency on a verified sending domain. Trade-offs: a student without a Google account cannot sign in to track progress (lead intake and WhatsApp still work), and whether Google accepts a `workers.dev` redirect address is unverified until Stage 2. | Accepted 2026-10-23 (owner, D14) |
+| ADR-033 | The Worker entry answers public pages and content-hashed images from the Cache API before Next.js starts (`src/server/edge/fast-path.ts`). Pages live 30 seconds; only cookie-free GETs for known public paths qualify. | Next.js on OpenNext costs 7 to 9 ms of CPU for a prerendered page and about 10 ms for an image hit. The Cache API works on `workers.dev` (measured). | Proposed 2026-10-23, proven or rejected by S0.10 |
+| ADR-034 | For page requests the auth facade verifies the signed session cookie itself and reads the session row with one query; Better Auth runs only for sign-in, sign-out and two-factor routes. The `Actor` and the facade interface do not change. | Better Auth's per-request cost on Workers Free is near the 10 ms limit even without hashing. | Proposed 2026-10-23, proven or rejected by S0.10 |
+| ADR-035 | After Stage 0 started, the documents are edited in place and keep version 1, with an amendment log in each, instead of creating version 2 (an exception to the rule in this file's status line). | Owner decision D13. It matches decision D2 (pre-build edits) and keeps one current text. | Accepted 2026-10-23 (owner) |
 
 ## 19. Risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Free plan CPU or size limits not met | No host | Phase 0 gate. Admin split. Decision returns to the owner. |
-| Password hashing exceeds 10 ms | Sign-in fails | Measure first. Lighter hash or alternative path or paid plan by owner decision. |
+$1| The redesign still exceeds the free CPU limit | No host without a paid plan | Module S0.10 proves it on the deployed Worker before Stage 1; if it fails the decision returns to the owner (paid plan or another design) |
+| A student has no Google account | Cannot sign in to track progress | Lead intake and WhatsApp need no account; revisit if many students lack one (ADR-032) |
+| Google does not accept a `workers.dev` redirect address | Sign-in cannot be tested before the domain works | Checked early in Stage 2; the domain is needed anyway before launch (tracker F10) |
+| Password hashing exceeds 10 ms | Sign-in fails | Measured: it does. Resolved by design: no passwords (ADR-032) |
 | Neon CU-hours exhausted, compute suspended | Leads and admin down | Database off public paths, kill switch, 70% alert, no keep-warm |
 | Neon storage full from images | Writes fail | Caps, 150 MB budget, meter, alert, swappable `MediaStore` |
 | `bytea` reads too slow or heavy | Images exceed CPU | Phase 0 measure. Fallback: base64 text column or object storage by owner decision. |
-| Pre-hijacking or account takeover | Data exposure | Mandatory email verification, link only verified emails, owner 2FA |
+| Pre-hijacking or account takeover | Data exposure | Google sign-in only with an email Google reports as verified, no password accounts, owner 2FA |
 | Authorisation gap | Student sees others' data | `Actor` type, authz matrix test, no middleware auth |
 | Service worker caches private pages | Shared phone leak | Network-only for auth, student and admin routes. Cleared on sign-out. |
 | Personal data left on a shared phone | Privacy | Delete on sync, 30-day expiry, remove button, documented |
@@ -1136,13 +1159,13 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | Unconfirmed trust claims published | Legal and trust risk | Publish gates (verified, consent, confirmed) enforced by CHECK constraints |
 | Personal data law across several countries and minors | Legal | Legal review (PRD Q6), minimal data, erasure, consent version stored. Not verified here. |
 | Free-plan commercial-use terms | Service cut off | Owner confirms terms in Phase 0 |
-| Resend 100 emails per day | Verification emails blocked | Email used only for verification, reset, invite. Google sign-in avoids email. |
+| Resend 100 emails per day | Invite emails blocked | Email is optional and used only for admin invites; invite links can be shared by hand. Google sign-in needs no email |
 | Version mismatch between Next.js, OpenNext, Serwist | Build fails | Phase 0 pins versions |
 | Data loss | Business loss | Weekly encrypted dump, owner export |
 | Scope too large for one developer | Delay | Ordered stages with exit criteria, Phase 0 first, tracker file |
 | Owner loses 2FA device | Lockout | Recovery codes, documented manual database recovery |
 | Removed admin keeps a cached session | Access after removal | Fresh session lookup for staff and every Server Action (ADR-020) |
-| Sign-up or resend abuse uses up the 100 emails per day | Owner invites and resets blocked | Turnstile, limiter, student cap of 60 per day, 40 reserved (ADR-027) |
+| Sign-up or resend abuse uses up the 100 emails per day | Not applicable | Removed: there is no sign-up, forgot-password or resend form (ADR-032) |
 | Backup artifacts fill GitHub free storage | Backups stop | Weekly dump without images, monthly images dump, retention, 70% warning (ADR-026) |
 | Cache API or purge not available on `workers.dev` | Phase 0 measures the wrong thing | Probe first; custom domain before the cache gates if needed (section 17) |
 | Silent outage | Leads lost unnoticed | Hourly health check workflow (S11.8) |
@@ -1154,7 +1177,8 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 2. Complete the pre-launch actions in PRD section 12.2 (phone numbers, trust content, legal review, mailbox, DNS, Google OAuth, vendor terms).
 3. Metric targets and the pipeline freshness number (after 4 weeks of data).
 4. `CLAUDE.md` still says "No physical deletes in v1. Archive instead." It needs the ADR-029 carve-outs. It is the owner's file and was not edited.
-5. The domain action (tracker H7) may be needed before Phase 0 gates on caching can be measured (section 17).
+5. The domain action (tracker H7) is no longer needed to measure the cache gates (the Cache API works on `workers.dev`). It is still needed before launch, and it is blocked by .IN KYC at the registrar (tracker F10, decision D12).
+6. Google OAuth credentials are now required before Stage 2 testing, because Google is the only way to sign in (tracker H8).
 
 ## Appendix A: Sources checked on 2026-10-23
 
@@ -1189,3 +1213,16 @@ Edited in place by the owner's instruction after the engineering review. Version
 - Cron reduced to rollup, purge and usage checks, daily (8.5). Hourly health check (13.2).
 - Phase 0: stub admin page and stub lead POST, hash variants, step-up, Cache API probe, per-gate failure options (section 17).
 - Wording: 3 MiB, Overview as one query.
+
+## Amendment log (after the Stage 0 measurements, 2026-10-23)
+
+Edited in place by the owner's instruction (D13, ADR-035). Version stays 1. Cause: the Stage 0 slice was measured on Workers Free and failed the CPU gates for sign-in, the lead POST and image serving; the owner chose to redesign for the free plan (D14).
+
+- Google sign-in only, no passwords, no verification, reset or resend emails (ADR-032; sections 1, 5, 8.2, 9, 13.1, 16 A9, A10, B0, B11, C2, 17, 19).
+- Email is optional in v1: admin invites only, and the invite link can be copied and sent by WhatsApp (9.4, C2).
+- Edge fast path in the Worker entry for public pages and images (ADR-033; sections 5, 6.1, 12).
+- One-query session check in the auth facade for page reads (ADR-034; section 9.1). The facade interface, the `Actor` type and the single-importer rule for Better Auth do not change.
+- ADR-027 narrowed: the student email cap no longer applies.
+- Measured results recorded in sections 1 and 17; Module S0.10 added as the proof of the redesign.
+- Vendor facts updated: the Cache API works on `workers.dev`; KV, D1 and the Durable Object queue need no payment method; Neon's plans page now says 1 GB per project.
+- ADR-032 to ADR-035 added. ADR-002, ADR-011, ADR-020 amended.
