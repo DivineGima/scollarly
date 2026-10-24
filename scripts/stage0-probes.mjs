@@ -5,11 +5,11 @@
  * separately by scripts/measure-cpu.mjs, because wall-clock time from a client is not CPU time.
  *
  *   node scripts/stage0-probes.mjs --base https://scollarly.<you>.workers.dev --token $PHASE0_PROBE_TOKEN \
- *        [--media <sha256>] [--cold-wait 330]
+ *        [--media <sha256>] [--sessions scripts/.generated/probe-sessions.json] [--cold-wait 330]
  *
  * Nothing here prints a secret. The probe token only travels in the x-phase0-token request header.
  */
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { markdownTable } from "./ci/lib.mjs";
 
 const args = Object.fromEntries(
@@ -19,6 +19,7 @@ const base = (args.base ?? "").replace(/\/$/, "");
 const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const media = args.media ?? "";
 const coldWait = Number.parseInt(args["cold-wait"] ?? "0", 10);
+const sessionsFile = args.sessions ?? "";
 if (!base || !token) {
   console.error("Usage: node scripts/stage0-probes.mjs --base <url> --token <probe token> [--media <sha256>] [--cold-wait <seconds>]");
   process.exit(2);
@@ -128,7 +129,7 @@ if (coldWait > 0) {
   });
 }
 
-// 8. Image served from media_blob through the Cache API (S0.5).
+// 8. Image read from Neon Object Storage and cached at the edge (S0.5, ADR-039).
 if (media) {
   const first = await call(`/media/${media}.webp`);
   const second = await call(`/media/${media}.webp`);
@@ -172,39 +173,37 @@ if (media) {
   });
 }
 
-// 10. Sign-in through each hash variant, then the stub pages as the signed-in user (S0.4).
-const cookieFrom = async (variant, role) => {
-  const response = await fetch(`${base}/api/v1/probe/signin-${variant}?role=${role}`, { headers: probeHeaders });
-  const text = await response.text();
-  let json = null;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    /* ignore */
-  }
-  const cookie = (response.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
-  return { status: response.status, json, cookie, text };
-};
-for (const variant of ["pbkdf2", "passwordless", "default"]) {
-  const r = await cookieFrom(variant, "admin");
-  const exceeded = r.status >= 500 || /1102|exceeded/i.test(r.text);
-  record(`Sign-in works: ${variant} hash variant (S0.4)`, variant === "default" ? (r.json?.ok === true ? true : null) : r.json?.ok === true, {
-    status: r.status,
-    ok: r.json?.ok,
-    cookiesIssued: r.json?.cookiesIssued,
-    ...(variant === "default" && exceeded ? { note: "The default scrypt variant failed or exceeded CPU on the free plan. This is a finding, not a bug in the probe." } : {}),
-  });
+// 10. The runtime role and Neon Object Storage, asked of the live Worker (ADR-038, ADR-039).
+{
+  const r = await probe("rls");
+  record(
+    "Row level security: the Worker connects as the non-owner runtime role, sees no rows without a context, cannot read Neon Auth's tables (ADR-038)",
+    r.json?.role === "app_runtime" && r.json?.bypassesRls === false && r.json?.appUserRowsVisibleWithoutContext === 0 && r.json?.neonAuthReadable === false,
+    r.json ?? { status: r.status, body: r.text.slice(0, 200) },
+  );
 }
 {
-  const admin = await cookieFrom("pbkdf2", "admin");
-  const student = await cookieFrom("pbkdf2", "student");
+  const r = await probe("storage", "?n=" + Date.now());
+  record("Neon Object Storage: the Worker signs a write and reads it back through the public URL (ADR-039)", r.status === 200 && r.json?.readBytes > 0, r.json ?? { status: r.status, body: r.text.slice(0, 200) });
+}
+
+// 11. The stub pages with real Neon Auth sessions created by scripts/ci/seed-probe-sessions.mjs (S0.4, ADR-034).
+// These are sessions of throwaway users in Neon Auth's own tables, so the whole path is real: cookie, the one session query,
+// the role from our table, row level security. Only the Google round trip is not exercised here (it needs a person).
+const COOKIE = "__Secure-neon-auth.session_token";
+if (sessionsFile && existsSync(sessionsFile)) {
+  const sessions = JSON.parse(readFileSync(sessionsFile, "utf8"));
+  const cookieOf = (who) => `${COOKIE}=${sessions[who].token}.c2lnbmF0dXJl`;
   const anon = await call("/admin/phase0");
-  const adminPage = await call("/admin/phase0", { headers: { cookie: admin.cookie } });
-  const studentOnAdmin = await call("/admin/phase0", { headers: { cookie: student.cookie } });
-  const studentPage = await call("/me/phase0", { headers: { cookie: student.cookie } });
-  record("Auth over the Neon driver: admin page renders for an admin", adminPage.status === 200 && /Stub leads stored/.test(adminPage.text), { status: adminPage.status, ms: adminPage.ms });
-  record("Auth: an anonymous visitor and a student are refused on the admin page", anon.status === 404 && studentOnAdmin.status === 404, { anonymous: anon.status, student: studentOnAdmin.status });
-  record("Auth: student page renders through the cookie-cache path", studentPage.status === 200 && /Your sessions/.test(studentPage.text), { status: studentPage.status, ms: studentPage.ms });
+  const adminPage = await call("/admin/phase0", { headers: { cookie: cookieOf("admin") } });
+  const studentOnAdmin = await call("/admin/phase0", { headers: { cookie: cookieOf("student") } });
+  const studentPage = await call("/me/phase0", { headers: { cookie: cookieOf("student") } });
+  const forged = await call("/admin/phase0", { headers: { cookie: `${COOKIE}=${"x".repeat(32)}.c2lnbmF0dXJl` } });
+  record("Auth: the admin page renders for an admin session (one session query, then one query under row level security)", adminPage.status === 200 && /Stub leads stored/.test(adminPage.text), { status: adminPage.status, ms: adminPage.ms });
+  record("Auth: an anonymous visitor, a student and a forged cookie are all refused on the admin page", anon.status === 404 && studentOnAdmin.status === 404 && forged.status === 404, { anonymous: anon.status, student: studentOnAdmin.status, forged: forged.status });
+  record("Auth: the student page renders for a student session", studentPage.status === 200 && /Your role: student/.test(studentPage.text.replace(/<!--.*?-->/g, "")), { status: studentPage.status, ms: studentPage.ms });
+} else {
+  record("Auth page checks skipped: no --sessions file", null, "run scripts/ci/seed-probe-sessions.mjs first");
 }
 
 // Report

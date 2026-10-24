@@ -1,7 +1,8 @@
 import { unstable_cache } from "next/cache";
-import { createHttpDb } from "@/server/db/client";
+import { ANONYMOUS, inContext } from "@/server/db/rls";
+import { getDb } from "@/server/db/runtime";
 import { getEnv } from "@/server/env";
-import { readPhase0Title } from "@/server/repositories/phase0-probe";
+import { readPhase0TitleQuery } from "@/server/repositories/phase0-probe";
 import { PHASE0_CONTENT_TAG } from "./tags";
 
 const FALLBACK = "Nothing published yet";
@@ -15,7 +16,9 @@ const FALLBACK = "Nothing published yet";
 const readCachedTitle = unstable_cache(
   async (): Promise<string> => {
     try {
-      return (await readPhase0Title(createHttpDb(getEnv().DATABASE_URL))) ?? FALLBACK;
+      const db = getDb(getEnv());
+      const [rows] = await inContext(db, ANONYMOUS, readPhase0TitleQuery(db));
+      return rows[0]?.value ?? FALLBACK;
     } catch {
       return FALLBACK;
     }

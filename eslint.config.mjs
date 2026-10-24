@@ -16,13 +16,17 @@ const GROUPS = {
     group: ["drizzle-orm", "drizzle-orm/*", "drizzle-kit", "@neondatabase/serverless"],
     message: "Only src/server/repositories (and its src/server/db internals) may import Drizzle or the Neon driver.",
   },
-  betterAuth: {
-    group: ["better-auth", "better-auth/*", "@better-auth/*"],
-    message: "Only src/server/auth may import Better Auth.",
+  neonAuth: {
+    group: ["@neondatabase/auth", "@neondatabase/auth/*", "otpauth", "better-auth", "better-auth/*", "@better-auth/*"],
+    message: "Only src/server/auth may import the Neon Auth SDK, otpauth or Better Auth.",
+  },
+  storage: {
+    group: ["aws4fetch", "@aws-sdk/*"],
+    message: "Only src/server/media may import the object storage client.",
   },
   resend: {
     group: ["resend", "resend/*"],
-    message: "Only src/server/email may import Resend.",
+    message: "Resend was removed (ADR-036). Nothing may import it.",
   },
   adminLibs: {
     group: ["recharts", "recharts/*", "**/components/admin/**", "@/components/admin/*", "**/shadcn/**"],
@@ -34,7 +38,7 @@ const restrict = (...names) => ({
   "no-restricted-imports": ["error", { patterns: names.map((n) => GROUPS[n]) }],
 });
 
-const everything = ["drizzle", "betterAuth", "resend"];
+const everything = ["drizzle", "neonAuth", "storage", "resend"];
 const without = (name) => everything.filter((n) => n !== name);
 
 const config = [
@@ -50,8 +54,8 @@ const config = [
   },
   // Each owner directory may import its own package (and still not the others).
   { files: ["src/server/repositories/**", "src/server/db/**", "drizzle.config.ts"], rules: restrict(...without("drizzle")) },
-  { files: ["src/server/auth/**"], rules: restrict(...without("betterAuth")) },
-  { files: ["src/server/email/**"], rules: restrict(...without("resend")) },
+  { files: ["src/server/auth/**"], rules: restrict(...without("neonAuth")) },
+  { files: ["src/server/media/**"], rules: restrict(...without("storage")) },
   // Public components: additionally no admin libraries.
   { files: ["src/components/public/**", "src/app/**/(public)/**"], rules: restrict(...everything, "adminLibs") },
   // Tests and tooling may reach the drivers directly to build fixtures; boundary tests live in tests/unit.

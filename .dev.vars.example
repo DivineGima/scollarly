@@ -1,27 +1,34 @@
 # Copy to .dev.vars for local `wrangler dev` / `opennextjs-cloudflare preview`. .dev.vars is git-ignored.
-# In deployed Workers set each value with `wrangler secret put NAME`. Never commit real values.
+# In deployed Workers the Stage 0 workflow sets each value from repository secrets. Never commit real values.
 
-# Neon connection string (pooled is fine for the HTTP driver and the WebSocket Pool).
-DATABASE_URL=postgres://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+# Connection string of the NON-OWNER runtime role `app_runtime` (ADR-038), pooled. Never the owner's string.
+DATABASE_URL=postgres://app_runtime:password@ep-xxxx-pooler.region.aws.neon.tech/neondb?sslmode=require
 
-BETTER_AUTH_SECRET=replace-with-32-plus-random-characters
-BETTER_AUTH_URL=http://localhost:8787
+# Neon Auth (ADR-037): the branch's Auth URL (it includes a path), and a cookie secret of at least 32 characters
+# (openssl rand -base64 32). Google credentials are set in the Neon console, not here.
+NEON_AUTH_BASE_URL=https://ep-xxxx.neonauth.region.aws.neon.tech/neondb/auth
+NEON_AUTH_COOKIE_SECRET=replace-with-32-plus-random-characters
 
-# Google OAuth (tracker H8 is an owner action; leave empty until credentials exist).
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+# Encrypts the owner's authenticator secret: base64 of 32 random bytes (openssl rand -base64 32).
+TOTP_ENCRYPTION_KEY=replace-with-base64-of-32-random-bytes
+
+# Salts the hashed caller key of the rate limiter. Never a raw IP.
+RATE_LIMIT_SECRET=replace-with-32-plus-random-characters
+
+# Neon Object Storage (ADR-039). The endpoint and region come from the branch; the credential has write scope only.
+# Reads of public images need no credential.
+NEON_STORAGE_ENDPOINT=https://br-xxxx.storage.c-7.region.aws.neon.tech
+NEON_STORAGE_REGION=eu-central-1
+NEON_STORAGE_ACCESS_KEY_ID=
+NEON_STORAGE_SECRET_ACCESS_KEY=
 
 # Cloudflare Turnstile. The documented always-pass test secret works for local runs:
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 
-# Resend. Empty means verification emails are skipped (the send is a no-op, nothing is logged).
-RESEND_API_KEY=
-EMAIL_FROM=Scollarly <onboarding@resend.dev>
-
 # First verified sign-in with this email becomes the owner (architecture 9.3).
 OWNER_EMAIL=owner@example.com
 
-# Stage 0 only: shared secret required by /api/v1/probe/* and the Phase 0 admin page. Remove with the probes.
+# Stage 0 only: shared secret required by /api/v1/probe/*. Remove with the probes.
 PHASE0_PROBE_TOKEN=replace-with-a-long-random-string
 
 # Optional, non-gating CU-hours probe (S0.3).

@@ -5,13 +5,24 @@
  * `mintActor`, and it is deliberately NOT re-exported from `src/server/auth/index.ts`, so forgetting an
  * authorisation check is a type error rather than a code-review finding.
  *
- * This file imports nothing from Better Auth, so repositories can import the type without breaking the
- * "only server/auth imports Better Auth" rule (it is inside server/auth).
+ * This file imports nothing, so repositories can import these types without pulling in the Neon Auth SDK.
  */
 
 declare const actorBrand: unique symbol;
 
 export type Role = "student" | "admin" | "owner";
+
+/** What the one session query returns (repository `resolveSession`). Tests inject their own. */
+export interface ResolvedSession {
+  userId: string;
+  sessionId: string;
+  email: string;
+  emailVerified: boolean;
+  /** The stored role. Unknown values are treated as `student`. */
+  role: string;
+  /** When this session last passed the second factor, or null. */
+  stepUpAt: Date | null;
+}
 
 export const STEP_UP_WINDOW_MS = 10 * 60 * 1000; // architecture 9.3 step 5 [Mine, confirm]
 

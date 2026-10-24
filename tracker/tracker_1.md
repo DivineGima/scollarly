@@ -239,6 +239,29 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Still unproven:** Neon Auth session verification and sign-in CPU in a Worker (SDK or own cookie check), the row-level-security query cost, Neon Object Storage read cost and limits, Google redirect through Neon Auth. All are S0.10 gates. A failed gate returns the matching decision to the owner.
 
+### 2026-10-24: Session 9 (Module S0.10 built; not yet deployed or measured)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (the owner merged PRs #6 and #7; #7 landed in the old branch, so its text was merged into the S0.10 branch).
+
+**Owner confirmations recorded** (the owner's words): Google credentials created and tested with the owner's own email as a test user ("i checked its okay, done its own testing for now and my email has been set as test user"). H8 and H13 are therefore marked done below.
+
+**What was built** (branch `feature/s0-10-neon-proof`; module status stays `in-progress` until the gates are measured)
+- **S0.4:** Neon Auth through the framework-neutral `@neondatabase/auth/server` entry (route `/api/auth/[...path]` proxy, `/auth/return` for the Google return trip); the facade does the one query `app_resolve_session` per request (no cache); roles in `app_user`; owner bootstrap function; owner 2FA on `otpauth` 9.5.2 with an encrypted secret, 10 hashed recovery codes, 5-failure lockout, replay refusal and a `step_up` table. Better Auth, Resend and password code deleted.
+- **S0.5:** images in the Neon Object Storage bucket `images` (public-read, created), served by the Worker entry (cache, then a plain fetch of the public URL); uploads signed with a **write-only** credential (checked: signed write 200, anonymous read 200, missing key 404, anonymous write 403, the write-only credential cannot read).
+- **S0.10:** row level security on every table with a non-owner `app_runtime` role (forced policies, a CI test for every table), `POST /api/v1/leads` as a plain function in the Worker entry, probes `rls` and `storage`, throwaway Neon Auth sessions for measuring the real authenticated path, an updated deploy workflow.
+- **Tests:** 146 unit and 39 integration tests pass locally (new: session cookie parser, facade, second factor with an in-memory store and against the real tables, media store, edge media, every-table row-level-security check, one-session-query behaviour including concurrent first sign-ins, revocation, banned and expired sessions, owner bootstrap, role changes, cross-user isolation). Type check, lint and `next build` pass.
+- **Neon configuration changed** (project aged-recipe-72220939, branch production): email-and-password sign-in turned off, the organization plugin turned off, the Worker address `https://scollarly.gimafolabit.workers.dev` added as a trusted domain, bucket `images` created, a write-only storage credential `scollarly-uploader` created. New repository secrets were created straight from the CLI without printing them; the old `PHASE0_BETTER_AUTH_SECRET` was deleted.
+
+**Findings during the build**
+- Neon Auth had **email-and-password sign-up open to anyone**, plus organizations and magic link on. Email-and-password and organizations are now off. **Magic Link is still on** (no CLI command): owner action H15.
+- `neondb_owner` has BYPASSRLS (read from `pg_roles`), so the separate runtime role is required, as the review said.
+- Neon Auth keeps the visitor's IP address and browser string in `neon_auth.session`: flag F13.
+- `@neondatabase/auth` is a beta (0.7.0), pins an older zod and Better Auth 1.7.6, and declares an optional peer of Next 16 (we are on 15.5.28), so `package.json` carries an `overrides` entry for it. We import only its framework-neutral server entry: flag F14.
+- The SDK's own per-request session path (`getSession`) was **not** measured: it needs a session minted by Neon Auth, and our one-query path replaces it. If the one query passes its gate, the SDK path is not needed.
+- A Neon Auth session cookie value was assumed to be `token.signature` (Better Auth's format); the token is looked up in the database, so a wrong guess fails closed. To be confirmed by the first real Google sign-in.
+
+**Not yet done:** deploy and measure (needs this branch merged to `main`, then the manual workflow), the real Google sign-in measurement by hand, R2-free image hit/miss numbers.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -255,6 +278,8 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F10 | `scollarly.co.in` is locked at GoDaddy until .IN KYC is accepted. The owner is an international student without Aadhaar, so DigiLocker is not available. Nameservers and DNS records cannot be changed. | Blocks moving the domain to Cloudflare (H7), a custom domain for the Worker, and the Resend sending domain (H6). The domain still resolves today; a registry server hold would take it offline. | **Open.** Owner action: ask GoDaddy support and email `support@nixi.in` for the foreign-national passport route (message drafted in the conversation). Not marked done by Claude Code. Decision D12: build on `workers.dev` meanwhile. No longer blocks Stage 0 or the cache gates (the Cache API works on `workers.dev`); it blocks launch only. See the list of applied amendments below. |
 | F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Decided 2026-10-23 (owner): option (b), redesign for the free plan (D14), documents edited in place (D13). Stage 0 stays open until Module S0.10 proves the redesign; if it fails, the decision returns to the owner.** The original options, for the record: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
 | F12 | Image backup. With images in Neon Object Storage the weekly `pg_dump` carries no image bytes, and a monthly copy of up to 3.5 GB cannot fit in GitHub Free artifact storage (about 500 MB). | Content is archived and never deleted (ADR-014). | **Decided 2026-10-24 (D17, owner delegated the choice).** No cloud copy. Immutable hash-keyed objects with no delete path, a manifest in the weekly dump, and an owner-run incremental copy to the owner's own disk, checked by sha256 (`scripts/backup-images.mjs`, built in S10.3). Needs no credential, no GitHub storage, no paid service, and does not delay any stage before Stage 10. |
+| F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Open.** Options for the owner: accept it for sessions only (they are deleted when the session ends), ask Neon whether IP capture can be switched off, or clear the column with the daily cron (our code writing to Neon's table). Needs an owner decision before launch. |
+| F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Open (informational).** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
 
 ## Stage status
 
@@ -290,7 +315,7 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S0.7 | Cron, Durable Object counter and limiter | in-progress |
 | S0.8 | Serwist offline page | in-progress |
 | S0.9 | Measurement report | in-progress |
-| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress |
+| S0.10 | Free-plan proof (edge fast path, one-query session check, thin handlers) | in-progress (built, not yet measured) |
 | S1.1 | Migrations, constraints, indexes, seeds | — |
 | S1.2 | Repository layer, `Actor`, auth facade interface | — |
 | S1.3 | Shared libraries | — |
@@ -405,13 +430,15 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H5 | Q6: legal check on consent for 17-year-old applicants and data protection in the student countries | Launch | Open |
 | H6 | Mailbox on scollarly.co.in and Resend domain verification | **Removed (D15):** no email is sent in v1 | Not needed |
 | H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 (no longer blocking the cache gates: the Cache API works on `workers.dev`) |
-| H8 | Create the Google OAuth credentials and enter them in the Neon Auth console (H13). Google's redirect address will be Neon Auth's; confirm when created | Before S0.10 can measure the sign-in return trip, and before Stage 2 | Open |
+| H8 | Create the Google OAuth credentials and enter them in the Neon Auth console (H13). Google's redirect address is Neon Auth's | Before S0.10 can measure the sign-in return trip, and before Stage 2 | **Done per the owner, 2026-10-24** ("i checked its okay, done its own testing for now and my email has been set as test user"). The app is in Google's Testing mode with the owner as test user, so publishing it is a launch step. |
 | H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 5 GB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, (the student email cap of 60 a day, 40 reserved and 3 per address was removed by D14), 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
 | H12 | Read Neon's plans page for Object Storage and confirm the free-plan request and transfer limits (the pages read state 5 GB per project but no request or transfer limit). No card is needed. R2 is dropped (D16) | Before S0.10 measures images | Open |
-| H13 | Switch on Neon Auth for the project in the Neon console (Auth tab) and add the Google credentials there | Before S0.10 can measure Neon Auth | Open |
+| H13 | Switch on Neon Auth for the project in the Neon console and add the Google credentials there | Before S0.10 can measure Neon Auth | **Done per the owner, 2026-10-24.** Claude Code verified from the Neon CLI that Google shows as its own credentials, not Neon's shared test keys. |
 | H14 | From Stage 10 on: run `scripts/backup-images.mjs` monthly and after any bulk upload, and keep the copy on your own drive (a second copy in your own cloud account is optional). The script needs no password or key | After S10.3, then monthly | Not yet needed |
+| H15 | Turn off the **Magic Link** plugin on Neon Auth: Neon console, Settings, Better Auth, Magic Link, switch off. (Claude Code turned off email-and-password and organizations from the command line, but magic link has no command.) Until then anyone can create an account with an email link, which bypasses "Google sign-in only" | Before launch, and ideally before S0.10 | Open |
+| H16 | Add the redirect URI `https://ep-bitter-bar-b97sb88f.neonauth.c-7.eu-central-1.aws.neon.tech/neondb/auth/callback/google` to the Google OAuth client if it is not there | Before the first real Google sign-in | Per the owner the sign-in test worked; recorded as done only when the owner says so |
 
 ## Amendments applied in place (decision D13) and what remains
 

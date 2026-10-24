@@ -1,8 +1,10 @@
-import type { MediaBlobResult } from "@/server/repositories/media";
+import type { MediaStore } from "@/server/media/store";
 
 /**
- * `GET /media/[hash]` delivery (architecture 10.5, S0.5): Cache API first, the database only on a miss.
- * The URL is the content hash, so the response can be cached forever. A cache hit makes no database access.
+ * `GET /media/[hash]` delivery (architecture 10.5, S0.5), run in the Worker entry before Next.js starts. The Cache API is
+ * checked by `fast-path.ts`; this runs on a miss. It reads the image from the public bucket (no database, no
+ * credential), answers it with immutable headers, and stores a copy in the Cache API. The URL is the content hash, so
+ * the copy is valid forever.
  */
 
 const HASH_PATTERN = /^([a-f0-9]{64})(?:\.webp)?$/;
@@ -17,7 +19,7 @@ export interface ServeMediaDeps {
   hashParam: string;
   requestUrl: string;
   cache: Pick<Cache, "match" | "put">;
-  loadBlob: (sha256: string) => Promise<MediaBlobResult | null>;
+  store: Pick<MediaStore, "get">;
   waitUntil: (task: Promise<unknown>) => void;
 }
 
@@ -31,18 +33,20 @@ export async function serveMedia(deps: ServeMediaDeps): Promise<Response> {
   const hit = await deps.cache.match(cacheKey);
   if (hit) return hit;
 
-  const blob = await deps.loadBlob(sha256);
-  if (!blob || blob.mime !== "image/webp") return notFound();
+  let upstream: Response | null;
+  try {
+    upstream = await deps.store.get(sha256);
+  } catch {
+    return new Response("Image storage is unavailable", { status: 502, headers: { "Cache-Control": "no-store" } });
+  }
+  if (!upstream) return notFound();
 
-  const response = new Response(blob.data as BodyInit, {
-    status: 200,
-    headers: { ...IMMUTABLE_HEADERS, "Content-Length": String(blob.data.byteLength) },
-  });
+  const response = new Response(upstream.body, { status: 200, headers: IMMUTABLE_HEADERS });
   deps.waitUntil(deps.cache.put(cacheKey, response.clone()));
   return response;
 }
 
 function notFound(): Response {
-  // Not cached, so a hash uploaded a moment later is found.
+  // Never cached, so an image uploaded a moment later is found.
   return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
 }

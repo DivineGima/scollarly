@@ -1,125 +1,86 @@
 import { describe, expect, it, vi } from "vitest";
-import { AuthError, STEP_UP_WINDOW_MS } from "@/server/auth/actor";
-import type { Auth } from "@/server/auth/auth";
+import { type ResolvedSession, STEP_UP_WINDOW_MS } from "@/server/auth/actor";
+import { AuthError } from "@/server/auth/actor";
 import { createAuthFacade } from "@/server/auth/facade";
 
-type Role = "student" | "admin" | "owner";
+const COOKIE = "__Secure-neon-auth.session_token";
+const TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+const withSession = (token: string | null = TOKEN) => new Headers(token ? { cookie: `${COOKIE}=${token}.sig` } : {});
 
-function session(role: Role, twoFactorVerifiedAt: Date | null = null) {
-  return {
-    user: { id: `user-${role}`, role },
-    session: { id: `session-${role}`, twoFactorVerifiedAt },
-  };
-}
+const session = (over: Partial<ResolvedSession> = {}): ResolvedSession => ({
+  userId: "u-1",
+  sessionId: "s-1",
+  email: "a@example.test",
+  emailVerified: true,
+  role: "student",
+  stepUpAt: null,
+  ...over,
+});
 
-/** A stand-in for Better Auth that records how `getSession` was called. */
-function fakeAuth(sequence: Array<ReturnType<typeof session> | null>) {
-  const getSession = vi.fn(async (_args: { headers: Headers; query: { disableCookieCache: boolean } }) => sequence.shift() ?? null);
-  return { auth: { api: { getSession } } as unknown as Auth, getSession };
-}
+const facadeFor = (result: ResolvedSession | null) => {
+  const resolve = vi.fn(async () => result);
+  return { resolve, ...createAuthFacade(resolve) };
+};
 
-const headers = new Headers({ cookie: "x=1" });
-const verifiedAt = new Date("2026-10-23T10:00:00Z");
-
-describe("checkSession: fresh versus cached lookups (ADR-020)", () => {
-  it("does a FRESH lookup by default, so a removed admin is refused on the very next request", async () => {
-    const { auth, getSession } = fakeAuth([session("admin")]);
-    const actor = await createAuthFacade(() => auth).checkSession(headers);
-    expect(actor?.role).toBe("admin");
-    expect(getSession).toHaveBeenCalledTimes(1);
-    expect(getSession.mock.calls[0]?.[0].query.disableCookieCache).toBe(true);
+describe("checkSession: one query per request, no cache (ADR-034, ADR-020)", () => {
+  it("returns null without touching the database when there is no session cookie", async () => {
+    const f = facadeFor(session());
+    expect(await f.checkSession(withSession(null))).toBeNull();
+    expect(f.resolve).not.toHaveBeenCalled();
   });
 
-  it("lets a student read opt in to the cookie cache, with one lookup", async () => {
-    const { auth, getSession } = fakeAuth([session("student")]);
-    const actor = await createAuthFacade(() => auth).checkSession(headers, { allowCookieCache: true });
-    expect(actor?.role).toBe("student");
-    expect(getSession).toHaveBeenCalledTimes(1);
-    expect(getSession.mock.calls[0]?.[0].query.disableCookieCache).toBe(false);
+  it("returns null for an unknown, expired or banned session (the query returns nothing)", async () => {
+    expect(await facadeFor(null).checkSession(withSession())).toBeNull();
   });
 
-  it("re-reads from the database when a cached copy claims a privileged role", async () => {
-    // The cache says admin; the database says the user was demoted to student.
-    const { auth, getSession } = fakeAuth([session("admin"), session("student")]);
-    const actor = await createAuthFacade(() => auth).checkSession(headers, { allowCookieCache: true });
-    expect(actor?.role).toBe("student");
-    expect(getSession).toHaveBeenCalledTimes(2);
-    expect(getSession.mock.calls[1]?.[0].query.disableCookieCache).toBe(true);
+  it("returns null when Google did not report the email as verified", async () => {
+    expect(await facadeFor(session({ emailVerified: false })).checkSession(withSession())).toBeNull();
   });
 
-  it("returns null when there is no session, and null when the fresh re-read finds the session revoked", async () => {
-    expect(await createAuthFacade(() => fakeAuth([null]).auth).checkSession(headers)).toBeNull();
-    const { auth } = fakeAuth([session("owner", verifiedAt), null]);
-    expect(await createAuthFacade(() => auth).checkSession(headers, { allowCookieCache: true })).toBeNull();
+  it("asks the database once per call and passes only the token, never the signature", async () => {
+    const f = facadeFor(session());
+    await f.checkSession(withSession());
+    await f.checkSession(withSession());
+    expect(f.resolve).toHaveBeenCalledTimes(2);
+    expect(f.resolve).toHaveBeenCalledWith(TOKEN);
+  });
+
+  it("mints an actor from what the database says, so a role change shows on the very next request", async () => {
+    const actor = await facadeFor(session({ role: "admin" })).checkSession(withSession());
+    expect(actor).toMatchObject({ userId: "u-1", sessionId: "s-1", storedRole: "admin", role: "admin", twoFactorVerifiedAt: null });
+    const demoted = await facadeFor(session({ role: "student" })).checkSession(withSession());
+    expect(demoted?.role).toBe("student");
+  });
+
+  it("treats an unknown stored role as student", async () => {
+    expect((await facadeFor(session({ role: "superuser" })).checkSession(withSession()))?.role).toBe("student");
+  });
+
+  it("gives an owner without a second-factor check student powers, and owner powers after it", async () => {
+    expect((await facadeFor(session({ role: "owner" })).checkSession(withSession()))?.role).toBe("student");
+    const verified = new Date();
+    const actor = await facadeFor(session({ role: "owner", stepUpAt: verified })).checkSession(withSession());
+    expect(actor).toMatchObject({ storedRole: "owner", role: "owner", twoFactorVerifiedAt: verified });
   });
 });
 
-describe("owner powers need a 2FA-verified session (architecture 9.3)", () => {
-  it("gives an owner session with no 2FA check the powers of a student only", async () => {
-    const facade = createAuthFacade(() => fakeAuth([session("owner", null)]).auth);
-    const actor = await facade.checkSession(headers);
-    expect(actor).toMatchObject({ storedRole: "owner", role: "student", twoFactorVerifiedAt: null });
+describe("requireRole and requireOwner", () => {
+  it("throws UNAUTHENTICATED without a session and FORBIDDEN for too low a role", async () => {
+    await expect(facadeFor(null).requireRole(withSession(), "student")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+    await expect(facadeFor(session()).requireRole(withSession(), "admin")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(facadeFor(session()).requireRole(withSession(), "admin")).rejects.toBeInstanceOf(AuthError);
   });
 
-  it("refuses requireRole('admin') and requireOwner for that session", async () => {
-    await expect(createAuthFacade(() => fakeAuth([session("owner", null)]).auth).requireRole(headers, "admin")).rejects.toMatchObject({ code: "FORBIDDEN" });
-    await expect(createAuthFacade(() => fakeAuth([session("owner", null)]).auth).requireOwner(headers)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  it("lets admins and the verified owner in, and refuses an owner who has not passed 2FA", async () => {
+    await expect(facadeFor(session({ role: "admin" })).requireRole(withSession(), "admin")).resolves.toMatchObject({ role: "admin" });
+    await expect(facadeFor(session({ role: "owner", stepUpAt: new Date() })).requireOwner(withSession())).resolves.toMatchObject({ role: "owner" });
+    await expect(facadeFor(session({ role: "owner" })).requireOwner(withSession())).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("gives owner and admin powers once the session passed 2FA", async () => {
-    const owner = await createAuthFacade(() => fakeAuth([session("owner", verifiedAt)]).auth).requireOwner(headers);
-    expect(owner.role).toBe("owner");
-    const admin = await createAuthFacade(() => fakeAuth([session("owner", verifiedAt)]).auth).requireRole(headers, "admin");
-    expect(admin.role).toBe("owner");
-  });
-
-  it("does not demand 2FA of an admin", async () => {
-    expect((await createAuthFacade(() => fakeAuth([session("admin")]).auth).requireRole(headers, "admin")).role).toBe("admin");
-  });
-});
-
-describe("requireRole", () => {
-  it("throws UNAUTHENTICATED when signed out", async () => {
-    await expect(createAuthFacade(() => fakeAuth([null]).auth).requireRole(headers, "student")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
-  });
-
-  it("throws FORBIDDEN when the role is too low", async () => {
-    await expect(createAuthFacade(() => fakeAuth([session("student")]).auth).requireRole(headers, "admin")).rejects.toBeInstanceOf(AuthError);
-    await expect(createAuthFacade(() => fakeAuth([session("admin")]).auth).requireOwner(headers)).rejects.toMatchObject({ code: "FORBIDDEN" });
-  });
-
-  it("treats an unknown stored role as a student", async () => {
-    const odd = { user: { id: "u", role: "root" }, session: { id: "s", twoFactorVerifiedAt: null } };
-    const { auth } = fakeAuth([odd as unknown as ReturnType<typeof session>]);
-    expect((await createAuthFacade(() => auth).checkSession(headers))?.role).toBe("student");
-  });
-});
-
-describe("step-up (10 minutes) for destructive owner actions", () => {
-  const owner = (verified: Date) => createAuthFacade(() => fakeAuth([session("owner", verified)]).auth);
-
-  it("passes inside the window", async () => {
-    const now = new Date(verifiedAt.getTime() + STEP_UP_WINDOW_MS - 1);
-    await expect(owner(verifiedAt).requireOwner(headers, { stepUp: true, now })).resolves.toMatchObject({ role: "owner" });
-  });
-
-  it("expires after 10 minutes and asks to re-confirm", async () => {
-    const now = new Date(verifiedAt.getTime() + STEP_UP_WINDOW_MS + 1);
-    await expect(owner(verifiedAt).requireOwner(headers, { stepUp: true, now })).rejects.toMatchObject({ code: "STEP_UP_REQUIRED" });
-  });
-
-  it("is not demanded when the action is not destructive", async () => {
-    const now = new Date(verifiedAt.getTime() + 60 * STEP_UP_WINDOW_MS);
-    await expect(owner(verifiedAt).requireOwner(headers, { now })).resolves.toMatchObject({ role: "owner" });
-  });
-});
-
-describe("the Actor", () => {
-  it("is frozen, so a caller cannot promote themselves after the facade issues it", async () => {
-    const actor = await createAuthFacade(() => fakeAuth([session("student")]).auth).checkSession(headers);
-    expect(Object.isFrozen(actor)).toBe(true);
-    expect(() => {
-      (actor as unknown as { role: string }).role = "owner";
-    }).toThrow();
+  it("requires a fresh second-factor check for destructive owner actions (10 minutes)", async () => {
+    const verified = new Date("2026-10-24T10:00:00Z");
+    const f = facadeFor(session({ role: "owner", stepUpAt: verified }));
+    await expect(f.requireOwner(withSession(), { stepUp: true, now: new Date(verified.getTime() + STEP_UP_WINDOW_MS) })).resolves.toBeDefined();
+    await expect(f.requireOwner(withSession(), { stepUp: true, now: new Date(verified.getTime() + STEP_UP_WINDOW_MS + 1) })).rejects.toMatchObject({ code: "STEP_UP_REQUIRED" });
   });
 });
