@@ -9,7 +9,7 @@ import { createAuthFacade } from "./facade";
  */
 export { type Actor, AuthError, type AuthErrorCode, isStepUpFresh, type Role, STEP_UP_WINDOW_MS } from "./actor";
 export { createAuthFacade, type AuthFacade, type ResolveSession } from "./facade";
-export { completeSignIn, proxyAuthRequest, readSessionToken, type NeonAuthConfig } from "./session";
+export { completeSignIn, proxyAuthRequest, readSessionToken, startGoogleSignIn, type NeonAuthConfig } from "./session";
 export {
   createSecondFactor,
   decryptSecret,
