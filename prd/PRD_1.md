@@ -75,16 +75,16 @@ Scollarly connects African students with Indian universities. Students pay nothi
 ## 4. Constraints [Owner unless noted]
 
 - No paid APIs or tools in v1. Free tiers are acceptable but their limits and terms must be verified before committing. [Mine]
-- Auth: **Google sign-in only** via Better Auth, self-hosted. There are no passwords, so there is no password reset and no verification email. [Owner, amended 2026-10-23 (D14): password hashing does not fit the free Workers CPU limit]
+- Auth: **Google sign-in only** through **Neon Auth**, Neon's managed service built on Better Auth, which keeps its users and sessions in our own Neon database. There are no passwords, so there is no password reset and no verification email. Roles, the owner's second factor and invites live in our own tables. [Owner, amended 2026-10-24 (D15)]
 - WhatsApp: smart links only. [Owner chose smart links]
 - Brand-new codebase. [Owner] The "additive only" rules in claude.md and the "no admin / no auth / no new tables" decisions in design.md apply to the old site only and are superseded. The new repo needs its own CLAUDE.md.
 - The old Vercel projects (`scollarly`, `scollarly-story`) are being deleted, so there is no live site until v2 ships. [Owner]
 - Tech stack as listed below. [Owner]
 - Hosting: Cloudflare Workers only. Vercel is removed from the plan. [Owner]
-- **The Workers Free CPU limit (about 10 ms per request) shapes the design.** [Owner, amended 2026-10-23 (D14)] Stage 0 measured that Next.js, Better Auth and password hashing exceed it. The design therefore (a) answers public pages and images from the edge cache before Next.js starts, (b) has no password sign-in, and (c) keeps handlers and session checks thin. A paid plan is not assumed; if the redesign cannot meet the gates, the decision returns to the owner.
+- **The Workers Free CPU limit (about 10 ms per request) shapes the design.** [Owner, amended 2026-10-23 (D14)] Stage 0 measured that Next.js, self-hosted Better Auth and password hashing exceed it. The design therefore (a) answers public pages and images from the edge cache before Next.js starts, (b) has no password sign-in and runs sign-in and sessions at Neon instead of inside the Worker (D15), and (c) keeps handlers and session checks thin. A paid plan is not assumed; if the redesign cannot meet the gates, the decision returns to the owner.
 - Domain: scollarly.co.in is the only domain. scollarly.com is not used anywhere. [Owner] Until the .IN verification at the registrar is complete, the build and its measurements use the free `workers.dev` address (owner decision D12, 2026-10-23). The domain is needed before launch, not for the build.
 - **Timezone: WAT (West Africa Time, `Africa/Douala`, UTC+1, no daylight saving) is the single timezone for the dashboard, the SLA and all reports. It is held in one configured value.** [Owner, amended 2026-10-23]
-- **Content images are stored in Neon, not in a separate object store.** [Owner, amended 2026-10-23]
+- **Content images are stored in a Neon Object Storage bucket** (Neon's S3-compatible storage, in the same project as the database). [Owner, amended 2026-10-24 (D16)] R2 was the first choice but its checkout asked for a payment method, so it is not used. Neon Object Storage needs no card and gives 5 GB per project on the free plan. Its request and transfer limits are not stated on the pages read and are confirmed in Phase 0.
 
 ### Tech stack [Owner]
 
@@ -96,10 +96,13 @@ Scollarly connects African students with Indian universities. Students pay nothi
 | PWA / offline | Serwist + idb | Offline pages and a queue for leads and WhatsApp taps |
 | Charts | Recharts | Analytics dashboard only |
 | Backend / API | Route Handlers, Server Actions, Zod | Lead sync, role checks, validation |
-| Database | Neon Postgres | Leads, stages, content, events, placements, content images |
+| Database | Neon Postgres | Leads, stages, content, events, placements |
+| Image storage | Neon Object Storage (bucket, public-read) | Content images, served from the edge cache (D16) |
 | ORM | Drizzle | Typed queries and migrations |
-| Authentication | Better Auth (self-hosted) | Google sign-in only, roles, sessions, owner 2FA |
-| Email | Resend, sending from mail.scollarly.co.in (optional in v1) | Admin invite emails only. No verification or reset emails. Invite links can also be shared by hand |
+| Authentication | Neon Auth (managed Better Auth in our Neon database) | Google sign-in only and sessions (D15) |
+| Owner 2FA | otpauth library plus our own lockout and recovery codes | Authenticator-app code for the owner only (D15) |
+| Access control | Auth facade and Actor in our code, plus Neon row level security | Two locks: the code check and database policies (D15) |
+| Email | None in v1 | Resend is removed (D15). Admin invites are copyable links shared by hand |
 | Bot protection | Cloudflare Turnstile | Protects the lead forms (there is no password sign-up to protect) |
 | Testing | Vitest, Playwright, Lighthouse CI, axe | Unit, end-to-end and offline tests, page budget, accessibility |
 | CI | GitHub Actions | Tests on every push |
@@ -110,10 +113,10 @@ Scollarly connects African students with Indian universities. Students pay nothi
 - **Hosting.** Cloudflare Workers only. [Owner] There is no fallback host. If the Phase 0 test (section 13) shows the app does not fit the free Workers limits, the decision comes back to you before anything is spent.
 - **Next.js on Cloudflare Workers via OpenNext.** Needs a check that the chosen Next.js version, the Workers free-plan size and CPU limits, and Serwist all work together. This is tested first, in Phase 0.
 - **Neon free tier.** Check storage, compute hours and idle suspend. A database that has gone idle makes the first request slow, which hurts users on weak connections.
-- **Content images in Neon.** [Owner, amended 2026-10-23] Images share Neon's free storage with all other data, so they are size-capped and monitored (FR-18). Delivery must be cached at the edge so image requests do not wake the database for every student. Stage 0 measured that this delivery has to happen in the Worker entry, before Next.js starts, to fit the CPU limit. If an image's first (cache miss) request proves too costly, object storage (R2) is the fallback; it needs the owner's decision because it may need a payment method.
+- **Content images in Neon Object Storage.** [Owner, amended 2026-10-24 (D16)] Images are size-capped and monitored (FR-18). Delivery is answered from the edge cache in the Worker entry, before Next.js starts, so image requests wake neither Next.js nor the database. Reads use a public-read bucket (no signing); uploads are signed with a Neon credential kept as a Worker secret. The free plan allows 5 GB per project.
 - **Dashboard-only libraries.** shadcn/ui and Recharts must not enter the public bundle. They load only on admin routes. Lighthouse CI enforces the page budget (FR/NFR in section 8) on every push.
 - **2FA.** Required for the owner only. [Owner] Admins and students are not required to use it. Authenticator-app codes plus recovery codes; SMS codes would add cost and are not assumed. [Mine]
-- **Email domain.** scollarly.co.in is the only domain. [Owner] **Email is optional in v1** (admin invites only; amended 2026-10-23). If invite emails are used, they send from mail.scollarly.co.in, whose DNS records must be verified in Resend. The old `info@scollarly.com` address is replaced by an address on scollarly.co.in, and a mailbox must exist to receive mail there (section 12.2).
+- **Email domain.** scollarly.co.in is the only domain. [Owner] **No email is sent in v1** (Resend removed, D15). If email is added later, the sending domain and a mailbox become launch requirements again. The old `info@scollarly.com` address is replaced by an address on scollarly.co.in, and a mailbox must exist to receive mail there (section 12.2).
 - **Drizzle replaces Prisma.** The old Prisma schema and migration are not reused. Existing `ContactSubmission` rows, if any, are migrated by a one-off script.
 - **Turnstile and offline leads.** See the edge case in section 10.
 - **Analytics.** No third-party analytics tool is listed, which matches assumption A9 (first-party events, GA4 removed).
@@ -129,7 +132,7 @@ Scollarly connects African students with Indian universities. Students pay nothi
 | `offer-letter-sample.webp` | Already blurred. Keep. |
 | `ContactSubmission` records, if any exist | Migrate into the new leads table. |
 | next-intl approach, `messages/en.json` and `fr.json` key structure | Keep the pattern; apply to all UI text this time. |
-| Resend for confirmation emails | Keep if the free tier is sufficient. Verify limits. |
+| Resend for confirmation emails | Removed 2026-10-24 (D15): no flow sends email in v1. |
 | Brand: blue/black/white, logos | Re-host the logos in the content image store (FR-18); don't hotlink. |
 
 ### Remove
@@ -184,7 +187,7 @@ A short form that does not require an account [Mine, confirm]. Fields follow the
 - v1 uses one shared Scollarly WhatsApp number, set in a single configured value. Per-admin numbers are deferred. [Mine]
 
 ### F5 Auth and roles
-Google sign-in via self-hosted Better Auth [Owner], with 2FA required for the owner only [Owner]. There are no passwords [Owner, amended 2026-10-23 (D14)]. Anyone who signs in with Google for the first time becomes a Student. Only the owner can invite or promote someone to Admin. Admins cannot create admins. The owner role cannot be removed, self-demoted if last, or granted by anyone else. Owner powers need a session that has passed the 2FA check, and destructive owner actions need a 2FA check within the last 10 minutes [Mine, confirm]. Removing an admin cuts their access on their next request.
+Google sign-in through Neon Auth [Owner, amended 2026-10-24 (D15)], with 2FA required for the owner only [Owner]. There are no passwords [Owner, amended 2026-10-23 (D14)]. Anyone who signs in with Google for the first time becomes a Student. Only the owner can invite or promote someone to Admin. Admins cannot create admins. The owner role cannot be removed, self-demoted if last, or granted by anyone else. Owner powers need a session that has passed the 2FA check, and destructive owner actions need a 2FA check within the last 10 minutes [Mine, confirm]. Removing an admin cuts their access on their next request.
 
 ### F6 Content management
 Admin screens for: universities, programmes, fee structures, campus experiences, official resources, testimonials, team, FAQs, trust stats, journeys, blog posts, and images. Fee and tour records keep `dataConfirmed`, `lastUpdated` and `urlLastChecked`, and the dashboard flags stale ones (fees over 180 days, tours over 90 days [Carried]). Testimonials need `verified` and a consent record before they can be published. Who may edit content is [Mine, Q: A4]. Images are uploaded by admins and the owner from these screens and stored per FR-18. [Owner, amended 2026-10-23]
@@ -260,7 +263,7 @@ All UI text goes through translation keys from day one. French is scaffolded but
 | FR-15 | All user-facing strings use translation keys. |
 | FR-16 | Content edits appear on the public site without a code deploy, and the PWA cache refreshes (stale-while-revalidate). |
 | FR-17 | Admins and the owner can record, void and view payments received from universities, in USD only, per F10. Entries are append-only; a void requires a reason; every entry and void stores who and when. No expected or invoiced amount is stored. [Owner, amended 2026-10-23] |
-| FR-18 | Content images (logos, campus photos, testimonial photos, blog images) are stored in the database. The browser resizes each image to WebP before upload. Proposed caps: about 300 KB for photos and 50 KB for logos, checked again on the server. The server checks the file signature, and SVG is not accepted. Images are served with long-lived cache headers through the edge cache. Total image storage is shown to the owner, with an alert at 70% of its budget (proposed budget about 150 MB of Neon's free storage). Offer-letter images require an in-browser blur step and a confirmation before upload. [Owner, amended 2026-10-23. The numbers are [Mine, confirm]] |
+| FR-18 | Content images (logos, campus photos, testimonial photos, blog images) are stored in a Neon Object Storage bucket. The browser resizes each image to WebP before upload. Proposed caps: about 300 KB for photos and 50 KB for logos, checked again on the server. The server checks the file signature, and SVG is not accepted. Images are served with long-lived cache headers through the edge cache. Total image storage is shown to the owner, with an alert at 70% of its budget (proposed budget about 3.5 GB of Neon Object Storage's free 5 GB). Offer-letter images require an in-browser blur step and a confirmation before upload. [Owner, amended 2026-10-24 (D16). The numbers are [Mine, confirm]] |
 
 ### Non-functional
 - **Performance budget** (proposed starting values, to be validated on a throttled mobile profile and real low-end Android): first public page load under 200 KB transferred excluding lazy images; no layout-blocking splash; Lighthouse mobile performance at least 85 [Carried]. Owner to confirm.
@@ -289,7 +292,7 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 - Duplicate leads from the same student (retries, two devices, new session): dedupe by reference first, then by WhatsApp number, and surface possible duplicates to admins rather than auto-merge.
 - WhatsApp number missing a country code, wrong length, or shared between students: validate and normalise; allow multiple students per number with a warning.
 - A lead later signs up with a different email: link by number or reference with admin confirmation, never silently. The admin records how identity was checked: the verified email matches the lead, or the student replied on WhatsApp from the number on file. [Mine, amended 2026-10-23]
-- There is no password sign-up, forgot-password or resend-verification, so those forms cannot be abused to use up the free email allowance. Email is used only for optional admin invites. The lead forms keep Turnstile and the rate limiter. [Owner, amended 2026-10-23 (D14)]
+- There is no password sign-up, forgot-password or resend-verification, so those forms cannot be abused to use up the free email allowance. No email is sent in v1. The lead forms keep Turnstile and the rate limiter. [Owner, amended 2026-10-23 (D14)]
 - Applicants aged 17 are minors. Consent and parent involvement need a legal check. [Open, Q6]
 - Student requests deletion: leads, notes and events tied to them must be erasable while keeping anonymous aggregates. Payment records are not personal data and are kept; a link to an erased lead is cleared. [Mine]
 
@@ -328,7 +331,8 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 | Google sign-in only: a student without a Google account cannot sign in to track progress | Anonymous lead intake and WhatsApp work without an account; the account is only for tracking. Revisit if many students lack a Google account |
 | Trust claims on the site are inconsistent or unverifiable | Resolve Q3 before launch; testimonials gated by consent |
 | Storing students' personal data brings legal duties in several countries | Legal check [Open, Q6]; minimise stored data; deletion on request |
-| Images stored in Neon consume the shared free storage and could wake the database | Size caps, edge caching, usage meter and alert (FR-18); the storage layer is swappable later |
+| Neon Object Storage is generally available, but its request and transfer limits on the free plan are not stated on the pages read | The owner checks Neon's plans page (section 12.2); Phase 0 measures reads and the usage meter alerts at 70% of the budget. If a limit is too low the decision returns to the owner; images stay in Neon behind the same storage interface |
+| Neon Auth is a managed service: an outage blocks sign-in, and it has no authenticator-app 2FA yet | Public pages and lead intake do not depend on it. Owner 2FA is our own code on a proven library. The owner checks Neon's roadmap each session until its MFA ships (tracker) |
 | Admins can enter payment amounts | Append-only ledger with void-and-re-enter and a full audit trail (FR-17) |
 
 ## 12. Decisions and remaining items
@@ -341,12 +345,12 @@ Users and roles; leads (profile, preferred programmes, reference, source, assign
 | Roles | Three roles only: student, admin, owner. All other staff are admins. | Owner, amended 2026-10-23 |
 | Timezone | WAT (`Africa/Douala`) for the dashboard, the SLA and reports | Owner, amended 2026-10-23 |
 | Expected volume | About 1 to 100 leads per month, approximate | Owner, amended 2026-10-23 |
-| Content images | Stored in Neon, with caps and edge caching (FR-18) | Owner, amended 2026-10-23 |
+| Content images | Stored in a Neon Object Storage bucket, with caps and edge caching (FR-18) | Owner, amended 2026-10-24 (D16) |
 | University payments | Paid in USD, amounts not fixed; only payments received are recorded; admins and the owner can enter and view them | Owner, amended 2026-10-23 |
 | SLA rule | As defined in FR-12 | Owner (agreed to a precise rule), amended 2026-10-23 |
 | Owner | One owner: you. Created from a server-side configured email at first verified sign-in. | Owner / Mine |
 | 2FA | Required for the owner only. Authenticator app plus recovery codes. | Owner / Mine |
-| Authentication | Better Auth, self-hosted, Google sign-in only (no passwords) | Owner, amended 2026-10-23 (D14) |
+| Authentication | Neon Auth (managed Better Auth), Google sign-in only (no passwords) | Owner, amended 2026-10-24 (D15) |
 | Hosting | Cloudflare Workers only. Vercel removed. No fallback host. | Owner |
 | Domain | scollarly.co.in only. Email sends from mail.scollarly.co.in. scollarly.com is not used. | Owner |
 | Offline lead verification | Turnstile runs when the app is open and online; queued leads submit then. No dependency on background sync. | Mine |
@@ -377,10 +381,11 @@ These do not block starting the build. They block going live.
 1. **Q2: Correct phone numbers.** Which number is the Scollarly WhatsApp number (+237 651 232 301 on every button), and which number should the contact section show (+91 98157 25968 today)?
 2. **Q3: Confirmed trust content.** Provide the real figures for students helped and students admitted, confirm the 5 testimonials are real and consented, and confirm the team bios. Anything unconfirmed is left out.
 3. **Q6: Minors and data protection.** Get a legal check on consent for 17-year-old applicants and on the privacy rules in the student countries. I have not verified which laws apply.
-4. **Mailbox and email (optional in v1).** Creating a mailbox on scollarly.co.in and verifying mail.scollarly.co.in in Resend are only needed if invite or notification emails are used. Not needed for launch.
+4. **Mailbox and email.** Not needed in v1: Resend is removed (D15) and invites are copyable links.
 5. **Domain on Cloudflare.** Needed before launch, not for the build. The Stage 0 probe showed the Cache API works on the `workers.dev` address, so the build and the gates use `workers.dev`. At the time of this amendment scollarly.co.in is locked at the registrar pending .IN KYC (owner decision D12).
-6. **Google sign-in.** Create the Google OAuth credentials. Sign-in is now the only way in, so this is needed before Stage 2 testing. Whether Google accepts a `workers.dev` redirect address is not yet verified; it is checked in Stage 2.
-7. **Vendor limits.** Confirm the free-tier limits and commercial-use terms of Cloudflare Workers, Neon, Resend and Turnstile. Phase 0 starts this.
+6. **Neon Auth and Google sign-in.** Switch on Neon Auth for the project in the Neon console and create the Google OAuth credentials for it. Google's redirect address will be Neon Auth's, not the `workers.dev` address; this is confirmed when the credentials are created. Needed before Stage 2 testing.
+7. **Vendor limits.** Confirm the free-tier limits and commercial-use terms of Cloudflare Workers, Neon (including Neon Auth and Neon Object Storage) and Turnstile. Phase 0 starts this.
+8. **Neon Object Storage limits.** Read Neon's plans page and confirm the free-plan request and transfer limits for Object Storage. No card is needed. (R2 was dropped because its checkout asked for a payment method; D16.)
 
 ### 12.3 Needed before a specific feature
 
@@ -395,7 +400,7 @@ All stages ship in version 1. [Owner, amended 2026-10-23]
 
 Mapping to the build contract (`essentials/system_architecture_essential_1.md`, Stages 0 to 11): Phase 0 is Stage 0. The PRD's "Stage 1, core" is roughly essentials Stages 1 to 7. The PRD's "Stage 2" is roughly essentials Stages 8 and 9. Essentials Stages 10 and 11 (owner pages, operations, hardening, launch) have no separate PRD stage. The essentials file is the source for order and exit criteria.
 
-(m) => m
+- **Phase 0, proof of fit:** one thin slice deployed on Cloudflare Workers' free plan: a server-rendered page, Google sign-in with Neon Auth (the first slice used self-hosted Better Auth), a password hash and sign-in measured against the CPU limit, one Neon query, a stub authenticated admin page and a stub lead endpoint (so their CPU can be measured), one image stored in a Neon Object Storage bucket and served from the edge, one Serwist offline page, and Lighthouse CI on it. If it does not fit, stop and bring the decision back to the owner before building more. [Mine] **Measured on 2026-10-23:** the first slice failed the CPU gates for password sign-in, the lead POST and image serving on the free plan, so Phase 0 stays open and now also proves the lean design (essentials S0.10). [Owner decision D14] The Neon-centred redesign (D15, D16) is proven in the same module.
 - **Stage 1, core:** F1, F2, F3, F4, F5, F6, F7, F11 structure, and the funnel and source/country views.
 - **Stage 2:** F8 student portal, admin performance, F10 placement payments received and the payments view in F9.
 - **Later (after v1):** French launch, student document upload (if you decide yes), WhatsApp Business API.
@@ -406,7 +411,7 @@ Edited in place by the owner's instruction after the engineering review. Nothing
 
 - Quick WhatsApp form added next to the full form; metric minimum profile defined for both (F3, F4, success metrics).
 - Send first, then open WhatsApp, up to 4 seconds when online (F3, section 10).
-$1 *(Superseded on 2026-10-23: there is no password sign-up any more; see the log below.)*
+- Turnstile also protects sign-up, forgot-password and resend-verification, with a daily cap on student-originated emails (stack table, section 10). *(Superseded on 2026-10-23: there is no password sign-up any more; see the log below.)*
 - Owner 2FA rule made precise: a session that has passed 2FA, plus a 10-minute check for destructive actions (F5, FR-8).
 - Admin approval of a student link records how identity was checked (section 10).
 - Phase 0 slice includes a stub admin page and a stub lead endpoint; the domain action may be needed before Phase 0 ends (sections 12.2, 13).
@@ -423,3 +428,18 @@ Edited in place by the owner's instruction (decision D13: edit the existing docu
 - **Images stay in Neon for now**, served from the edge before Next.js starts; object storage is the named fallback and is the owner's decision (section 4).
 - **New trade-off recorded:** a student without a Google account cannot sign in to track progress (section 11).
 - **Phase 0 stays open** and gains a lean-design proof (section 13; essentials S0.10).
+
+## Amendment log (Neon-centred redesign, 2026-10-24, decision D15)
+
+Edited in place by the owner's instruction (D13). Version stays 1. Cause: the owner asked to move authentication, authorisation and images onto Neon after the free-plan redesign (D14), following an engineering review.
+
+- **Neon Auth** (managed Better Auth in our Neon database) runs Google sign-in and sessions instead of Better Auth inside the Worker (sections 4, 6, 10, 11).
+- **Owner 2FA** uses the otpauth library plus our own lockout and recovery codes, because Neon Auth has no authenticator-app 2FA yet. The PRD rule is unchanged (F5, FR-8).
+- **Access control** is the auth facade and Actor in our code plus Neon row level security (two locks).
+- **Images** move to a Neon Object Storage bucket (section 4, FR-18). The first choice, R2, asked for a payment method at checkout on 2026-10-24, so D16 switched to Neon Object Storage (free plan, no card).
+- **Resend is removed.** No email is sent in v1 (section 4, 12.2).
+- The proofs for all of this are added to Stage 0 Module S0.10. A failed gate returns the matching decision to the owner.
+
+## Amendment (images in Neon Object Storage, 2026-10-24, decision D16)
+
+D15 chose a Cloudflare R2 bucket for images. R2's checkout asked for a payment method, and the project rule is never to add a paid service. While looking for a free alternative it was found that Neon has its own S3-compatible Object Storage (generally available, available in the project's region aws-eu-central-1, 5 GB per project on the free plan, public-read buckets). **An earlier statement in the D15 review that "Neon has no object storage" was wrong and is corrected.** The owner chose Neon Object Storage (D16). Everything else in D15 is unchanged.

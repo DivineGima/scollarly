@@ -22,6 +22,8 @@ Find the current phase and status. The tracker holds dated session summaries mad
 
 Format is otherwise your choice. If `/tracker/` does not exist or has no entries, that is not an error. It means no stage has started, so begin at `system_architecture_essential_1.md`.
 
+If the tracker has a section named **Standing owner check-ins**, ask the owner each open check-in at the start of the session and show its link (amended 2026-10-24, owner decision D15). Do not skip it, and stop asking only when the owner says the item is done or no longer wanted.
+
 ### Step 2: Choose the essentials file
 
 Look in `/essentials/` for files matching `^system_architecture_essential_\d+\.md$`. Take the lowest-numbered file that still has an incomplete stage according to the tracker (essential_1 if nothing has started). If the file does not exist, halt and flag.
@@ -83,8 +85,8 @@ Read `SYSTEM DESIGN RULES.html` and the other source files at the start of every
 
 ## Project guardrails (from the current architecture, section 15; re-read the file for the full text)
 
-- Only `server/repositories` imports Drizzle. Only `server/auth` imports Better Auth. Only `server/email` imports Resend.
-- Never put access control in middleware. Authorisation is enforced through the auth facade and the `Actor` type.
+- Only `server/repositories` imports Drizzle. Only `server/auth` imports the Neon Auth SDK and otpauth. Only `server/media` uses the Neon Object Storage client and credential. Nothing imports Resend (removed, D15).
+- Never put access control in middleware. Authorisation is enforced through the auth facade and the `Actor` type, backed by Neon row level security as a second lock: the app connects as a non-owner runtime role, every table has `FORCE ROW LEVEL SECURITY` and a policy, and CI fails on a table without one. Neither lock replaces the other. (Amended 2026-10-24, owner decision D15.)
 - No admin library (shadcn/ui, Recharts) in any public route.
 - No third-party scripts, no hotlinked images, no Next.js image optimiser.
 - Every WhatsApp URL comes from the one helper, using the number in `site_setting`. No hardcoded numbers.
@@ -92,7 +94,7 @@ Read `SYSTEM DESIGN RULES.html` and the other source files at the start of every
 - No personal data in logs or analytics events. Never store raw IP addresses.
 - Store all times in UTC. Display and group in WAT (`Africa/Douala`).
 - Every migration is additive-first.
-- Never add a paid service or change hosting. If Stage 0 fails a gate, stop and report to the owner.
+- Never add a paid service or change hosting. If Stage 0 fails a gate, stop and report to the owner. If any service asks for a payment method (R2 did, so it was dropped), stop and ask the owner.
 - Do not publish unconfirmed statistics, testimonials or team bios.
 
 ## Working rules
