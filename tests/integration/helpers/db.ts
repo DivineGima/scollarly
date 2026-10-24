@@ -79,14 +79,17 @@ export async function createTestDb(): Promise<TestDb> {
   let engine: TestDb["engine"];
 
   if (url) {
-    const pool = new pg.Pool({ connectionString: url, max: 1 });
-    const pgDb = drizzleNodePg(pool, { schema });
+    // One pg Client, not a Pool: a Pool destroys its connection after any failed query (release(err)), which would silently drop
+    // the session's `set role` and run the next statement as the owner. A Client keeps one session for the whole test file.
+    const client = new pg.Client({ connectionString: url });
+    await client.connect();
+    const pgDb = drizzleNodePg(client, { schema });
     await pgDb.execute(sql.raw("drop schema if exists public cascade; drop schema if exists drizzle cascade; create schema public;"));
-    await pool.query(NEON_AUTH_STUB);
+    await client.query(NEON_AUTH_STUB);
     await migrateNodePg(pgDb, { migrationsFolder: MIGRATIONS });
     db = pgDb as unknown as Db;
-    run = async (statement) => (await pool.query(statement)).rows;
-    close = () => pool.end();
+    run = async (statement) => (await client.query(statement)).rows;
+    close = () => client.end();
     engine = "postgres";
   } else {
     const client = new PGlite();
