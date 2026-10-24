@@ -9,9 +9,9 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stage 1 (foundation) is built and in review (pull request #15); S1.7: the old site's data is converted and validated (dry run), the real run waits for the merge and the credentials.** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 has not started (gate below). |
-| Next stage | **Stage 1 is built and in review** (pull request #15, 2026-10-24). S1.1 to S1.6 are complete; S1.7 is in progress (seed files in `data/seed/` validated, real run not done). **Stage 2 has not started** (see the gate below). |
-| Blocked by | **The real seed run** blocks S1.7 and so the Stage 1 exit criteria "seed twice" and "9 logos" on real data, and so Stage 2. It needs the merge of PR #15 (migration 0003 on the database) and the owner-held credentials (`MIGRATION_DATABASE_URL`, `NEON_STORAGE_*`). H2 data is supplied (2026-10-24), except any `ContactSubmission` rows. H12 (Object Storage limits) is carried to Stage 3. The domain (F10) blocks launch only. |
+| Phase | **Stage 1 (foundation) is complete (2026-10-24): all seven modules S1.1 to S1.7 pass, and the real seed ran twice on the live database.** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 has not started (gate below). |
+| Next stage | **Stage 2** (the gate below is met). Stage 1 is complete and merged (pull requests #15 and #16). |
+| Blocked by | Nothing for Stage 2. Open and not blocking: the `ContactSubmission` import (needs the old table's export, or confirmation that it is empty), H12 (Object Storage limits, carried to Stage 3), and the domain (F10, blocks launch only). |
 | Gate before Stage 2 | Stage 1 complete (all seven modules, which needs the real seed run) and H16 (confirmed by the owner 2026-10-24). Stage 2 needs Neon Auth and the Google credentials (H8, done per the owner). Stage 2 also builds the F13 fix (visitor IP kept by Neon Auth) and the owner bootstrap. **On 2026-10-24 the owner asked for Stages 1 and 2 together; Stage 2 was not started because this gate is not met (CLAUDE.md: halt and flag).** |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
@@ -360,6 +360,18 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **F17 touched:** a university's `translations.en` holds its overview text (it has no other translatable prose). FAQ question and answer stay in plain columns.
 
+### 2026-10-24: Session 15 (Stage 1 complete)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1.
+
+**Done:** migration 0003 applied to the live database with the owner role (`npm run db:migrate`). The real seed (`npm run seed -- --dir data/seed`) ran twice, with credentials taken by Claude Code on the owner's instruction (database string from `.env.local`, storage keys from `neon env pull` into a temporary ignored file, deleted afterwards).
+
+**Result:** run 1 inserted 9 universities, 77 programmes, 9 fees, 5 campus tours, 12 FAQs, 11 process steps, 36 copy blocks and 2 settings, and created 9 images. Run 2 inserted 0 rows in every table and reported all 9 images as existing. Checked in the database: 9 university logos are `media_asset` rows (WebP); a logo is served publicly from the storage endpoint (HTTP 200, image/webp); every row is still `draft`; `whatsapp_number_e164` and `contact_phone_display` are set; `media_budget_bytes` is 3,758,096,384.
+
+**Stage 1 exit criteria:** all met (tests in CI for the constraints, the lead rule, the SLA and the boundary check; seed twice; 9 logos).
+
+**Note:** Claude Code created a new branch credential for object storage when it ran `neon env pull`. It is not stored anywhere in the repository.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -390,7 +402,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | Stage | Name | Module IDs | Status |
 |---|---|---|---|
 | 0 | Proof of fit (hard gate) | S0.1 to S0.10 | **complete** (2026-10-24) |
-| 1 | Foundation | S1.1 to S1.7 | in-progress (2026-10-24: S1.1 to S1.6 complete, S1.7 files validated, real run pending) |
+| 1 | Foundation | S1.1 to S1.7 | complete (2026-10-24: S1.1 to S1.7, real seed ran twice on the live database) |
 | 2 | Authentication, roles, admin shell | S2.1 to S2.7 | — |
 | 3 | Public site | S3.1 to S3.5 | — |
 | 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | — |
@@ -424,7 +436,7 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S1.4 | SLA pure function | complete (2026-10-24, CI) |
 | S1.5 | Full CI | complete (2026-10-24, CI) |
 | S1.6 | i18n scaffolding | complete (2026-10-24, CI) |
-| S1.7 | Seed and migration scripts, logo and image import | in-progress (built; seed files from the old site validated by a dry run; real run pending the merge and credentials; `ContactSubmission` import not built, see S1.7 note in Session 14) |
+| S1.7 | Seed and migration scripts, logo and image import | complete (2026-10-24: real seed run twice on the live database; `ContactSubmission` import not built, no rows supplied, see Session 14) |
 | S2.1 | Production Neon Auth configuration behind the facade | — |
 | S2.2 | Sign-in and sign-out pages (Google only) | — |
 | S2.3 | Owner bootstrap, 2FA, step-up | — |
