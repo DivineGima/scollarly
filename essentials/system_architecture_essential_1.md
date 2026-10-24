@@ -54,18 +54,18 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S0.2 | A prerendered public page with Lighthouse CI |
 | S0.3 | Neon through the serverless driver: one HTTP query, one WebSocket transaction, cold-start measurement. A stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert) so the lead POST CPU gate can be measured. A non-gating probe of whether Neon's API can report CU-hours (info row in the tracker). |
 | S0.4 | Auth behind the auth facade on **Neon Auth** (D15): Google sign-in only (no passwords), student session cache of at most 60 seconds, owner TOTP 2FA on the otpauth library with recovery codes (Neon Auth has no authenticator-app 2FA), the 10-minute step-up check in our `step_up` table, the `app_user` role and the partial unique owner index. A stub authenticated admin page (session read, one Neon query, render) measured on the fresh session lookup path used for staff and on the cached path used for students. *The first slice used self-hosted Better Auth and also measured email-and-password sign-in with three hash variants (Better Auth default, PBKDF2, magic link); all failed the CPU gate (architecture section 17), and that work is kept only as evidence.* |
-| S0.5 | One 300 KB WebP stored in an R2 bucket (after the owner enables R2) and served from `/media/[hash]` through the Cache API, with R2 read cost measured on a miss and a hit. The Stage 0 `media_blob` result (about 31 ms on a miss) is kept as evidence. |
+| S0.5 | One 300 KB WebP stored in a Neon Object Storage bucket (`images`, public-read; create it with the Neon CLI or console) and served from `/media/[hash]` through the Cache API, with the storage read cost measured on a miss and a hit, and a signed upload tested. The Stage 0 `media_blob` result (about 31 ms on a miss) is kept as evidence. |
 | S0.6 | Tag revalidation: a publish updates a public page without a deploy. Name the OpenNext incremental cache and tag-cache bindings used (the read-only static-assets cache cannot revalidate; KV is discouraged) and record whether any of them needs a payment method. If one does, stop and ask the owner (G6). |
 | S0.7 | One Cron Trigger run, one Durable Object counter, one Durable Object rate limiter |
 | S0.8 | Serwist offline page with a pinned compatible Next.js, bundler and Serwist combination, tested with Playwright offline mode |
 | S0.9 | Measurement report recorded in the tracker, one row per gate in architecture section 17 |
-| S0.10 | **Free-plan proof (added 2026-10-23, D14; extended 2026-10-24, D15).** Build and measure the redesign on the deployed Worker: (a) the edge fast path in the Worker entry for public pages and images (ADR-033); (b) Neon Auth session verification in the auth facade, measured two ways, the Neon Auth SDK and our own check of the signed cookie, with one query for the `app_user` role (ADR-034, ADR-037); pick by number; (c) the sign-in return trip with a throwaway Google test account on Neon Auth; (d) the staff page query with the row-level-security context set in the same Neon HTTP request, through a non-owner runtime role with `FORCE ROW LEVEL SECURITY` (ADR-038); (e) the lead POST thinned until it meets its gate; (f) an R2 image read on a cache miss and a hit (ADR-039); (g) the stub admin and student pages with a real session. Measure each with at least 50 requests and record warm p50 and p95, the worst request, and how many were cut at the limit. Owner prerequisites: Neon Auth switched on with Google credentials, and R2 enabled (tracker H8, H12). If a gate still fails after reasonable thinning, stop and bring the owner the measured value and the remaining options (D1 back to self-hosted Better Auth, D3 back to Neon images, D5 row level security off, a paid plan, or another design). |
+| S0.10 | **Free-plan proof (added 2026-10-23, D14; extended 2026-10-24, D15).** Build and measure the redesign on the deployed Worker: (a) the edge fast path in the Worker entry for public pages and images (ADR-033); (b) Neon Auth session verification in the auth facade, measured two ways, the Neon Auth SDK and our own check of the signed cookie, with one query for the `app_user` role (ADR-034, ADR-037); pick by number; (c) the sign-in return trip with a throwaway Google test account on Neon Auth; (d) the staff page query with the row-level-security context set in the same Neon HTTP request, through a non-owner runtime role with `FORCE ROW LEVEL SECURITY` (ADR-038); (e) the lead POST thinned until it meets its gate; (f) a Neon Object Storage image read on a cache miss and a hit, and a signed upload (ADR-039); (g) the stub admin and student pages with a real session. Measure each with at least 50 requests and record warm p50 and p95, the worst request, and how many were cut at the limit. Owner prerequisites: Neon Auth switched on with Google credentials (tracker H8, H13) and the Object Storage free-plan limits read (H12). If a gate still fails after reasonable thinning, stop and bring the owner the measured value and the remaining options (D1 back to self-hosted Better Auth, D3 back to Neon `bytea` images, D5 row level security off, a paid plan, or another design). |
 
 **Exit criteria**
 - Every gate in architecture section 17 has a recorded measured result. The first slice's results are recorded; Module S0.10 supplies the results for the redesigned gates.
 - All Module S0.10 gates pass with no request cut at the CPU limit. Otherwise the decision returns to the owner.
 - If any gate fails, stop. Report the failing gate, the measured value, and the options for that gate from architecture section 17 (for example lighter hash, passwordless path, paid plan, fallback in ADR-003; an admin Worker split reduces size only, not CPU per request). The owner decides. Do not continue to Stage 1.
-- The owner confirms the commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans, now also Neon Auth and R2 (a human action; record the answer in the tracker). The owner's 2026-10-23 confirmation covered Cloudflare, Neon, Resend and Turnstile. The Neon Auth and R2 terms are not yet confirmed (owner action).
+- The owner confirms the commercial-use terms of Cloudflare, Neon, Resend and Turnstile free plans, now also Neon Auth and Neon Object Storage (a human action; record the answer in the tracker). The owner's 2026-10-23 confirmation covered Cloudflare, Neon, Resend and Turnstile. The Neon Auth and Neon Object Storage terms are not yet confirmed (owner action).
 
 ---
 
@@ -139,7 +139,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 |---|---|
 | S3.1 | Content read layer and prerender with tag revalidation, and the edge fast path for public pages (ADR-033) |
 | S3.2 | Pages: home, universities, university detail, fees, campus tours, process, visa, FAQ, about, blog and post, contact, privacy, terms, offline (A1 to A8). All strings through translation keys. |
-| S3.3 | Fee gating (FR-2), thumbnail-first video and tour facade (FR-3), YouTube ID validation, `/media/[hash]` delivery handler reading R2, with its edge fast path (ADR-033, ADR-039) |
+| S3.3 | Fee gating (FR-2), thumbnail-first video and tour facade (FR-3), YouTube ID validation, `/media/[hash]` delivery handler reading Neon Object Storage, with its edge fast path (ADR-033, ADR-039) |
 | S3.4 | Trust components: stats, testimonials, journeys, team, rendered only when confirmed, verified and consented |
 | S3.5 | Performance pass: first load under 200 KB excluding lazy images, public JavaScript within the 100 KB gzip budget, no splash, reduced-motion support |
 
@@ -217,7 +217,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 |---|---|
 | S6.1 | The standard content flow as a reusable framework: list, form, draft, publish gates, unpublish, archive, restore, conflict handling |
 | S6.2 | Content types: universities, programmes, fees, campus experiences, resources, testimonials with consent records, journeys, team, FAQs, trust stats, process steps, page copy, blog (sanitised Markdown), message templates |
-| S6.3 | Media: in-browser resize and WebP conversion, upload action to R2 with size caps, file-signature check, SVG rejected, hash deduplication, media page with usage meter against the 5 GB budget, blur step and confirmation for document images |
+| S6.3 | Media: in-browser resize and WebP conversion, upload action to Neon Object Storage with size caps, file-signature check, SVG rejected, hash deduplication, media page with usage meter against the 3.5 GB budget, blur step and confirmation for document images |
 | S6.4 | Revalidation wired to every publish and unpublish |
 | S6.5 | Stale content report as queries on `last_updated_at` and `url_last_checked_at` (fees 180 days, tours 90 days) with "Mark checked". No scheduled flag job. |
 
@@ -305,7 +305,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 |---|---|
 | S10.1 | Settings page with 2FA step-up. Settings consumed everywhere (WhatsApp number, SLA hours, stale thresholds, image budget, page-view switch). |
 | S10.2 | Health page, usage checks (database size, image budget, GitHub artifact storage, Neon usage if the Stage 0 API check passed), banners at 70% |
-| S10.3 | Owner full export, the weekly encrypted `pg_dump` GitHub Actions workflow (kept 28 days; image bytes are in R2, not in the dump). Whether to keep a monthly bucket copy is the owner's open flag F12. Repository secrets, not environment secrets. First confirm the GitHub Free artifact quota in GitHub's own documentation and record it in the tracker. |
+| S10.3 | Owner full export, the weekly encrypted `pg_dump` GitHub Actions workflow (kept 28 days; image bytes are in Neon Object Storage, not in the dump). Whether to keep a monthly bucket copy is the owner's open flag F12. Repository secrets, not environment secrets. First confirm the GitHub Free artifact quota in GitHub's own documentation and record it in the tracker. |
 | S10.4 | Written recovery procedures in the repo: owner locked out of 2FA, restoring from a dump |
 
 **Exit criteria**
@@ -327,9 +327,9 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S11.1 | Enforce CSP (if compatible with Next.js on Workers) and audit all security headers |
 | S11.2 | The complete Playwright suite for every click flow in architecture section 16, Parts A, B and C |
 | S11.3 | Accessibility, 375 px layout, reduced motion, and Lighthouse on every public route |
-| S11.4 | Free-quota review: Worker size, CPU, request estimates, Neon storage and CU-hours, R2 storage and operations |
+| S11.4 | Free-quota review: Worker size, CPU, request estimates, Neon storage and CU-hours, Neon Object Storage usage |
 | S11.5 | Traceability table in the tracker: each of FR-1 to FR-18 mapped to at least one passing test |
-| S11.6 | Pre-launch checklist with the owner (PRD 12.2): confirmed WhatsApp and contact numbers, confirmed trust content only, legal review status for minors and data protection recorded, Cloudflare DNS, Neon Auth and Google OAuth, R2 enabled, vendor terms (no mailbox or Resend DNS: email is removed, ADR-036) |
+| S11.6 | Pre-launch checklist with the owner (PRD 12.2): confirmed WhatsApp and contact numbers, confirmed trust content only, legal review status for minors and data protection recorded, Cloudflare DNS, Neon Auth and Google OAuth, vendor terms (no mailbox or Resend DNS: email is removed, ADR-036) |
 | S11.7 | Production deploy, owner bootstrap, smoke test of every role |
 | S11.8 | Hourly uptime check: a scheduled GitHub Actions workflow calls `/api/v1/health` and fails, so GitHub notifies the owner, when the response is not 200. It checks the Worker, not Neon. |
 
@@ -371,7 +371,11 @@ Edited in place by the owner's instruction (D13: edit the existing documents, no
 Edited in place by the owner's instruction (D13). Version stays 1. Cause: the owner asked to move authentication, authorisation and images onto Neon after an engineering review.
 
 - Neon Auth replaces self-hosted Better Auth (S0.4, S2.1 to S2.5). Owner 2FA is our own code on the otpauth library. Resend and all email are removed (S2.1, S2.5, S11.6).
-- Images move to a Cloudflare R2 bucket (S0.5, S3.3, S6.3, S10.3, S11.4). Backup of the bucket is the open flag F12.
+- Images move to a Neon Object Storage bucket (S0.5, S3.3, S6.3, S10.3, S11.4). Backup of the bucket is the open flag F12. R2 was dropped (D16) because its checkout asked for a payment method.
 - Row level security with a non-owner runtime role is added (S1.1, S2.4, Stage 2 exit criteria).
 - S0.10 is extended with the proofs for all of this and lists the owner prerequisites. The module count stays 68.
 - Fixed a mistake from the 2026-10-23 amendment: the S0.9 row had been lost and a stray `$1` was left in front of S0.10. Both are restored.
+
+## Amendment (images in Neon Object Storage, 2026-10-24, decision D16)
+
+R2 is replaced by Neon Object Storage in S0.5, S0.10, S3.3, S6.3, S10.3, S11.4 and S11.6. No other module changes.

@@ -27,7 +27,7 @@ Everything in PRD_1 (F1 to F11) is built in version 1. Hosting is Cloudflare Wor
 | Resend Free: 100 emails per day, 3,000 per month, one verified domain | Not used in v1 (ADR-036, D15): no flow sends email. Kept here as a vendor fact in case email is added later. |
 | Next.js 16 uses Turbopack by default. Serwist has a separate Turbopack package from its webpack plugin. | Phase 0 pins a compatible Next.js, bundler and Serwist combination. |
 
-**Unverified (Phase 0 gates):** Neon Auth session verification from a Worker (SDK or own cookie check) and its sign-in return trip (D15, S0.10); a row-level-security context per query over Neon's HTTP driver (ADR-038); R2 reads and writes from a Worker binding (ADR-039); the Stage 0 self-hosted Better Auth and `bytea` image paths were measured and are superseded; OpenNext revalidation cache bindings on free; Durable Objects and Cron Triggers on free; Turnstile, Cloudflare, Neon (including Neon Auth) and R2 commercial-use terms on free plans; whether Neon's API can report CU-hours to a cron job (a non-gating probe, section 17); whether the Cache API and cache purge work on the `workers.dev` hostname (**measured 2026-10-23: put, match and delete work there**; a community reply had said otherwise); which OpenNext cache and tag-cache bindings work on free (**measured 2026-10-23: the KV incremental cache, the D1 tag cache and the Durable Object queue work on the free plan with no payment method**; OpenNext discourages KV, and R2 is not enabled on the account: the API answers HTTP 403, code 10042, "Please enable R2 through the Cloudflare Dashboard", measured 2026-10-24; whether enabling it needs a payment method is unverified and is an owner action). Neon Auth facts (checked 2026-10-24): it is Better Auth run by Neon, with users and sessions in the `neon_auth` schema of our own database; Google, email-and-password, magic-link and admin plugins are supported; authenticator-app 2FA and restricted sign-ups are "coming soon"; 60,000 monthly active users on the free plan; AWS regions only (our project is aws-eu-central-1) and no IP Allow or Private Networking.
+**Unverified (Phase 0 gates):** Neon Auth session verification from a Worker (SDK or own cookie check) and its sign-in return trip (D15, S0.10); a row-level-security context per query over Neon's HTTP driver (ADR-038); Neon Object Storage reads (public bucket) and signed writes from a Worker (ADR-039); the Stage 0 self-hosted Better Auth and `bytea` image paths were measured and are superseded; OpenNext revalidation cache bindings on free; Durable Objects and Cron Triggers on free; Turnstile, Cloudflare, Neon (including Neon Auth and Neon Object Storage) commercial-use terms on free plans; whether Neon's API can report CU-hours to a cron job (a non-gating probe, section 17); whether the Cache API and cache purge work on the `workers.dev` hostname (**measured 2026-10-23: put, match and delete work there**; a community reply had said otherwise); which OpenNext cache and tag-cache bindings work on free (**measured 2026-10-23: the KV incremental cache, the D1 tag cache and the Durable Object queue work on the free plan with no payment method**; OpenNext discourages KV, and R2 is not enabled on the account: the API answers HTTP 403, code 10042, "Please enable R2 through the Cloudflare Dashboard", measured 2026-10-24; the R2 checkout asked for a payment method on 2026-10-24, so R2 is not used and images go to Neon Object Storage, ADR-039). Neon Auth facts (checked 2026-10-24): it is Better Auth run by Neon, with users and sessions in the `neon_auth` schema of our own database; Google, email-and-password, magic-link and admin plugins are supported; authenticator-app 2FA and restricted sign-ups are "coming soon"; 60,000 monthly active users on the free plan; AWS regions only (our project is aws-eu-central-1) and no IP Allow or Private Networking. Neon Object Storage (checked 2026-10-24): generally available, S3-compatible, supported in aws-eu-central-1, 5 GB per project on the free plan, buckets are `private` or `public_read` (anonymous reads, signed writes), each branch has its own storage namespace; request and transfer limits are not stated on the pages read (unverified); it works on our project (the CLI lists buckets without error).
 
 Cloudflare's own limits page puts authentication and server-rendering work at typically 10 to 20 ms of CPU, so the 8 ms admin page gate in section 17 is the likeliest to fail.
 
@@ -76,7 +76,7 @@ flowchart LR
   WA["WhatsApp (wa.me smart links)"]
   GO["Google (OAuth sign-in)"]
   NA["Neon Auth (managed sign-in)"]
-  R2["Cloudflare R2 (images)"]
+  R2["Neon Object Storage (images)"]
   TS["Cloudflare Turnstile"]
   YT["YouTube nocookie (tour videos)"]
   ST --> SYS
@@ -106,7 +106,7 @@ flowchart LR
   W --> D
   W --> C
   X --> W
-  W --> R2["Cloudflare R2: images"]
+  W --> R2["Neon Object Storage: images"]
   W --> TS["Turnstile verify"]
   B --> GO["Google OAuth"]
 ```
@@ -172,7 +172,7 @@ scollarly/
       db/                    per-request client factory, schema, migrations
       security/              turnstile verify, rate limit, origin check, input limits
       edge/                  fast path: Cache API lookup for public pages and images (used by worker/)
-      media/                 R2 MediaStore adapter (only importer of the R2 binding)
+      media/                 Neon Object Storage MediaStore adapter (only user of the storage credential)
     lib/                     whatsapp url helper, phone normaliser, ref generator,
                              time (WAT helpers), i18n config, result type
     offline/                 IndexedDB queue, sync engine, session id (client only)
@@ -186,7 +186,7 @@ scollarly/
 
 **Enforced dependency rules (ESLint boundaries plus CI checks):**
 1. `app` may call `modules` and the auth facade. `modules` call `repositories`. Nothing else imports Drizzle.
-2. Only `server/auth` imports the Neon Auth SDK and otpauth. Only `server/media` uses the R2 binding. Nothing imports Resend (removed, ADR-036).
+2. Only `server/auth` imports the Neon Auth SDK and otpauth. Only `server/media` uses the Neon Object Storage client and credential. Nothing imports Resend (removed, ADR-036).
 3. `components/public` cannot import `components/admin`, shadcn or Recharts. Lighthouse CI and a bundle check fail the build if admin libraries reach a public route.
 4. Every protected repository method takes an `Actor`. An `Actor` can only be produced by the auth facade. Forgetting an authorisation check becomes a type error.
 
@@ -201,7 +201,7 @@ scollarly/
 | `(auth)` | Dynamic | None | None |
 | `(student)` | Dynamic, per user | Never cached by the service worker | Student |
 | `(admin)` | Dynamic, per user, online-only | Never cached by the service worker | Admin or owner |
-| `/media/[hash]` | Route Handler reading the R2 object | `public, max-age=31536000, immutable` plus Cache API, checked in the Worker entry before Next.js starts (ADR-033) | None |
+| `/media/[hash]` | Route Handler reading the Neon Object Storage object | `public, max-age=31536000, immutable` plus Cache API, checked in the Worker entry before Next.js starts (ADR-033) | None |
 | `/api/v1/*` | Route Handlers | `no-store` | Per endpoint |
 
 **Rule:** a public page read never touches Neon. Content is read at build or revalidate time and served from cache. Publishing calls tag revalidation (ADR-002). If Phase 0 shows OpenNext cannot do tag revalidation on the free plan, the fallback is edge caching with `s-maxage` plus stale-while-revalidate and an explicit purge on publish. Phase 0 (S0.6) names the OpenNext incremental cache and tag cache bindings it uses and records whether any of them needs a payment method; if one does, work stops and the owner decides (G6). **Measured 2026-10-23:** KV, D1 and the Durable Object queue need no payment method, and a publish showed on the page within 5 seconds.
@@ -306,7 +306,7 @@ All content tables have: status (`draft` / `published` / `archived`), published_
 | Table | Key columns and rules |
 |---|---|
 | `media_asset` | id, kind (`logo` / `photo` / `blog` / `testimonial` / `other`), alt (translations), width, height, bytes, mime (`image/webp` only), sha256 (unique, used for the URL and deduplication), created_by, created_at, archived_at |
-| *(no blob table)* | Image bytes live in the R2 bucket under the key `<sha256>.webp` (ADR-039). `media_asset` keeps the metadata. The Stage 0 `media_blob` table is dropped after the images are migrated. |
+| *(no blob table)* | Image bytes live in the Neon Object Storage bucket `images` (public-read) under the key `<sha256>.webp` (ADR-039). `media_asset` keeps the metadata. The Stage 0 `media_blob` table is dropped after the images are migrated. |
 
 ### 7.5 Analytics
 
@@ -531,7 +531,7 @@ sequenceDiagram
   participant A as Admin browser
   participant W as Server Action media.upload
   participant D as Neon
-  participant R as R2 bucket
+  participant R as Neon Object Storage
   participant P as Public page
   participant M as GET /media/hash
   participant E as Edge cache
@@ -549,7 +549,7 @@ sequenceDiagram
   E-->>P: image
 ```
 
-Caps (FR-18, proposed): 300 KB for photos, 50 KB for logos. The owner sees a usage meter against the 5 GB budget (R2 free tier is 10 GB-month) and gets a banner at 70%. A `MediaStore` interface keeps storage in one module (`server/media`); the R2 adapter replaces the Neon `bytea` adapter (ADR-039). **Phase 0 measures** a 300 KB image read from R2 on a cache miss and on a hit against the 8 ms CPU gate.
+Caps (FR-18, proposed): 300 KB for photos, 50 KB for logos. The owner sees a usage meter against the 3.5 GB budget (Neon Object Storage free tier is 5 GB per project) and gets a banner at 70%. A `MediaStore` interface keeps storage in one module (`server/media`); the Neon Object Storage adapter replaces the Neon `bytea` adapter (ADR-039). **Phase 0 measures** a 300 KB image read from Neon Object Storage on a cache miss and on a hit against the 8 ms CPU gate.
 
 ### 10.6 Payment record and void
 
@@ -649,7 +649,7 @@ Admin edits use optimistic concurrency on `updated_at`. A conflicting save shows
 
 ### 13.7 Backup and recovery
 
-Neon Free's 6-hour restore window is not a backup. A weekly GitHub Actions job runs `pg_dump` with a read-only connection and stores an **encrypted** artifact (public-key encryption) outside Cloudflare, kept 28 days [Mine, confirm]. Image bytes are in R2, not in the dump (ADR-039); content is archived, never deleted (ADR-014). Whether to keep a monthly copy of the bucket is an open owner flag (tracker F12), because images can reach 5 GB and GitHub's default artifact retention is 90 days, so a copy in artifacts would overrun the Free plan's artifact storage (about 500 MB, from a secondary source; Phase 0 and S10.3 confirm it in GitHub's own documentation). The workflows use repository secrets, not environment secrets, which are unavailable on GitHub Free private repositories. The Health page warns at 70% of the artifact quota. The owner can also download a full export (everything except image bytes) from Settings. A restore is a documented manual procedure, tested for both dumps.
+Neon Free's 6-hour restore window is not a backup. A weekly GitHub Actions job runs `pg_dump` with a read-only connection and stores an **encrypted** artifact (public-key encryption) outside Cloudflare, kept 28 days [Mine, confirm]. Image bytes are in Neon Object Storage, not in the dump (ADR-039); content is archived, never deleted (ADR-014). Whether to keep a monthly copy of the bucket is an open owner flag (tracker F12), because images can reach 3.5 GB and GitHub's default artifact retention is 90 days, so a copy in artifacts would overrun the Free plan's artifact storage (about 500 MB, from a secondary source; Phase 0 and S10.3 confirm it in GitHub's own documentation). The workflows use repository secrets, not environment secrets, which are unavailable on GitHub Free private repositories. The Health page warns at 70% of the artifact quota. The owner can also download a full export (everything except image bytes) from Settings. A restore is a documented manual procedure, tested for both dumps.
 
 ### 13.8 Branching discipline
 
@@ -685,7 +685,7 @@ Claude Code never pushes to `main`. Every change goes on a feature branch with a
 
 **Fullstack constraints (non-negotiable)**
 1. Never write directly to `main`. Feature branch plus merge request for every change.
-2. No Drizzle, Neon Auth SDK, otpauth or R2 binding imports outside their single modules.
+2. No Drizzle, Neon Auth SDK, otpauth or storage client imports outside their single modules.
 3. No access control in middleware.
 4. No third-party scripts. No hotlinked images.
 5. No admin library in a public bundle. No `"use client"` on a page, only on islands.
@@ -1046,7 +1046,7 @@ The owner signs in, completes the 2FA challenge, and sees extra menu items: Team
 
 Phase 0 is the first stage of `essential_1`. Nothing else is built until it passes. If a gate fails, work stops and the decision returns to the owner. No paid service is added without the owner's decision.
 
-**Slice to build and deploy to Workers Free:** first, a probe of whether the Cache API and cache purge work on the `workers.dev` hostname (measured 2026-10-23: they work, so the owner's domain action, tracker H7, does not block the cache gates); then a prerendered public page, Google sign-in with Neon Auth (D15; the first slice used self-hosted Better Auth and also measured an email-and-password path with three password-hash variants; results below), one Neon query through the serverless driver, a stub authenticated admin page (session read, one Neon query, render) measured on both the fresh-lookup path and the cookie-cache path, a stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert), the 10-minute 2FA step-up check, one 300 KB image stored in an R2 bucket and served through the Cache API, tag revalidation, one cron run, one Durable Object counter, one Serwist offline page, and Lighthouse CI. **Module S0.10 (added 2026-10-23, D14)** re-runs the failing gates against the lean design: the edge fast path, a one-query session check, a thin lead POST, and image delivery from the edge. **D15 (2026-10-24) adds:** Neon Auth session verification (SDK and own cookie check, picked by number), the row-level-security staff query, the sign-in return trip, and an R2 image hit and miss. Any failed gate returns the matching decision (Neon Auth, R2 or row level security) to the owner.
+**Slice to build and deploy to Workers Free:** first, a probe of whether the Cache API and cache purge work on the `workers.dev` hostname (measured 2026-10-23: they work, so the owner's domain action, tracker H7, does not block the cache gates); then a prerendered public page, Google sign-in with Neon Auth (D15; the first slice used self-hosted Better Auth and also measured an email-and-password path with three password-hash variants; results below), one Neon query through the serverless driver, a stub authenticated admin page (session read, one Neon query, render) measured on both the fresh-lookup path and the cookie-cache path, a stub `POST /api/v1/leads` (Zod, Turnstile verify, Durable Object limiter, one insert), the 10-minute 2FA step-up check, one 300 KB image stored in a Neon Object Storage bucket and served through the Cache API, tag revalidation, one cron run, one Durable Object counter, one Serwist offline page, and Lighthouse CI. **Module S0.10 (added 2026-10-23, D14)** re-runs the failing gates against the lean design: the edge fast path, a one-query session check, a thin lead POST, and image delivery from the edge. **D15 (2026-10-24) adds:** Neon Auth session verification (SDK and own cookie check, picked by number), the row-level-security staff query, the sign-in return trip, and a Neon Object Storage image hit and miss. Any failed gate returns the matching decision (Neon Auth, R2 or row level security) to the owner.
 
 **Pass criteria (proposed thresholds, [Mine, confirm]):**
 
@@ -1065,7 +1065,7 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | Neon Auth and owner 2FA | A Neon Auth session works from a Worker (SDK or own cookie check); otpauth 2FA with recovery codes, the 10-minute step-up and the role field work with the Neon driver; a non-owner runtime role with forced row level security is denied on every table without the right user |
 | Lighthouse | Mobile performance at least 85, first load under 200 KB |
 | Cache API and purge | Work on the production hostname. If they are no-ops on `workers.dev`, record it and the owner's domain action (H7) becomes blocking before the cache gates. The OpenNext cache and tag-cache bindings used are named, and any payment-method requirement is recorded. |
-| Terms check | Owner confirms commercial-use terms for Cloudflare, Neon (including Neon Auth), R2 and Turnstile free plans |
+| Terms check | Owner confirms commercial-use terms for Cloudflare, Neon (including Neon Auth and Neon Object Storage) and Turnstile free plans |
 
 **Non-gating probe (info only):** whether Neon's API can report CU-hours to a cron job. The result decides whether the Health page shows CU-hours (13.2).
 
@@ -1115,7 +1115,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | ADR-008 | Translatable content uses a JSONB `translations` column. | Adding French is additive. One row read per item. | Accepted |
 | ADR-009 | Server time is authoritative. The SLA clock starts at `received_at`, is set once by WAT weekday (Mon to Fri 4 h, Sat and Sun 24 h), runs continuously and is stored on the lead. | A lead queued offline must not be overdue before an admin can see it. History must not change when settings do. | Accepted (owner agreed) |
 | ADR-010 | A Cron Trigger runs the scheduled handler for rollups, purges, flags and checks. | No other place to run periodic work | Accepted, Phase 0 gate |
-| ADR-011 | Content images are stored in a Cloudflare R2 bucket through a Worker binding (key = sha256), with `media_asset` metadata in Neon, browser resizing, size caps, content-hash URLs and edge caching. A `MediaStore` interface keeps storage in one module. | Owner decision, amended 2026-10-24 (D15): Neon has no object storage, and the Stage 0 `bytea` path cost about 31 ms CPU on a cache miss against an 8 ms gate. R2 needs an owner click and may need a payment method; see ADR-039. | Accepted, Phase 0 gate. Amended 2026-10-24 |
+| ADR-011 | Content images are stored in a Neon Object Storage bucket (`images`, public-read; key = sha256) through the S3 API, with `media_asset` metadata in Neon, browser resizing, size caps, content-hash URLs and edge caching. A `MediaStore` interface keeps storage in one module. | Owner decision, amended 2026-10-24 (D15, D16): the Stage 0 `bytea` path cost about 31 ms CPU on a cache miss against an 8 ms gate. R2 was the first replacement but its checkout asked for a payment method; Neon Object Storage needs none. See ADR-039. | Accepted, Phase 0 gate. Amended 2026-10-24 |
 | ADR-012 | Payments are an append-only USD ledger in integer cents. Corrections are void and re-enter. Admins and owner can record, void and view. | Owner decision. Admins can type amounts, so history must be tamper-evident. | Accepted |
 | ADR-013 | One owner, enforced by a partial unique index. Owner powers require a 2FA-verified session. Destructive owner actions need a 10-minute step-up. | Owner decision (single owner, 2FA). Stronger than "enrolled". Amended 2026-10-24 (D15): the second factor is our own code on the otpauth library, because Neon Auth has no authenticator-app 2FA yet; the step-up time is stored in our `step_up` table. | Accepted. Amended 2026-10-24 |
 | ADR-014 | No business or content data is physically deleted in v1. Content is archived. Carve-outs are in ADR-029. | Extensibility rule on removal | Accepted. Amended 2026-10-23 |
@@ -1130,7 +1130,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | ADR-023 | Phase 0 is a hard gate with the measurable criteria in section 17. | The PRD's own risk: no fallback host | Accepted |
 | ADR-024 | No Next.js image optimiser. Plain `<img>` with stored dimensions. | It needs a paid service on this platform | Accepted |
 | ADR-025 | Phone numbers use a custom normaliser for the 7 student countries plus India, with a generic E.164 check for others. | A full phone library is too heavy for the 200 KB budget | Accepted |
-| ADR-026 | Weekly encrypted `pg_dump` (kept 28 days; image bytes are in R2, not in the dump; a bucket copy is the open flag F12), from GitHub Actions with repository secrets, outside Cloudflare, plus an owner export. | Neon Free restore is 6 hours only. A weekly dump with 150 MB of images would overrun GitHub's free artifact storage. | Accepted [Mine, confirm]. Amended 2026-10-23 |
+| ADR-026 | Weekly encrypted `pg_dump` (kept 28 days; image bytes are in Neon Object Storage, not in the dump; a bucket copy is the open flag F12), from GitHub Actions with repository secrets, outside Cloudflare, plus an owner export. | Neon Free restore is 6 hours only. A weekly dump with 150 MB of images would overrun GitHub's free artifact storage. | Accepted [Mine, confirm]. Amended 2026-10-23 |
 | ADR-027 | Rate limiting is layered: a Durable Object limiter, a per-number database limit, and Turnstile on the lead forms. Raw IPs are never stored. *(Amended 2026-10-23, D14: there is no password sign-up, forgot-password or resend form, so the student email cap of 60 per day and 3 per address no longer applies.)* | In-memory limiting does not work on Workers. | Accepted, Phase 0 gate. Amended 2026-10-23 |
 | ADR-028 | Markdown for blog posts, sanitised on render. No raw HTML. | Stored XSS from admin content | Accepted |
 | ADR-029 | "No physical deletes" applies to business and content data. The only carve-outs are: erasure (the account row and the lead's personal fields), raw `event` rows after rollup, and expired session rows (cleaned up by Neon Auth, not by our code). | The rule and the data rights and retention rules contradicted each other. Naming the exceptions keeps both true. | Accepted 2026-10-23 |
@@ -1139,7 +1139,11 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | ADR-032 | Sign-in is Google only. There are no passwords, no verification emails, no reset and no resend. | Password hashing does not fit the Workers Free CPU limit: scrypt used 95 to 293 ms and PBKDF2 and a no-hash magic-link probe were cut at 10 ms. It also removes the email abuse surface and the dependency on a verified sending domain. Trade-offs: a student without a Google account cannot sign in to track progress (lead intake and WhatsApp still work). Google's redirect address is now Neon Auth's, which is expected to remove the `workers.dev` redirect question (unverified until the credentials are created). | Accepted 2026-10-23 (owner, D14). Amended 2026-10-24 |
 | ADR-033 | The Worker entry answers public pages and content-hashed images from the Cache API before Next.js starts (`src/server/edge/fast-path.ts`). Pages live 30 seconds; only cookie-free GETs for known public paths qualify. | Next.js on OpenNext costs 7 to 9 ms of CPU for a prerendered page and about 10 ms for an image hit. The Cache API works on `workers.dev` (measured). | Proposed 2026-10-23, proven or rejected by S0.10 |
 | ADR-034 | For page requests the auth facade verifies the Neon Auth session itself, by the SDK or by our own check of the signed cookie (S0.10 picks by number), and reads the session and `app_user` role with one query. The `Actor` and the facade interface do not change. | Sign-in and session machinery cost near the 10 ms limit on Workers Free. | Proposed 2026-10-23, amended 2026-10-24 (D15); proven or rejected by S0.10 |
-(m) => m
+| ADR-035 | After Stage 0 started, the documents are edited in place and keep version 1, with an amendment log in each, instead of creating version 2 (an exception to the rule in this file's status line). | Owner decision D13. It matches decision D2 (pre-build edits) and keeps one current text. | Accepted 2026-10-23 (owner) |
+| ADR-036 | Resend and all email are removed from v1. Admin invites are copyable links. Nothing imports Resend; its secrets and the `server/email` boundary are deleted. | With Google-only sign-in (ADR-032) no flow needs email, and the verified sending domain was blocked by the .IN verification. | Accepted 2026-10-24 (owner, D15) |
+| ADR-037 | Sign-in and sessions run on Neon Auth, Neon's managed Better Auth (`neon_auth` schema in our database). Roles, the single owner, invites, the owner's second factor and the step-up time live in our own tables (`app_user`, `owner_totp`, `recovery_code`, `step_up`, `admin_invite`). The owner's second factor uses the otpauth library plus our own encrypted secret, 10 hashed recovery codes and a 5-failure lockout. | Neon Auth moves the heaviest Worker dependency off the free CPU limit, but has no authenticator-app 2FA, restricted sign-ups or documented role fields yet. The owner checks Neon's roadmap each session (tracker) and may replace our 2FA when Neon ships MFA. | Proposed 2026-10-24 (owner, D15), proven or rejected by S0.10 |
+| ADR-038 | Neon row level security is a second lock under the facade. The app connects as a runtime role that is not the table owner and has no BYPASSRLS; every table has `FORCE ROW LEVEL SECURITY` and policies keyed to the signed-in user's id and role; migrations run as the owner in CI only. Each request sets the user context in the same HTTP transaction as its query. A CI test fails if any table has no policy, and an integration test connects as the runtime role and is denied. | Owner decision D15. Postgres table owners bypass row level security unless it is forced, and Neon's default owner role bypasses it. | Proposed 2026-10-24 (owner, D15), proven or rejected by S0.10 |
+| ADR-039 | Images are stored in a Neon Object Storage bucket named `images` (public-read: anonymous reads, signed writes) in the project's own branch. Reads on a cache miss are a plain `fetch` of the public object URL, cached by the edge fast path (ADR-033). Uploads are Server Actions that sign an S3 `PutObject` with a Neon credential held as a Worker secret. Keys are `<sha256>.webp`. The Neon `media_blob` table is dropped after the images are migrated. Image backup is the open flag F12. | R2's checkout asked for a payment method (the project never adds a paid service). Neon Object Storage is generally available, free up to 5 GB per project, and in our region. Free-plan request and transfer limits are not stated on the pages read. | Proposed 2026-10-24 (owner, D15 amended by D16), proven or rejected by S0.10 |
 
 ## 19. Risks and mitigations
 
@@ -1152,7 +1156,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | Password hashing exceeds 10 ms | Sign-in fails | Measured: it does. Resolved by design: no passwords (ADR-032) |
 | Neon CU-hours exhausted, compute suspended | Leads and admin down | Database off public paths, kill switch, 70% alert, no keep-warm |
 | Neon storage full from images | Writes fail | Caps, 150 MB budget, meter, alert, swappable `MediaStore` |
-| R2 not enabled, or enabling it needs a payment method | Images cannot move to a bucket | Owner enables R2 and reports (tracker H12). If a card is required the decision returns to the owner; images stay in Neon behind the same interface. |
+| Neon Object Storage limits on the free plan (requests, transfer) are not stated on the pages read | Image delivery could hit a cap | Owner confirms Neon's plans page (tracker H12). Phase 0 measures reads; the usage meter alerts at 70%. If a cap is too low the decision returns to the owner; images stay in Neon `bytea` behind the same interface. |
 | Pre-hijacking or account takeover | Data exposure | Google sign-in only with an email Google reports as verified, no password accounts, owner 2FA |
 | Authorisation gap | Student sees others' data | `Actor` type, authz matrix test, no middleware auth |
 | Service worker caches private pages | Shared phone leak | Network-only for auth, student and admin routes. Cleared on sign-out. |
@@ -1192,7 +1196,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 - Neon free plan limits: https://neon.com/faqs/free-plan-limits-and-quotas
 - Neon pricing and plans: https://neon.com/pricing
 - Neon Auth overview: https://neon.com/docs/auth/overview ; roadmap (what is supported): https://neon.com/docs/auth/roadmap ; pricing and regions: https://neon.com/docs/auth/about
-- Cloudflare R2 pricing: https://developers.cloudflare.com/r2/pricing/
+- Neon Object Storage: https://neon.com/docs/storage/overview ; buckets: https://neon.com/docs/storage/buckets ; S3 compatibility: https://neon.com/docs/storage/s3-compatibility
 - Resend sending limits (vendor fact kept for a later email decision): https://resend.com/docs/knowledge-base/resend-sending-limits
 - Serwist with Turbopack: https://serwist.pages.dev/docs/next/turbo
 - Next.js Turbopack: https://nextjs.org/docs/app/api-reference/turbopack.md
@@ -1241,7 +1245,11 @@ Edited in place by the owner's instruction (D13, ADR-035). Version stays 1. Caus
 - Neon Auth (managed Better Auth, `neon_auth` schema) replaces self-hosted Better Auth in the Worker (ADR-037; sections 4, 5, 7, 9; ADR-020, ADR-032, ADR-034 amended). Owner 2FA is our own code on the otpauth library (ADR-013 amended).
 - Resend and all email are removed (ADR-036; sections 1, 4, 9.4, 13, 15, 17, appendix).
 - Row level security is a second lock with a non-owner runtime role and forced policies (ADR-038; ADR-005 amended).
-- Images move to a Cloudflare R2 bucket (ADR-039; ADR-011, ADR-026 amended; sections 5, 7.4, 8, 13, 17). `media_blob` is dropped after migration.
-- New tables: `app_user`, `owner_totp`, `recovery_code`, `step_up` (section 7). Boundary rule (section 15): only `server/auth` imports Neon Auth and otpauth; only `server/media` uses R2.
+- Images move to a Neon Object Storage bucket (ADR-039; ADR-011, ADR-026 amended; sections 5, 7.4, 8, 13, 17). `media_blob` is dropped after migration. R2 was dropped (decision D16) because its checkout asked for a payment method.
+- New tables: `app_user`, `owner_totp`, `recovery_code`, `step_up` (section 7). Boundary rule (section 15): only `server/auth` imports Neon Auth and otpauth; only `server/media` uses the storage client.
 - Module S0.10 gains the proofs for all of this (section 17). A failed gate returns the matching decision to the owner.
-- Facts checked 2026-10-24: Neon Auth is Better Auth run by Neon; no authenticator-app 2FA or restricted sign-ups yet; R2 is not enabled on the account (API error 10042).
+- Facts checked 2026-10-24: Neon Auth is Better Auth run by Neon; no authenticator-app 2FA or restricted sign-ups yet; R2 asked for a payment method at checkout; Neon Object Storage exists, is generally available and works on our project (an earlier "Neon has no object storage" statement was wrong and is corrected, D16).
+
+## Amendment (images in Neon Object Storage, 2026-10-24, decision D16)
+
+D15 chose an R2 bucket. R2's checkout asked for a payment method, so it is dropped (the project never adds a paid service). Neon Object Storage (generally available, S3-compatible, aws-eu-central-1 supported, 5 GB per project on the free plan, public-read buckets) replaces it in ADR-011 and ADR-039. The earlier statement in the D15 review that Neon has no object storage was wrong and is corrected. Sections 1, 4, 5, 7.4, 8, 13, 15, 17 and 19 were updated to match.

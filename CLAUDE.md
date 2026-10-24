@@ -85,7 +85,7 @@ Read `SYSTEM DESIGN RULES.html` and the other source files at the start of every
 
 ## Project guardrails (from the current architecture, section 15; re-read the file for the full text)
 
-- Only `server/repositories` imports Drizzle. Only `server/auth` imports the Neon Auth SDK and otpauth. Only `server/media` uses the R2 binding. Nothing imports Resend (removed, D15).
+- Only `server/repositories` imports Drizzle. Only `server/auth` imports the Neon Auth SDK and otpauth. Only `server/media` uses the Neon Object Storage client and credential. Nothing imports Resend (removed, D15).
 - Never put access control in middleware. Authorisation is enforced through the auth facade and the `Actor` type, backed by Neon row level security as a second lock: the app connects as a non-owner runtime role, every table has `FORCE ROW LEVEL SECURITY` and a policy, and CI fails on a table without one. Neither lock replaces the other. (Amended 2026-10-24, owner decision D15.)
 - No admin library (shadcn/ui, Recharts) in any public route.
 - No third-party scripts, no hotlinked images, no Next.js image optimiser.
@@ -94,7 +94,7 @@ Read `SYSTEM DESIGN RULES.html` and the other source files at the start of every
 - No personal data in logs or analytics events. Never store raw IP addresses.
 - Store all times in UTC. Display and group in WAT (`Africa/Douala`).
 - Every migration is additive-first.
-- Never add a paid service or change hosting. If Stage 0 fails a gate, stop and report to the owner. Enabling R2 is an owner action: if it asks for a payment method, stop and ask the owner.
+- Never add a paid service or change hosting. If Stage 0 fails a gate, stop and report to the owner. If any service asks for a payment method (R2 did, so it was dropped), stop and ask the owner.
 - Do not publish unconfirmed statistics, testimonials or team bios.
 
 ## Working rules
