@@ -447,6 +447,8 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 - **CPU rows still to measure** on the deployed Worker (at most 8 ms warm p95): `POST /api/v1/leads` (the deploy workflow now posts a real quick lead and removes the test leads) and `POST /api/v1/events` (no scenario yet in `scripts/measure-cpu.mjs`). The sign-in rows from Stage 2 were not recorded either.
 - Not yet run: CI on Postgres 16 with the `pg` driver for migration 0005; the migration on the live database; the Lighthouse run over the 16 routes.
 
+**CI result (pull request #19, both runs):** all five jobs passed: lint, typecheck and unit; integration on Postgres 16 (migration 0005 applied by the real driver); Worker build and size; Lighthouse over the 16 routes; Playwright. Modules stay `in-progress` until the deploy workflow has applied migration 0005 and the CPU rows for the lead and events endpoints are measured.
+
 **Still open and not Claude Code's to do:** merge of the pull request; migration 0005 and publishing (owner, or on the owner's word); the real Turnstile widget and secrets; H4 (trust content), H5 (privacy notice and terms, legal), H9 (budget), H12 (Object Storage limits); a check on a real phone. Stage 5 has not started.
 
 ## Flags (need the owner)
