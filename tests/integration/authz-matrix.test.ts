@@ -7,6 +7,8 @@ import { resolveSession, setRoleQuery } from "@/server/repositories/identity";
 import { listLeads } from "@/server/repositories/leads";
 import { runAs } from "@/server/repositories/as-actor";
 import { updateSetting } from "@/server/repositories/settings";
+import { createInvite, removeAdmin, revokeInvite } from "@/server/repositories/team";
+import { uuidv7 } from "@/lib/uuid";
 import { leadRow, q } from "./helpers/fixtures";
 import { createTestDb, type TestDb } from "./helpers/db";
 
@@ -97,7 +99,7 @@ afterAll(async () => {
 });
 
 /** Destructive owner actions also need a 2FA check inside the last 10 minutes (architecture 9.3 step 5, FR-8). */
-const STEP_UP_ACTIONS: ReadonlySet<ActionId> = new Set(["team.removeAdmin", "team.changeRole", "settings.update"]);
+const STEP_UP_ACTIONS: ReadonlySet<ActionId> = new Set(["team.invite", "team.removeAdmin", "team.changeRole", "settings.update"]);
 
 const expected = (subject: Subject, action: ActionId): boolean => {
   const allowed = can(subject.role, ACTION_PERMISSION[action]);
@@ -134,6 +136,36 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
       subject,
       (f, h) => f.requireOwner(h, { stepUp: true }),
       (actor) => updateSetting(t.db, actor, "sla_weekday_hours", 4),
+    ),
+  // Stage 2 (S2.5). The facade is the first lock; row level security (admin_invite policies, app_remove_admin) is the second.
+  // The attempt counts as done when the repository call returns, whatever it found to change: what is under test is who gets in.
+  "team.invite": (subject) =>
+    guarded(
+      subject,
+      (f, h) => f.requireOwner(h, { stepUp: true }),
+      async (actor) => {
+        const email = `matrix-${randomBytes(6).toString("hex")}@example.test`;
+        await createInvite(t.db, actor, { id: uuidv7(), email, tokenHash: randomBytes(32).toString("hex"), expiresAt: new Date(Date.now() + 86_400_000) });
+        return true;
+      },
+    ),
+  "team.revokeInvite": (subject) =>
+    guarded(
+      subject,
+      (f, h) => f.requireOwner(h),
+      async (actor) => {
+        await revokeInvite(t.db, actor, uuidv7(), uuidv7());
+        return true;
+      },
+    ),
+  "team.removeAdmin": (subject) =>
+    guarded(
+      subject,
+      (f, h) => f.requireOwner(h, { stepUp: true }),
+      async (actor) => {
+        await removeAdmin(t.db, actor, ids.target ?? "");
+        return true;
+      },
     ),
   "team.changeRole": (subject) =>
     guarded(

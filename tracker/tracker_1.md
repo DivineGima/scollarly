@@ -1,4 +1,4 @@
-# Tracker 1: Scollarly v2
+# Tracker 1: Scollarly v2 in-progress (2026-10-24: `/auth/landing`, mutation router, endpoint wiring; local tests pass, CI not run) | in-progress (2026-10-24: sign-in, sign-out pages; Google redirect on `workers.dev` already proven in Stage 0, real run of the new landing step not yet measured) | in-progress (2026-10-24: bootstrap, 2FA endpoints and pages, step-up prompt; the owner has not yet signed in with it) | in-progress (2026-10-24: access rules, owner-is-permanent trigger, removal; local tests pass) | in-progress (2026-10-24: invites, accept-invite page, Team page; local tests pass) | in-progress (2026-10-24: admin shell, Overview, Profile, Security; Playwright with mocked endpoints passes) | in-progress (2026-10-24: audit writer and Audit page; local tests pass) |
 
 Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, vendor terms, owner sign-off) are recorded here only when the owner says they are done.
 
@@ -9,9 +9,9 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stage 1 (foundation) is complete (2026-10-24): all seven modules S1.1 to S1.7 pass, and the real seed ran twice on the live database.** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 has not started (gate below). |
-| Next stage | **Stage 2** (the gate below is met). Stage 1 is complete and merged (pull requests #15 and #16). |
-| Blocked by | Nothing for Stage 2. Open and not blocking: the `ContactSubmission` import (needs the old table's export, or confirmation that it is empty), H12 (Object Storage limits, carried to Stage 3), and the domain (F10, blocks launch only). |
+| Phase | **Stage 1 (foundation) is complete (2026-10-24): all seven modules S1.1 to S1.7 pass, and the real seed ran twice on the live database.** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 is built and under test but not complete (Session 16). |
+| Next stage | **Stage 2 is built and under test (2026-10-24, branch `feature/stage-2-auth-admin-shell`, nothing pushed), not complete.** Stage 3 has **not** started: working rule 1 says a stage starts only when the previous stage's exit criteria pass, and Stage 2's need CI, the migration on the live database and a real Google sign-in. Stage 3 also needs the owner's answer on F17 and H12. See Session 16. |
+| Blocked by | Stage 2 completion needs CI, migration 0004 on the live database and the real sign-in (Session 16). Stage 3 also needs F17 and H12. Nothing else blocks Stage 2. Open and not blocking: the `ContactSubmission` import (needs the old table's export, or confirmation that it is empty), H12 (Object Storage limits, carried to Stage 3), and the domain (F10, blocks launch only). |
 | Gate before Stage 2 | Stage 1 complete (all seven modules, which needs the real seed run) and H16 (confirmed by the owner 2026-10-24). Stage 2 needs Neon Auth and the Google credentials (H8, done per the owner). Stage 2 also builds the F13 fix (visitor IP kept by Neon Auth) and the owner bootstrap. **On 2026-10-24 the owner asked for Stages 1 and 2 together; Stage 2 was not started because this gate is not met (CLAUDE.md: halt and flag).** |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
@@ -372,6 +372,59 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Note:** Claude Code created a new branch credential for object storage when it ran `neon env pull`. It is not stored anywhere in the repository.
 
+### 2026-10-24: Session 16 (Stage 2 built locally; Stage 3 held)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (start-of-task sequence run and passed; N = 1 everywhere). The standing check-in C1 is paused until about 2026-11-24 and was not asked.
+
+**Request:** "Implement feature of stage 2 and stage 3." Stage 2 was built on the local branch `feature/stage-2-auth-admin-shell` (one commit so far for the backend; the screens and documents are uncommitted; **nothing is pushed**). **Stage 3 was not started:** working rule 1 (essentials) says not to start a stage until the previous stage's exit criteria pass, and Stage 2's cannot pass in one session (CI, migration 0004 on the live database, a real Google sign-in with the Worker log open, the owner's first sign-in). Stage 3 also has two open owner items: F17 (shape of `translations`) and H12 (Object Storage free-plan limits).
+
+**Local results:** lint and typecheck clean; unit 348 passed; integration 292 passed and 20 todo (3 of the 23 earlier todos are now real matrix tests: `team.invite`, `team.revokeInvite`, `team.removeAdmin`); Playwright 45 passed (15 earlier, 30 new, on a production build); `next build` succeeds.
+
+| Module | Result (all `in-progress`: CI has not run) |
+|---|---|
+| S2.1 | `GET /auth/landing` (Worker entry plain function), the mutation router `POST /api/v1/<area>/<operation>` with `Access` rules, `EndpointEnv`, wiring in `authed-runtime.ts` and `worker/index.ts`. The facade is unchanged. |
+| S2.2 | `/sign-in` (plain link to `/auth/start`, no JavaScript needed), `/sign-out`. Invite tokens ride through `/auth/start` and `/auth/return`. |
+| S2.3 | Owner bootstrap in the landing step (audited); endpoints begin, confirm, verify, recovery; pages enrol (QR drawn in the browser) and verify; new `regenerateRecoveryCodes`. |
+| S2.4 | `denyAccess` (effective role, stored-owner, step-up); trigger that stops the owner being demoted; `app_remove_admin` (role, sessions expired, leads returned with an activity row, audit row, one transaction). |
+| S2.5 | Invites (hash only stored, 7 days, one open invite per email by unique index, resend replaces), `app_accept_invite`, `/accept-invite/[token]`, Team page. |
+| S2.6 | Admin layout with Tailwind and shadcn-style components (admin only; 11 KB stylesheet, no public page links it), role-based menu, offline banner, step-up prompt, Overview, Profile, Security. |
+| S2.7 | `auditEntry` joins a change's transaction; Audit page with person, action and WAT date filters and keyset paging. |
+
+**Dependencies added (exact versions, lockfile by npm 10):** `tailwindcss` and `@tailwindcss/postcss` 4.3.3, `class-variance-authority` 0.7.1, `clsx` 2.1.1, `tailwind-merge` 3.7.0, `qrcode-generator` 2.0.4 (loaded only on the enrol page). No Radix: dialogs use `<dialog>`.
+
+**Decisions made without asking (the owner can veto)**
+
+| Item | Choice |
+|---|---|
+| Owner bootstrap runs at the landing step | One extra query per student sign-in (the database function checks the email), not on every request. |
+| F13 | Both fixes: a trigger on Neon's session table and a scrub at every landing. The trigger is guarded so the migration does not fail if it is refused. |
+| Edge-cached pages | `/sign-in` and `/sign-out` added (identical for everyone). A Stage 0 unit test that listed `/sign-in` as never cached was updated. |
+| Stage 0 admin stub | Its `<main>` became a `<section>`, because the new admin layout already has the one `main` landmark. |
+| Error codes | `CONFLICT` (409) and `STEP_UP_REQUIRED` (403) added to the error envelope. |
+| Playwright | The edge endpoints are mocked in the browser tests, because `next start` has no Worker entry; the endpoints themselves are covered by the integration tests. |
+
+**Not measured, not done (needs the deployed Worker, CI or the owner)**
+- CPU rows for `/auth/return`, `/auth/landing`, the new shells and data calls, and the invite and remove mutations (each at most 8 ms warm p95; sign-in steps at most 10 ms).
+- The real Google sign-in through the new landing step; the owner's first sign-in and 2FA enrolment; whether CI passes (the Worker bundle size was not checked: the OpenNext build fails silently on Windows).
+- Migration 0004 on the live database, tried first on a throwaway Neon branch (see F13 and `docs/stage-2-runbook.md`).
+
+**For the next session:** read `docs/stage-2-runbook.md`, "What is left before Stage 2 can be called complete".
+
+### 2026-10-24: Session 17 (Stage 2 pull request, CI, migration trial on Neon)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1.
+
+**Owner instruction (the owner's words, summarised):** accept every recommendation as long as the source-of-truth files are respected; decide, conclude and finalise Stage 2 so Stage 3 can start fast. The recommendation on F17 (English text stays in plain columns, `translations` holds one object per extra locale) is therefore **accepted by the owner (D19)**. H12 is a human action and stays open.
+
+- **Pull request #18** (`feature/stage-2-auth-admin-shell` to `main`) opened. **CI passed on all five jobs in both runs** (lint, typecheck and unit; integration on Postgres 16; Worker build and size; Lighthouse; Playwright). **Worker size 1.458 MiB compressed** (7.437 MiB raw) against the 2.6 MiB gate (1.344 MiB at Stage 1). Claude Code did not merge.
+- **Migration 0004 tried on a throwaway Neon branch** (`s2-migration-test`, copied from production, deleted afterwards, its connection string removed): applied cleanly, and 18 of 18 checks passed against Neon's real `neon_auth` tables as the `app_runtime` role: the trigger blanks `ipAddress` and `userAgent` on a real insert, `app_scrub_session_pii` works, the runtime role still cannot read `neon_auth.session`, an invite is accepted only for the verified invited email and only once, `app_remove_admin` ends the removed admin's session and refuses a non-owner, and the owner role cannot be removed. **Flag F13 is therefore proven on a copy of the live database.**
+- **Migration 0004 on production: NOT applied.** The command was stopped by the permission check ("Production Deploy"), and Claude Code did not work around it. Production is at migration 0003 with no owner. The owner applies it (see `docs/stage-2-runbook.md`) or allows Claude Code to.
+
+- **A CI failure found a real bug, now fixed (commit d77047e).** The Audit page's paging cursor kept milliseconds while Postgres keeps microseconds, so rows written in the same millisecond could be skipped between pages (one run of the integration job failed, the other passed). The cursor is now the last row's id. The paging test inserts 60 rows inside one millisecond and was shown to fail on the old cursor (50 of 60) and pass on the new. **All 10 checks of pull request #18 pass on the fixed commit.**
+- **Merge and production migration both stopped by the permission check** ("Merge Without Review", "Production Deploy") even after the owner asked for them; Claude Code did not work around either.
+
+**Still open for Stage 2 (none can be done by Claude Code alone):** migration 0004 on production; merge of PR #18 and the manual deploy workflow (Claude Code cannot merge); the owner's first Google sign-in with `OWNER_EMAIL` and 2FA enrolment (human action); the CPU rows from that sign-in and from the new endpoints. Stage 2 modules stay `in-progress`.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -390,10 +443,10 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F11 | **Stage 0 gates failed on the CPU limit of Workers Free** (Session 6). Password sign-in fails for scrypt (95 to 293 ms) and for PBKDF2 and passwordless (both cut at 10 ms); the lead POST used 12 ms against 8 ms with half its requests cut; image serving is at about 10 ms against 8 ms; the admin page could not be measured because sign-in fails; the public page is at 7 to 9 ms against a 5 ms target. | Without a way to sign in, Stages 2, 5 to 10 cannot work as designed. Architecture section 17 lists the options per gate. | **Decided 2026-10-23 (owner): option (b), redesign for the free plan (D14), documents edited in place (D13). Stage 0 stays open until Module S0.10 proves the redesign; if it fails, the decision returns to the owner.** The original options, for the record: (a) **Workers Paid plan** (about $5 a month, a far higher CPU limit): one change that clears every failing gate, but breaks "zero recurring cost" (PRD G6). (b) **Redesign for the free plan**: Google sign-in only (no passwords, session lookups kept very small), move work to build time, thinner handlers, serve prerendered pages as static assets so they cost no Worker CPU, images from object storage (needs R2 and likely a payment method). Higher effort, not proven to fit, and the Better Auth per-request cost is itself close to the limit. (c) Re-measure a leaner Stage 0 first (for example memoised auth, fewer queries) before choosing. Claude Code's reading: (a) is the only option that is certain to work; (b) is uncertain. This is the owner's decision. |
 | F15 | **Two S0.10 gates failed on the deployed Worker** (Session 10): the admin page used 15 ms warm p50 and 25 ms p95 against 8 ms, and the lead POST used 3 ms p50 and 14 ms p95 against 8 ms. Nothing was cut at the 10 ms free-plan limit. Everything else measured passed. | Stage 0 is a hard gate: Stage 1 cannot start until S0.10 passes or the owner decides otherwise. The student page (no second query) costs 13 ms, so most of the admin cost is Next.js rendering, not the auth or RLS design. | **Decided 2026-10-24 (owner): option (1), stay on the free plan (D18).** The options were: (1) stay free and move staff screens off the Next.js render (static shell plus thin edge functions, as already done for the lead POST), and diagnose the lead POST tail; (2) Workers Paid plan (about 5 dollars a month, breaks PRD G6); (3) relax the 8 ms gate for staff-only pages, which needs an explanation of why 15 ms was not cut at the 10 ms limit. Claude Code's recommendation: (1) first, no plan change yet. |
 | F12 | Image backup. With images in Neon Object Storage the weekly `pg_dump` carries no image bytes, and a monthly copy of up to 3.5 GB cannot fit in GitHub Free artifact storage (about 500 MB). | Content is archived and never deleted (ADR-014). | **Decided 2026-10-24 (D17, owner delegated the choice).** No cloud copy. Immutable hash-keyed objects with no delete path, a manifest in the weekly dump, and an owner-run incremental copy to the owner's own disk, checked by sha256 (`scripts/backup-images.mjs`, built in S10.3). Needs no credential, no GitHub storage, no paid service, and does not delay any stage before Stage 10. |
-| F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Carried to Stage 2 (owner, 2026-10-24: flag it to a later stage; it does not block Stage 1).** The owner asked what Claude Code suggests. **Suggestion:** (1) a database trigger on `neon_auth.session` that blanks `ipAddress` and `userAgent` as each row is written, so nothing is kept; to be tried first on a throwaway Neon branch, because Neon manages that schema and could replace the trigger in an update; (2) if the trigger is not safe, a SECURITY DEFINER function owned by the owner role that clears both columns, called by the daily cron (S10.2), so nothing older than a day is kept; (3) either way the privacy notice says what is kept. Built and tested in S2.2 (sign-in) and confirmed with the owner then. Until then only the owner and test accounts sign in, so no visitor data is held. |
+| F13 | **Neon Auth stores the visitor's IP address and browser string** in `neon_auth.session` (columns `ipAddress`, `userAgent`). CLAUDE.md says never store raw IP addresses. | The table is Neon's, not ours, and we cannot change its columns. | **Carried to Stage 2 (owner, 2026-10-24: flag it to a later stage; it does not block Stage 1).** The owner asked what Claude Code suggests. **Suggestion:** (1) a database trigger on `neon_auth.session` that blanks `ipAddress` and `userAgent` as each row is written, so nothing is kept; to be tried first on a throwaway Neon branch, because Neon manages that schema and could replace the trigger in an update; (2) if the trigger is not safe, a SECURITY DEFINER function owned by the owner role that clears both columns, called by the daily cron (S10.2), so nothing older than a day is kept; (3) either way the privacy notice says what is kept. Built and tested in S2.2 (sign-in) and confirmed with the owner then. Until then only the owner and test accounts sign in, so no visitor data is held. **Stage 2 update (2026-10-24): built, not yet applied.** Migration 0004 adds the trigger on `neon_auth.session` (blanks `ipAddress` and `userAgent` as each row is written) and the function `app_scrub_session_pii`, which `/auth/landing` calls after every sign-in (and the daily cron, S10.2, can call without a token). Both are tested on PGlite and Postgres with a stand-in for Neon's table. A read-only check on 2026-10-24 showed the migration role (`neondb_owner`) can update and add triggers to `neon_auth.session`. **Still to do, by the owner or on request:** try migration 0004 on a throwaway Neon branch first, then apply it, then sign in once and confirm both columns are null. The privacy notice wording is a Stage 3 item (S3.2 privacy page). |
 | F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Owner accepts the beta (2026-10-24: "yes am okay with it being a beta version").** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
 | F16 | **Two image budgets in the documents.** Architecture 7.3 (`media_budget_bytes (150 MB)`) and section 3 say 150 MB; PRD FR-18, architecture 10.5 and essentials S6.3 say about 3.5 GB of Neon Object Storage's free 5 GB. | A seed default had to be chosen, and the meter and the 70% banner (S6.3, S10.2) read it. | **Closed 2026-10-24: the owner confirmed 3.5 GB.** Seeded as 3.5 GiB (D16). The stale 150 MB lines in architecture sections 3, 7.3 and the risk table were corrected in place. Left as written: ADR-026's historical rationale and the PRD's open question Q on the budget. |
-| F17 | **`translations` shape.** Architecture 6.4 shows one text per row (`{ "en": "...", "fr": "..." }`), but `faq`, `university`, `fee_structure` and others have several translatable fields. | Stage 3 renders it and Stage 6 writes it. The database only checks it is a JSON object; `translationsSchema` requires `en`. | **Open, for Stage 3 and 6.** Decide whether a row keeps its English text in plain columns and `translations` holds one object per extra locale (Claude Code's reading), or the shape changes. |
+| F17 | **`translations` shape.** Architecture 6.4 shows one text per row (`{ "en": "...", "fr": "..." }`), but `faq`, `university`, `fee_structure` and others have several translatable fields. | Stage 3 renders it and Stage 6 writes it. The database only checks it is a JSON object; `translationsSchema` requires `en`. | **Decided 2026-10-24 (owner accepted the recommendation, D19):** a row keeps its English text in plain columns; `translations` holds one object per extra locale, for example `{ "fr": { "question": "...", "answer": "..." } }`, with the fields it translates. `translationsSchema` (which requires `en`) is changed in Stage 3 to match, and the architecture 6.4 example is corrected then. |
 
 ## Stage status
 
@@ -403,8 +456,8 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 |---|---|---|---|
 | 0 | Proof of fit (hard gate) | S0.1 to S0.10 | **complete** (2026-10-24) |
 | 1 | Foundation | S1.1 to S1.7 | complete (2026-10-24: S1.1 to S1.7, real seed ran twice on the live database) |
-| 2 | Authentication, roles, admin shell | S2.1 to S2.7 | — |
-| 3 | Public site | S3.1 to S3.5 | — |
+| 2 | Authentication, roles, admin shell | S2.1 to S2.7 | in-progress (2026-10-24: all seven modules built and passing locally; waits for CI, migration 0004 on the live database and the real sign-in measurement, see Session 16) |
+| 3 | Public site | S3.1 to S3.5 | — (held: Stage 2 exit criteria not met, F17 and H12 open) |
 | 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | — |
 | 5 | Admin lead management | S5.1 to S5.6 | — |
 | 6 | Content management and images | S6.1 to S6.5 | — |
@@ -437,13 +490,13 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S1.5 | Full CI | complete (2026-10-24, CI) |
 | S1.6 | i18n scaffolding | complete (2026-10-24, CI) |
 | S1.7 | Seed and migration scripts, logo and image import | complete (2026-10-24: real seed run twice on the live database; `ContactSubmission` import not built, no rows supplied, see Session 14) |
-| S2.1 | Production Neon Auth configuration behind the facade | — |
-| S2.2 | Sign-in and sign-out pages (Google only) | — |
-| S2.3 | Owner bootstrap, 2FA, step-up | — |
-| S2.4 | `Actor` issuance, role guards, fresh staff session lookup | — |
-| S2.5 | Admin invites and Team page | — |
-| S2.6 | Admin shell | — |
-| S2.7 | Audit log | — |
+| S2.1 | Production Neon Auth configuration behind the facade | in-progress (2026-10-24: `/auth/landing`, mutation router, endpoint wiring; local tests pass, CI not run) |
+| S2.2 | Sign-in and sign-out pages (Google only) | in-progress (2026-10-24: sign-in and sign-out pages; the Google redirect on `workers.dev` was proven in Stage 0, the new landing step has not been run for real) |
+| S2.3 | Owner bootstrap, 2FA, step-up | in-progress (2026-10-24: bootstrap, 2FA endpoints and pages, step-up prompt; the owner has not yet signed in with it) |
+| S2.4 | `Actor` issuance, role guards, fresh staff session lookup | in-progress (2026-10-24: access rules, owner-is-permanent trigger, admin removal; local tests pass) |
+| S2.5 | Admin invites and Team page | in-progress (2026-10-24: invites, accept-invite page, Team page; local tests pass) |
+| S2.6 | Admin shell | in-progress (2026-10-24: admin shell, Overview, Profile, Security; Playwright with mocked endpoints passes) |
+| S2.7 | Audit log | in-progress (2026-10-24: audit writer and Audit page; local tests pass) |
 | S3.1 | Content read layer and prerender | — |
 | S3.2 | Public pages | — |
 | S3.3 | Fee gating, video facade, media delivery | — |

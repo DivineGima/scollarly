@@ -9,9 +9,9 @@ export default async function AdminPhase0Page({ params }: { params: Promise<{ lo
   setRequestLocale(locale);
   const t = await getTranslations("phase0");
   return (
-    <main>
+    <section>
       <h1>{t("adminHeading")}</h1>
       <StubValue url="/api/v1/admin/phase0" field="leadCount" label={t("leadCount")} testId="lead-count" />
-    </main>
+    </section>
   );
 }

@@ -1,0 +1,28 @@
+/*
+ * The admin screens' stylesheet (architecture 6, S2.6). Tailwind lives here and nowhere else: this file is imported by the admin
+ * layout only, so a public page never downloads it, and `source(none)` plus the two @source lines stop Tailwind scanning the
+ * public components. The colours are the design tokens of globals.css, so the admin looks like the rest of the site.
+ */
+@import "tailwindcss" source(none);
+@source "../../../../components/admin";
+@source "./";
+
+@theme inline {
+  --color-fg: var(--color-fg);
+  --color-fg-muted: var(--color-fg-muted);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-border: var(--color-border);
+  --color-accent: var(--color-accent);
+  --color-accent-fg: var(--color-accent-fg);
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* The public stylesheet limits `main` to a reading width; the admin tables need the room. */
+main.admin-main {
+  max-width: 64rem;
+}

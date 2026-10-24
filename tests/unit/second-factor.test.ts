@@ -200,6 +200,24 @@ describe("recovery codes", () => {
     for (const code of codes) expect(code).toMatch(/^[2-9A-HJKMNP-TV-Z]{4}(-[2-9A-HJKMNP-TV-Z]{4}){3}$/);
   });
 
+  it("are replaced on request: ten new ones work, every old one stops", async () => {
+    const s = setup();
+    const { recoveryCodes: old } = await enrolled(s);
+    const fresh = await s.factor.regenerateRecoveryCodes("owner-1");
+    expect(fresh).toHaveLength(10);
+    expect(fresh?.some((code) => old.includes(code))).toBe(false);
+    expect(await s.factor.verifyRecoveryCode("owner-1", "sess-9", old[0] ?? "")).toBe("invalid");
+    expect(await s.factor.verifyRecoveryCode("owner-1", "sess-9", fresh?.[0] ?? "")).toBe("ok");
+  });
+
+  it("are not issued to an account with no confirmed authenticator", async () => {
+    const s = setup();
+    expect(await s.factor.regenerateRecoveryCodes("owner-1")).toBeNull();
+    await s.factor.beginEnrolment("owner-1", "owner@example.test");
+    expect(await s.factor.regenerateRecoveryCodes("owner-1")).toBeNull();
+    expect(s.recovery.get("owner-1")).toBeUndefined();
+  });
+
   it("hash differently per user and ignore formatting", async () => {
     expect(await hashRecoveryCode("a", "ABCD-EFGH-JKMN-PQRS")).toBe(await hashRecoveryCode("a", "abcd efgh jkmn pqrs"));
     expect(await hashRecoveryCode("a", "ABCD-EFGH-JKMN-PQRS")).not.toBe(await hashRecoveryCode("b", "ABCD-EFGH-JKMN-PQRS"));

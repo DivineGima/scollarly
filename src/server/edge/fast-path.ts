@@ -13,7 +13,7 @@
 export type FastPathKind = "page" | "media";
 
 /** Public pages that are prerendered and identical for every visitor. Extend as public pages are added. */
-export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set(["/", "/offline", "/phase0/published"]);
+export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set(["/", "/offline", "/phase0/published", "/sign-in", "/sign-out"]);
 
 const MEDIA_PATH = /^\/media\/([a-f0-9]{64})(?:\.webp)?$/;
 

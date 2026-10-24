@@ -158,7 +158,8 @@ describe("error envelope helpers (architecture 8.1)", () => {
   });
 
   it("maps every code to a status and validation errors to 400 with fields", async () => {
-    expect(Object.keys(STATUS_BY_CODE)).toHaveLength(10);
+    expect(Object.keys(STATUS_BY_CODE)).toHaveLength(12); // CONFLICT and STEP_UP_REQUIRED were added in Stage 2
+    expect([STATUS_BY_CODE.CONFLICT, STATUS_BY_CODE.STEP_UP_REQUIRED]).toEqual([409, 403]);
     const response = validationErrorResponse([{ path: ["name"], message: V.REQUIRED }], "req-2");
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: { code: "VALIDATION", fields: { name: "REQUIRED" } }, request_id: "req-2" });

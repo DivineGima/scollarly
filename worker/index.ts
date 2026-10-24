@@ -7,8 +7,10 @@ import { default as handler } from "../.open-next/worker.js";
 
 import { applySecurityHeaders } from "../src/lib/security-headers";
 import { handleAuthed } from "../src/server/edge/authed";
-import { authedDeps } from "../src/server/edge/authed-runtime";
+import { authedDeps, landingDeps, mutationDeps } from "../src/server/edge/authed-runtime";
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
+import { handleLanding } from "../src/server/edge/landing";
+import { handleMutation } from "../src/server/edge/mutations";
 import { handleLeadPost, LEADS_PATH } from "../src/server/edge/leads";
 import { serveMedia } from "../src/server/edge/media";
 import { handleSignIn } from "../src/server/edge/sign-in";
@@ -20,7 +22,9 @@ import { getMediaStore } from "../src/server/media/runtime";
  *  - public pages and content-hashed images are answered from the Cache API (images are read from the public bucket on a miss);
  *  - `POST /api/v1/leads` runs as a plain function;
  *  - the two sign-in steps of ours, `/auth/start` and `/auth/return`, are plain functions (`edge/sign-in.ts`);
- *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`).
+ *  - the first request after sign-in, `/auth/landing`, is a plain function too (`edge/landing.ts`);
+ *  - signed-in screens are a cached shell with no data plus plain data functions (ADR-040, `edge/authed.ts`),
+ *    and signed-in changes are `POST /api/v1/<area>/<operation>` plain functions (`edge/mutations.ts`).
  * Everything else, and every page miss, goes to OpenNext unchanged.
  */
 async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
@@ -29,6 +33,12 @@ async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext
 
   const signIn = handleSignIn(request, env);
   if (signIn) return signIn;
+
+  const landing = await handleLanding(request, () => landingDeps(env, (task) => ctx.waitUntil(task)));
+  if (landing) return landing;
+
+  const mutation = await handleMutation(request, () => mutationDeps(env));
+  if (mutation) return mutation;
 
   const authed = await handleAuthed(request, () =>
     authedDeps(env, {

@@ -122,7 +122,19 @@ export function createSecondFactor(deps: SecondFactorDeps) {
     return "ok";
   }
 
-  return { beginEnrolment, confirmEnrolment, verifyCode, verifyRecoveryCode };
+  /**
+   * C6: new recovery codes; the old ones stop working (they are marked used). Only for a confirmed enrolment. The caller must
+   * already have required a fresh step-up. Returns null when the account is not enrolled.
+   */
+  async function regenerateRecoveryCodes(userId: string): Promise<string[] | null> {
+    const record = await store.getTotp(userId);
+    if (!record || !record.confirmed) return null;
+    const recoveryCodes = generateRecoveryCodes();
+    await store.replaceRecoveryCodes(userId, await Promise.all(recoveryCodes.map((c) => hashRecoveryCode(userId, c))));
+    return recoveryCodes;
+  }
+
+  return { beginEnrolment, confirmEnrolment, verifyCode, verifyRecoveryCode, regenerateRecoveryCodes };
 }
 
 export type SecondFactor = ReturnType<typeof createSecondFactor>;

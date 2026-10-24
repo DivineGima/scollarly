@@ -1,5 +1,6 @@
 import { errorResponse, jsonResponse, newRequestId } from "@/lib/http";
-import { type Actor, hasAtLeast, type Role } from "@/server/auth/actor";
+import { type Actor, AuthError, hasAtLeast, type Role } from "@/server/auth/actor";
+import { readSessionToken } from "@/server/auth/cookie";
 import { isStorablePage, toEdgeCopy } from "./fast-path";
 
 /**
@@ -16,13 +17,18 @@ import { isStorablePage, toEdgeCopy } from "./fast-path";
  * security under it (ADR-038); it is not in middleware. The shell holds nothing private, so a cached copy can never leak data.
  */
 
-export type Area = "admin" | "me";
+export type Area = "admin" | "me" | "auth";
 
-/** The role an area needs. `me` is any signed-in user. */
-export const AREA_ROLE: Record<Area, Role> = { admin: "admin", me: "student" };
+/**
+ * The role an area needs. `me` and `auth` are any signed-in user. `auth` holds the two-factor pages and their data: an
+ * owner who has not passed 2FA is treated as a student, so those pages must be open to a student-level session, and the
+ * data call itself then checks that the account is the owner.
+ */
+export const AREA_ROLE: Record<Area, Role> = { admin: "admin", me: "student", auth: "student" };
 
-const SHELL_PATH = /^\/(?:en\/)?(admin|me)(?:\/.*)?$/;
-const API_PATH = /^\/api\/v1\/(admin|me)\/([a-z0-9-]+)$/;
+const SHELL_PATH = /^\/(?:en\/)?(admin|me|two-factor)(?:\/.*)?$/;
+const API_PATH = /^\/api\/v1\/(admin|me|auth)\/([a-z0-9-]+)$/;
+const SHELL_AREA: Record<string, Area> = { admin: "admin", me: "me", "two-factor": "auth" };
 
 export type AuthedRoute = { kind: "shell"; area: Area } | { kind: "api"; area: Area; name: string };
 
@@ -32,9 +38,17 @@ export function classifyAuthed(method: string, url: URL, headers: Headers): Auth
   const api = API_PATH.exec(url.pathname);
   if (api) return { kind: "api", area: api[1] as Area, name: api[2] as string };
   const shell = SHELL_PATH.exec(url.pathname);
-  if (shell && !headers.has("rsc") && !url.searchParams.has("_rsc")) return { kind: "shell", area: shell[1] as Area };
+  if (shell && !headers.has("rsc") && !url.searchParams.has("_rsc")) return { kind: "shell", area: SHELL_AREA[shell[1] as string] as Area };
   return null;
 }
+
+/** What a data call may need besides the actor: the session token (for the few functions keyed by it) and the request URL (filters). */
+export interface CallContext {
+  token: string | null;
+  url: URL;
+}
+
+export type DataCall = (actor: Actor, call: CallContext) => Promise<unknown>;
 
 export interface AuthedDeps {
   /** The facade's `checkSession`: one database query. */
@@ -44,7 +58,7 @@ export interface AuthedDeps {
   next: (request: Request) => Promise<Response>;
   waitUntil: (task: Promise<unknown>) => void;
   /** Data functions by `<area>/<name>`. Each runs its queries inside `inContext` for the given actor. */
-  api: Record<string, (actor: Actor) => Promise<unknown>>;
+  api: Record<string, DataCall>;
 }
 
 /**
@@ -72,8 +86,17 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
   if (!actor) return errorResponse(401, "UNAUTHENTICATED", "Sign in required.", requestId);
   if (!allowed) return errorResponse(403, "FORBIDDEN", "Not allowed.", requestId);
   try {
-    return jsonResponse(await (deps.api[`${route.area}/${route.name}`] as (actor: Actor) => Promise<unknown>)(actor));
-  } catch {
+    const call = deps.api[`${route.area}/${route.name}`] as DataCall;
+    const result = await call(actor, { token: readSessionToken(request.headers), url });
+    // A data call may answer with its own response (for example a 400 for a filter the screen could not have produced).
+    return result instanceof Response ? result : jsonResponse(result);
+  } catch (error) {
+    // A data call may refuse (for example, the Team page is for the owner only). Anything else is a fault: no detail leaves the server.
+    if (error instanceof AuthError) {
+      return error.code === "UNAUTHENTICATED"
+        ? errorResponse(401, "UNAUTHENTICATED", error.message, requestId)
+        : errorResponse(403, "FORBIDDEN", error.message, requestId);
+    }
     return errorResponse(500, "INTERNAL", "Something went wrong.", requestId);
   }
 }
