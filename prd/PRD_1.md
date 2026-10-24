@@ -95,7 +95,7 @@ Scollarly connects African students with Indian universities. Students pay nothi
 | Translations | next-intl | English now, French ready |
 | PWA / offline | Serwist + idb | Offline pages and a queue for leads and WhatsApp taps |
 | Charts | Recharts | Analytics dashboard only |
-| Backend / API | Route Handlers, Server Actions, Zod | Lead sync, role checks, validation |
+| Backend / API | Route Handlers and plain edge functions (signed-in data and changes), Zod | Lead sync, role checks, validation |
 | Database | Neon Postgres | Leads, stages, content, events, placements |
 | Image storage | Neon Object Storage (bucket, public-read) | Content images, served from the edge cache (D16) |
 | ORM | Drizzle | Typed queries and migrations |
@@ -443,3 +443,6 @@ Edited in place by the owner's instruction (D13). Version stays 1. Cause: the ow
 ## Amendment (images in Neon Object Storage, 2026-10-24, decision D16)
 
 D15 chose a Cloudflare R2 bucket for images. R2's checkout asked for a payment method, and the project rule is never to add a paid service. While looking for a free alternative it was found that Neon has its own S3-compatible Object Storage (generally available, available in the project's region aws-eu-central-1, 5 GB per project on the free plan, public-read buckets). **An earlier statement in the D15 review that "Neon has no object storage" was wrong and is corrected.** The owner chose Neon Object Storage (D16). Everything else in D15 is unchanged.
+## Amendment (signed-in screens on the free plan, 2026-10-24, decision D18)
+
+Edited in place by the owner's instruction (D13). Version stays 1. Cause: the first Module S0.10 run showed that a signed-in page rendered by Next.js uses more CPU than Workers Free allows, and the owner chose to stay on the free plan. **No requirement changes.** Only the technology row for Backend / API changes: signed-in screens use a cached page shell and plain data functions instead of Server Actions and server-rendered pages. Downstream Impact: NO_IMPACT on requirements; the effect is in the architecture (ADR-040) and the essentials.

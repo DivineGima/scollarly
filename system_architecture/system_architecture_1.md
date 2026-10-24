@@ -21,7 +21,7 @@ Everything in PRD_1 (F1 to F11) is built in version 1. Hosting is Cloudflare Wor
 
 | Fact | Consequence |
 |---|---|
-| Workers Free: 10 ms CPU per request, 3 MiB Worker size (compressed), 100,000 requests per day, 1,000 requests per minute burst | Prerender and cache public pages. Keep the server bundle small. Batch client events. **Measured 2026-10-23: a prerendered page costs 7 to 9 ms and an image cache hit about 10 ms when they pass through Next.js on OpenNext, so public pages and images are answered from the Cache API in the Worker entry before Next.js starts (ADR-033).** |
+| Workers Free: 10 ms CPU per request, 3 MiB Worker size (compressed), 100,000 requests per day, 1,000 requests per minute burst | Prerender and cache public pages. Keep the server bundle small. Batch client events. **Measured 2026-10-23: a prerendered page costs 7 to 9 ms and an image cache hit about 10 ms when they pass through Next.js on OpenNext, so public pages and images are answered from the Cache API in the Worker entry before Next.js starts (ADR-033). Measured 2026-10-24 (first Module S0.10 run): a signed-in screen rendered by Next.js costs 13 ms (student) to 15 ms (staff) against the same limit, so signed-in screens are a data-free cached shell plus plain data functions (ADR-040, D18).** |
 | OpenNext: 3 MiB limit applies to the compressed size. Documented support covers all Next.js 15 minor versions. | Phase 0 pins the Next.js version. Next.js 16 support is unconfirmed. |
 | Neon Free: 100 CU-hours and 0.5 GB per project (the source used here; Neon's plans page on 2026-10-23 says 1 GB per project, and capacity estimates stay on the safer 0.5 GB). Compute scales to zero after 5 minutes and this cannot be disabled. Compute suspends when the monthly limit is reached. Restore window is 6 hours. | The database stays off the public read path. No keep-warm pings. A usage alert is required. The 6-hour restore window is not a backup (section 13.7). |
 | Resend Free: 100 emails per day, 3,000 per month, one verified domain | Not used in v1 (ADR-036, D15): no flow sends email. Kept here as a vendor fact in case email is added later. |
@@ -29,9 +29,11 @@ Everything in PRD_1 (F1 to F11) is built in version 1. Hosting is Cloudflare Wor
 
 **Unverified (Phase 0 gates):** Neon Auth session verification from a Worker (SDK or own cookie check) and its sign-in return trip (D15, S0.10); a row-level-security context per query over Neon's HTTP driver (ADR-038); Neon Object Storage reads (public bucket) and signed writes from a Worker (ADR-039); the Stage 0 self-hosted Better Auth and `bytea` image paths were measured and are superseded; OpenNext revalidation cache bindings on free; Durable Objects and Cron Triggers on free; Turnstile, Cloudflare, Neon (including Neon Auth and Neon Object Storage) commercial-use terms on free plans; whether Neon's API can report CU-hours to a cron job (a non-gating probe, section 17); whether the Cache API and cache purge work on the `workers.dev` hostname (**measured 2026-10-23: put, match and delete work there**; a community reply had said otherwise); which OpenNext cache and tag-cache bindings work on free (**measured 2026-10-23: the KV incremental cache, the D1 tag cache and the Durable Object queue work on the free plan with no payment method**; OpenNext discourages KV, and R2 is not enabled on the account: the API answers HTTP 403, code 10042, "Please enable R2 through the Cloudflare Dashboard", measured 2026-10-24; the R2 checkout asked for a payment method on 2026-10-24, so R2 is not used and images go to Neon Object Storage, ADR-039). Neon Auth facts (checked 2026-10-24): it is Better Auth run by Neon, with users and sessions in the `neon_auth` schema of our own database; Google, email-and-password, magic-link and admin plugins are supported; authenticator-app 2FA and restricted sign-ups are "coming soon"; 60,000 monthly active users on the free plan; AWS regions only (our project is aws-eu-central-1) and no IP Allow or Private Networking. Neon Object Storage (checked 2026-10-24): generally available, S3-compatible, supported in aws-eu-central-1, 5 GB per project on the free plan, buckets are `private` or `public_read` (anonymous reads, signed writes), each branch has its own storage namespace; request and transfer limits are not stated on the pages read (unverified); it works on our project (the CLI lists buckets without error).
 
-Cloudflare's own limits page puts authentication and server-rendering work at typically 10 to 20 ms of CPU, so the 8 ms admin page gate in section 17 is the likeliest to fail.
+Cloudflare's own limits page puts authentication and server-rendering work at typically 10 to 20 ms of CPU, so the 8 ms admin page gate in section 17 is the likeliest to fail. **It did fail in the first Module S0.10 run (2026-10-24); see the measured paragraph below and ADR-040.**
 
 **Measured on 2026-10-23 (Stage 0 slice on Workers Free, details in section 17):** password sign-in used 95 to 293 ms with scrypt and was cut at the 10 ms limit with PBKDF2 (100,000 iterations) and with a magic-link probe; the lead POST used 12 ms against 8 ms; image serving used about 10 ms against 8 ms; a prerendered page used 7 to 9 ms against a 5 ms target; the admin page could not be measured because no session could be issued. The owner chose to redesign for the free plan (D14): Google sign-in only (ADR-032), an edge fast path (ADR-033), a lean session check (ADR-034), thin handlers, and Module S0.10 to prove it.
+
+**Measured on 2026-10-24 (first Module S0.10 run, workflow run 40064928935, commit e964be3):** public page 0 / 1 ms (warm p50 / p95), image cache hit 0 / 1, image miss from Neon Object Storage 1 / 2, all passing; the row-level-security role, storage from the Worker and the refusal of forged, anonymous and student sessions passed. **Two gates failed: the staff page rendered by Next.js (15 / 25 ms against 8) and the lead POST (3 / 14 ms against 8, a slow tail on a 3 ms median).** The student page, with no second query, cost 13 ms, so most of the cost is the Next.js page render and not Neon Auth or row level security. No request was cut at the 10 ms limit, although the reason 15 ms was not cut is not understood and is not relied on. The owner chose to stay on the free plan (D18): signed-in screens stop being Next.js page renders (ADR-040), and the lead POST tail is diagnosed from per-request samples that the measurement script now records.
 
 ## 2. Requirements traceability
 
@@ -115,7 +117,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  subgraph UI["app/ routes (RSC, Server Actions, Route Handlers)"]
+  subgraph UI["app/ routes: prerendered pages and Route Handlers. Signed-in data comes from edge functions (ADR-040)"]
     PUB["(public) pages"]
     AUTHUI["(auth) pages"]
     STU["(student) pages"]
@@ -164,20 +166,22 @@ scollarly/
       media/[hash]/          image delivery (content-hash URLs)
       sw.ts   manifest.webmanifest
     modules/                 leads, content, media, analytics, payments, team, sla
-                             (each: actions.ts, service.ts, schema.ts, components/)
+                             (each: endpoints.ts, service.ts, schema.ts, components/)
     server/
       auth/                  facade (checkSession, requireRole, requireOwner), the ONLY
                              importer of the Neon Auth SDK and otpauth; exports branded Actor type
       repositories/          the ONLY importer of Drizzle; every protected method takes an Actor
       db/                    per-request client factory, schema, migrations
       security/              turnstile verify, rate limit, origin check, input limits
-      edge/                  fast path: Cache API lookup for public pages and images (used by worker/)
+      edge/                  Worker-entry functions (used by worker/): fast path for public pages and images, lead POST,
+                             signed-in shells and data calls (authed.ts)
       media/                 Neon Object Storage MediaStore adapter (only user of the storage credential)
     lib/                     whatsapp url helper, phone normaliser, ref generator,
                              time (WAT helpers), i18n config, result type
     offline/                 IndexedDB queue, sync engine, session id (client only)
     components/public/       light components, no admin libraries
     components/admin/        shadcn/ui and Recharts, imported only from (admin)
+    components/shell/        small data islands used by signed-in shells (client components that fetch a data call)
   messages/                  en.json, fr.json (split by namespace)
   worker/                    custom Worker entry: edge fast path (public pages, images), scheduled handler
   tests/                     unit, integration, e2e, offline, a11y, lighthouse, authz-matrix
@@ -199,14 +203,16 @@ scollarly/
 | `(public)` | Prerendered, revalidated on publish | Worker-entry fast path from the Cache API with a 30 second lifetime (ADR-033), Next.js on a miss, plus service worker stale-while-revalidate | None |
 | `/apply` | Prerendered shell, client island for the form | As above | None |
 | `(auth)` | Dynamic | None | None |
-| `(student)` | Dynamic, per user | Never cached by the service worker | Student |
-| `(admin)` | Dynamic, per user, online-only | Never cached by the service worker | Admin or owner |
+| `(student)` | Prerendered shell with no data in it; the data comes from `GET /api/v1/me/*` (ADR-040) | The Worker entry serves the shell from the Cache API after the session check; browsers, the CDN and the service worker never store it | Student |
+| `(admin)` | Prerendered shell with no data in it, online-only; the data comes from `GET /api/v1/admin/*` and changes go to `POST /api/v1/admin/*` (ADR-040) | As for `(student)` | Admin or owner |
 | `/media/[hash]` | Route Handler reading the Neon Object Storage object | `public, max-age=31536000, immutable` plus Cache API, checked in the Worker entry before Next.js starts (ADR-033) | None |
-| `/api/v1/*` | Route Handlers | `no-store` | Per endpoint |
+| `/api/v1/*` | Route Handlers. The signed-in data and mutation endpoints and `POST /api/v1/leads` are plain functions in the Worker entry (ADR-033, ADR-040) | `no-store` | Per endpoint |
 
 **Rule:** a public page read never touches Neon. Content is read at build or revalidate time and served from cache. Publishing calls tag revalidation (ADR-002). If Phase 0 shows OpenNext cannot do tag revalidation on the free plan, the fallback is edge caching with `s-maxage` plus stale-while-revalidate and an explicit purge on publish. Phase 0 (S0.6) names the OpenNext incremental cache and tag cache bindings it uses and records whether any of them needs a payment method; if one does, work stops and the owner decides (G6). **Measured 2026-10-23:** KV, D1 and the Durable Object queue need no payment method, and a publish showed on the page within 5 seconds.
 
-**Free-plan CPU rule (D14, ADR-033):** Next.js costs several milliseconds of CPU on every request that reaches it, so the Worker entry (`worker/index.ts`, logic in `src/server/edge/fast-path.ts`) answers eligible requests from the Cache API first. Eligible means a cookie-free GET for a known public path, or a content-hashed image. A cached page lives for 30 seconds, so a publish becomes visible within about 30 seconds in every region (the Cache API is per data centre, so a purge cannot reach every region and the short lifetime does the work). Nothing under `/admin`, `/me`, `/api` or `/_next` can ever enter this cache.
+**Free-plan CPU rule (D14, ADR-033):** Next.js costs several milliseconds of CPU on every request that reaches it, so the Worker entry (`worker/index.ts`, logic in `src/server/edge/fast-path.ts`) answers eligible requests from the Cache API first. Eligible means a cookie-free GET for a known public path, or a content-hashed image. A cached page lives for 30 seconds, so a publish becomes visible within about 30 seconds in every region (the Cache API is per data centre, so a purge cannot reach every region and the short lifetime does the work). Nothing under `/api` or `/_next`, and no page that carries personal data, can enter this public cache.
+
+**Signed-in screens (D18, ADR-040).** A page rendered by Next.js for a signed-in user costs 13 to 15 ms of CPU (measured), more than the free plan allows, so a signed-in screen is two requests that never start Next.js for the data. (1) The shell: the screen's HTML with no data in it, prerendered once, identical for everyone, kept in the Cache API by `src/server/edge/authed.ts` and served only after the session check (404 to anyone without the role). It is sent `Cache-Control: private, no-store`, so no browser or CDN keeps it. (2) The data call: `GET /api/v1/admin/<name>` or `/api/v1/me/<name>`, a plain function that runs the session query, then its queries under row level security, and returns `no-store` JSON; the shell's client island fetches it. Mutations are `POST` endpoints of the same kind (section 8.3). The shell may hold nothing private (no name, no count, no lead), so a cached copy can never leak data; the access check is the facade and row level security, as before, and never middleware. Next.js client-side navigation (RSC requests) is not served by this path; Stage 5 decides whether staff navigation uses full page loads or a client router over data calls, and measures it.
 
 ### 6.2 Request flow
 
@@ -225,10 +231,12 @@ sequenceDiagram
     W-->>E: HTML + cache headers
     E-->>U: HTML
   end
-  U->>W: protected page or Server Action
-  W->>W: auth facade builds Actor
-  W->>D: repository call with Actor
-  W-->>U: response (no-store)
+  U->>W: signed-in screen (GET)
+  W->>D: session query (the facade builds the Actor)
+  W-->>U: shell from the Cache API (no data, private)
+  U->>W: data call (GET /api/v1/...)
+  W->>D: session query, then queries under row level security
+  W-->>U: JSON (no-store)
 ```
 
 ### 6.3 Client islands (the only client JavaScript on public pages)
@@ -371,10 +379,13 @@ erDiagram
 | `GET /api/v1/health` | CI, uptime checks | `200 {status, version}`. Never touches the database unless `?deep=1` and the caller is an admin. |
 | `/api/auth/*` | Neon Auth (route handler proxies to the managed service) | Google sign-in, OAuth callbacks, sign-out, 2FA. No passwords, so no verification or reset |
 | `GET /media/[hash]` | Public pages | Returns `image/webp` with immutable cache headers. 404 if not found. |
+| `GET /api/v1/admin/<name>`, `GET /api/v1/me/<name>` | The data island of a signed-in screen (ADR-040) | One named function per screen data set, returning exactly what that screen shows. `401` with no session, `403` for the wrong role, `200` JSON `no-store`. Plain function in the Worker entry: session query, then its queries inside `inContext`. Stage 0 has `phase0` for each. |
 
-### 8.3 Server Actions (UI mutations; Origin check is built into Next.js)
+### 8.3 Mutations (JSON POST endpoints run as plain functions; D18, ADR-040)
 
-| Action | Role | Effect | Audited |
+A mutation is `POST /api/v1/<area>/<operation>` (for example `/api/v1/admin/leads.changeStage`), a plain function in the Worker entry: same-origin check (`isSameOrigin`), the session facade, Zod validation, then the repository call inside `inContext`. Server Actions are not used for signed-in screens, because the Next.js server layer alone costs more CPU than the free plan allows. The table keeps the operation names. A stage that builds an operation also builds its endpoint, its unit tests and its CPU row. Writes are not yet measured at scale: the lead POST (an insert) is the nearest measurement and is being re-measured.
+
+| Operation | Role | Effect | Audited |
 |---|---|---|---|
 | leads.changeStage | admin, owner | Updates stage; adds `stage_changed` activity | yes |
 | leads.assign | admin, owner | Sets assigned admin; `assigned` activity | yes |
@@ -394,7 +405,7 @@ erDiagram
 
 ### 8.4 Reads
 
-Admin and student reads run in server components through repositories with an `Actor`. There is no general-purpose read API. Recharts receives data as props.
+Admin and student screens read through the data calls of section 8.2 (ADR-040): each is a plain function that calls repositories with an `Actor` inside `inContext`. There is no general-purpose read API; each screen has its own named function. Public pages still read in server components at build or revalidate time. Recharts receives the JSON as props in the browser.
 
 ### 8.5 Scheduled handler (not HTTP)
 
@@ -407,7 +418,7 @@ Runs from a Cron Trigger (Phase 0 confirms availability on free), once a day at 
 1. All auth logic sits behind the facade in `server/auth`: `checkSession()`, `requireRole(role)`, `requireOwner()`. No other module talks to Neon Auth. Row level security (ADR-038) is a second lock under the facade, not a replacement for it.
 2. Authorisation is enforced in the server and data layer. Next.js middleware is never used for access control (a 2025 middleware bypass vulnerability, CVE-2025-29927, is the reason).
 3. The facade returns a branded `Actor`. Protected repository methods require it.
-4. Session cookies are HttpOnly, Secure, SameSite=Lax. There is no session cookie cache: every request does the one session query, so a removed admin or a signed-out session loses access on the next request. Admin and owner requests and every Server Action do a fresh session lookup, because a cached copy keeps a revoked session valid until it expires (Better Auth and Neon Auth documentation) and removal must cut access on the next request. Phase 0 measures the admin page CPU gate on the fresh lookup path. **Free-plan CPU (D14, D15, ADR-034, ADR-037, target design):** sign-in and sessions run at Neon, not in the Worker. For page requests the facade verifies the Neon Auth session itself (either the Neon Auth SDK's `getSession()` or our own check of the signed cookie; Module S0.10 measures both and picks by number), reads the session and the `app_user` role in one query, and builds the `Actor`. No request uses cached session data (the SDK's `session_data` cookie is minted by the sign-in proxy but never read by the facade); a cache is added only if S0.10 shows the one query misses its gate. The query is the SECURITY DEFINER function `app_resolve_session`, so the runtime role has no right to read Neon Auth's tables. Owner 2FA is ours (ADR-013, otpauth); Neon Auth has no authenticator-app 2FA yet. Module S0.10 proves or rejects all of this.
+4. Session cookies are HttpOnly, Secure, SameSite=Lax. There is no session cookie cache: every request does the one session query, so a removed admin or a signed-out session loses access on the next request. Every signed-in request (shell, data call and mutation) does a fresh session lookup, because a cached copy keeps a revoked session valid until it expires (Better Auth and Neon Auth documentation) and removal must cut access on the next request. Phase 0 measures the admin page CPU gate on the fresh lookup path. **Free-plan CPU (D14, D15, ADR-034, ADR-037, target design):** sign-in and sessions run at Neon, not in the Worker. For page requests the facade verifies the Neon Auth session itself (either the Neon Auth SDK's `getSession()` or our own check of the signed cookie; Module S0.10 measures both and picks by number), reads the session and the `app_user` role in one query, and builds the `Actor`. No request uses cached session data (the SDK's `session_data` cookie is minted by the sign-in proxy but never read by the facade); a cache is added only if S0.10 shows the one query misses its gate. The query is the SECURITY DEFINER function `app_resolve_session`, so the runtime role has no right to read Neon Auth's tables. Owner 2FA is ours (ADR-013, otpauth); Neon Auth has no authenticator-app 2FA yet. Module S0.10 proves or rejects all of this.
 5. Sign-in is Google only (ADR-032). A session is issued only for an email that Google reports as verified, and no password accounts exist, so there is nothing to pre-hijack.
 
 ### 9.2 Sign-in and request flow
@@ -422,7 +433,7 @@ sequenceDiagram
   W->>A: sign-in handled by Neon Auth (managed)
   A->>D: provision app_user on the first sign-in (idempotent)
   A-->>B: signed session cookie
-  B->>W: protected page or Server Action
+  B->>W: signed-in screen or data call
   W->>A: checkSession then requireRole
   A-->>W: Actor (role, 2FA verified flag)
   W->>D: repository call with Actor
@@ -522,14 +533,14 @@ Kill switch: if Neon CU-hours or storage passes 70%, the owner (or the cron job)
 
 ### 10.4 Content publish
 
-An admin saves, the Server Action validates and runs the publish gates (FR-2, FR-13, confirmed flags), the repository writes, tags are revalidated, the next public request regenerates the page, and the service worker refreshes on its next visit. The toast shows "Live" with a link.
+An admin saves, the publish endpoint (a plain function, ADR-040) validates and runs the publish gates (FR-2, FR-13, confirmed flags), the repository writes, tags are revalidated, the next public request regenerates the page, and the service worker refreshes on its next visit. The toast shows "Live" with a link.
 
 ### 10.5 Image upload and delivery
 
 ```mermaid
 sequenceDiagram
   participant A as Admin browser
-  participant W as Server Action media.upload
+  participant W as POST media.upload
   participant D as Neon
   participant R as Neon Object Storage
   participant P as Public page
@@ -606,7 +617,7 @@ Admin pages show an "You're offline" banner and keep entered form data in memory
 
 | Concern | Design |
 |---|---|
-| 10 ms CPU | Public pages and images are answered from the Cache API before Next.js starts (ADR-033). Page reads verify the session cookie and make one query (ADR-034). Route handlers stay thin. No password hashing. Measured in Phase 0 and again in S0.10 |
+| 10 ms CPU | Public pages and images are answered from the Cache API before Next.js starts (ADR-033). Page reads verify the session cookie and make one query (ADR-034). Route handlers stay thin. Signed-in screens are a data-free cached shell plus plain data functions, never a Next.js page render (ADR-040). No password hashing. Measured in Phase 0 and again in S0.10 |
 | 3 MiB Worker | Bundle analysis in CI, fail above 2.6 MiB compressed (about 15% headroom), admin routes isolated so they can be split into a second Worker |
 | Cold Neon | Public reads avoid it. One session query per request, no cache. One more query per page where possible. Accept first-request latency on admin and auth. |
 | Neon CU-hours | No keep-warm pings. Batch events. Alert at 70%. Kill switch (ADR-003). |
@@ -641,7 +652,7 @@ Typed `Result` values in services, one error envelope at the API, no stack trace
 
 ### 13.5 Idempotency
 
-Leads use the idempotency key (and a stored payload hash). Events are tolerant of replay (the collector dedupes by event id within a session). Server Actions that create records use a client-generated submission token to ignore double clicks. Payments store that token in `placement_payment.submission_token` (unique), so a double-tap or replay never records two entries.
+Leads use the idempotency key (and a stored payload hash). Events are tolerant of replay (the collector dedupes by event id within a session). Mutation endpoints that create records use a client-generated submission token to ignore double clicks. Payments store that token in `placement_payment.submission_token` (unique), so a double-tap or replay never records two entries.
 
 ### 13.6 Concurrency
 
@@ -688,7 +699,7 @@ Claude Code never pushes to `main`. Every change goes on a feature branch with a
 2. No Drizzle, Neon Auth SDK, otpauth or storage client imports outside their single modules.
 3. No access control in middleware.
 4. No third-party scripts. No hotlinked images.
-5. No admin library in a public bundle. No `"use client"` on a page, only on islands.
+5. No admin library in a public bundle. No `"use client"` on a page, only on islands. A signed-in page holds no personal data and no session logic; its data comes from a data call (ADR-040).
 6. All WhatsApp URLs come from the helper. No hardcoded numbers.
 7. No physical deletes of business or content data in v1. Carve-outs only as listed in section 7.9 and ADR-029.
 8. No personal data in logs or analytics events.
@@ -1055,7 +1066,7 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | Worker size | Compressed size at most 2.6 MiB with auth, Drizzle, next-intl and Zod included |
 | Public page CPU | Cached public page at most 5 ms per request, served by the edge fast path |
 | Sign-in CPU (no password) | The path that issues a session at most 10 ms hard limit, with no Error 1102 over 50 sign-ins. Measured with the magic-link probe, which has no hashing; the real Google flow is confirmed once in Stage 2 with real credentials. The first slice measured password variants and failed all of them (results below). |
-| Authenticated admin page CPU | At most 8 ms on the fresh session lookup path used for staff (ADR-020). The cookie-cache path used for student `/me` is recorded too. |
+| Signed-in screen CPU (staff and student) | Each of the two requests of a screen (ADR-040) at most 8 ms: the shell (session query, then the cached page) and the data call (session query, then one query under row level security), on the fresh lookup path of ADR-020. |
 | Lead POST CPU | At most 8 ms |
 | Image serve (300 KB) | At most 8 ms CPU on a cache miss, and no database access on a hit |
 | Neon cold start | First admin request after idle in about 2 seconds or less (measured and recorded) |
@@ -1076,7 +1087,7 @@ Phase 0 is the first stage of `essential_1`. Nothing else is built until it pass
 | Worker size | Split admin routes into a second Worker, drop or replace heavy libraries, paid plan |
 | Public page CPU, Lead POST CPU | Move work to build time or the edge cache, thinner handler, paid plan |
 | Sign-in CPU | Google sign-in only (chosen, D14), paid plan |
-| Authenticated admin page CPU | Fewer queries and lighter server rendering, paid plan |
+| Signed-in screen CPU | Shell plus plain data functions (chosen, D18, ADR-040), paid plan |
 | Image serve | Neon `bytea` behind the same MediaStore interface (the Stage 0 build), or a paid plan |
 | Neon cold start | Accept it with a loading state, paid Neon |
 | Version pinning | Pin an older compatible combination (Next.js 15) |
@@ -1108,7 +1119,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | ADR-001 | One Next.js app on one Worker as a modular monolith. Admin routes in an isolated route group that can become a second Worker. | One developer. The 3 MiB limit is the one thing that may force a split. | Accepted |
 | ADR-002 | Public pages are prerendered and cached. A public read never touches Neon. Publish triggers tag revalidation, with edge-cache stale-while-revalidate as the fallback. On the free plan a cached page is answered from the Cache API in the Worker entry before Next.js starts, with a 30 second lifetime (ADR-033). | 10 ms CPU, cold Neon, CU-hour budget | Accepted, Phase 0 gate |
 | ADR-003 | Anonymous events (`page_view`, `form_start`, `form_submit`, `install`) go to an edge collector as counts, not Neon rows. Only `wa_tap` with a lead_ref is stored, capped at 10 per ref per day. A `collect_page_views` kill switch turns page views off at 70% of the budget. | Sessions are unknown. An always-awake database would use about 180 CU-hours against 100. An endpoint anyone can call must not write unbounded Neon rows. | Accepted, Phase 0 gate. Amended 2026-10-23 |
-| ADR-004 | Replayable and public writes use Route Handlers under `/api/v1`. UI mutations use Server Actions. Reads use server components through repositories. | The service worker cannot replay Server Actions. Versioned contracts follow the Extensibility rules. | Accepted |
+| ADR-004 | Replayable and public writes use Route Handlers under `/api/v1`. Signed-in UI mutations are `POST /api/v1/<area>/<operation>` plain functions, not Server Actions (amended 2026-10-24, D18, ADR-040). Public pages read in server components through repositories; signed-in screens read through data calls. | The service worker cannot replay Server Actions, and the Next.js server layer costs more CPU than the free plan allows. Versioned contracts follow the Extensibility rules. | Accepted, amended 2026-10-24 |
 | ADR-005 | Authorisation lives in the auth facade and repository layer, never in middleware. Repositories require an `Actor`. | A 2025 Next.js middleware bypass (CVE-2025-29927). Type-level enforcement. Amended 2026-10-24 (D15): Neon row level security (ADR-038) is a second lock under the facade, not a replacement. | Accepted. Amended 2026-10-24 |
 | ADR-006 | Lead identity is a device idempotency key plus a 10-character base32 reference, with `client_ref` kept on collision. | Offline creation, safe retries, negligible collisions at this volume | Accepted |
 | ADR-007 | One append-only `lead_activity` table for stage changes, replies, assignments and note events. It holds no free text; note text lives in `lead_note`, so erasure never edits the activity table. | Simpler than several history tables. One audit trail that stays strictly append-only. | Accepted. Amended 2026-10-23 |
@@ -1137,13 +1148,14 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | ADR-030 | Two lead intake kinds: `full` (the `/apply` form, 3 or more programmes) and `quick` (name, number, country and the page's university, opened by every WhatsApp button). Both create a stored lead with a reference. | Every WhatsApp handoff must carry a stored reference (PRD F4 and the primary metric), and a visitor on a university page has no 3-programme list yet. | Accepted 2026-10-23 |
 | ADR-031 | When online, the form sends the lead and waits up to 4 seconds before opening WhatsApp. Offline, slow or failed: queue and open WhatsApp anyway. A visible "Open WhatsApp" button is the fallback. | A phone may suspend the browser once WhatsApp opens, so sending later can lose the lead. | Accepted 2026-10-23 |
 | ADR-032 | Sign-in is Google only. There are no passwords, no verification emails, no reset and no resend. | Password hashing does not fit the Workers Free CPU limit: scrypt used 95 to 293 ms and PBKDF2 and a no-hash magic-link probe were cut at 10 ms. It also removes the email abuse surface and the dependency on a verified sending domain. Trade-offs: a student without a Google account cannot sign in to track progress (lead intake and WhatsApp still work). Google's redirect address is now Neon Auth's, which is expected to remove the `workers.dev` redirect question (unverified until the credentials are created). | Accepted 2026-10-23 (owner, D14). Amended 2026-10-24 |
-| ADR-033 | The Worker entry answers public pages and content-hashed images from the Cache API before Next.js starts (`src/server/edge/fast-path.ts`), reads an image from the public bucket on a miss (`src/server/edge/media.ts`), and runs `POST /api/v1/leads` as a plain function (`src/server/edge/leads.ts`). Pages live 30 seconds; only cookie-free GETs for known public paths qualify. The Next.js route files call the same functions. | Next.js on OpenNext costs 7 to 9 ms of CPU for a prerendered page, about 10 ms for an image hit and 12 ms for the lead POST (measured). The Cache API works on `workers.dev` (measured). | Proposed 2026-10-23, amended 2026-10-24 (S0.10); proven or rejected by the S0.10 measurement |
+| ADR-033 | The Worker entry answers public pages and content-hashed images from the Cache API before Next.js starts (`src/server/edge/fast-path.ts`), reads an image from the public bucket on a miss (`src/server/edge/media.ts`), runs `POST /api/v1/leads` as a plain function (`src/server/edge/leads.ts`), and, from ADR-040, serves signed-in shells and data calls (`src/server/edge/authed.ts`). Pages live 30 seconds; only cookie-free GETs for known public paths qualify. The Next.js route files call the same functions. | Next.js on OpenNext costs 7 to 9 ms of CPU for a prerendered page, about 10 ms for an image hit and 12 ms for the lead POST (measured). The Cache API works on `workers.dev` (measured). | Proposed 2026-10-23, amended 2026-10-24 (S0.10); proven or rejected by the S0.10 measurement |
 | ADR-034 | For page requests the auth facade verifies the Neon Auth session itself, by the SDK or by our own check of the signed cookie (S0.10 picks by number), and reads the session and `app_user` role with one query. The `Actor` and the facade interface do not change. | Sign-in and session machinery cost near the 10 ms limit on Workers Free. | Proposed 2026-10-23, amended 2026-10-24 (D15); proven or rejected by S0.10 |
 | ADR-035 | After Stage 0 started, the documents are edited in place and keep version 1, with an amendment log in each, instead of creating version 2 (an exception to the rule in this file's status line). | Owner decision D13. It matches decision D2 (pre-build edits) and keeps one current text. | Accepted 2026-10-23 (owner) |
 | ADR-036 | Resend and all email are removed from v1. Admin invites are copyable links. Nothing imports Resend; its secrets and the `server/email` boundary are deleted. | With Google-only sign-in (ADR-032) no flow needs email, and the verified sending domain was blocked by the .IN verification. | Accepted 2026-10-24 (owner, D15) |
 | ADR-037 | Sign-in and sessions run on Neon Auth, Neon's managed Better Auth (`neon_auth` schema in our database). Roles, the single owner, invites, the owner's second factor and the step-up time live in our own tables (`app_user`, `owner_totp`, `recovery_code`, `step_up`, `admin_invite`). The owner's second factor uses the otpauth library plus our own encrypted secret, 10 hashed recovery codes and a 5-failure lockout. | Neon Auth moves the heaviest Worker dependency off the free CPU limit, but has no authenticator-app 2FA, restricted sign-ups or documented role fields yet. The owner checks Neon's roadmap each session (tracker) and may replace our 2FA when Neon ships MFA. | Proposed 2026-10-24 (owner, D15), proven or rejected by S0.10 |
 | ADR-038 | Neon row level security is a second lock under the facade. The app connects as a runtime role that is not the table owner and has no BYPASSRLS; every table has `FORCE ROW LEVEL SECURITY` and policies keyed to the signed-in user's id and role; migrations run as the owner in CI only. Each request sets the user context in the same HTTP transaction as its query. A CI test fails if any table has no policy, and an integration test connects as the runtime role and is denied. | Owner decision D15. Postgres table owners bypass row level security unless it is forced, and Neon's default owner role bypasses it. | Proposed 2026-10-24 (owner, D15), proven or rejected by S0.10 |
-| ADR-039 | Images are stored in a Neon Object Storage bucket named `images` (public-read: anonymous reads, signed writes) in the project's own branch. Reads on a cache miss are a plain `fetch` of the public object URL, cached by the edge fast path (ADR-033). Uploads are Server Actions that sign an S3 `PutObject` with a Neon credential held as a Worker secret. Keys are `<sha256>.webp`. The Neon `media_blob` table is dropped after the images are migrated. Image backup: immutable hash-keyed objects, no delete path, and an owner-run incremental copy checked against the `media_asset` manifest (D17, section 13.7). | R2's checkout asked for a payment method (the project never adds a paid service). Neon Object Storage is generally available, free up to 5 GB per project, and in our region. Free-plan request and transfer limits are not stated on the pages read. | Proposed 2026-10-24 (owner, D15 amended by D16), proven or rejected by S0.10 |
+| ADR-039 | Images are stored in a Neon Object Storage bucket named `images` (public-read: anonymous reads, signed writes) in the project's own branch. Reads on a cache miss are a plain `fetch` of the public object URL, cached by the edge fast path (ADR-033). Uploads are a plain `POST` function (ADR-040) that signs an S3 `PutObject` with a Neon credential held as a Worker secret. Keys are `<sha256>.webp`. The Neon `media_blob` table is dropped after the images are migrated. Image backup: immutable hash-keyed objects, no delete path, and an owner-run incremental copy checked against the `media_asset` manifest (D17, section 13.7). | R2's checkout asked for a payment method (the project never adds a paid service). Neon Object Storage is generally available, free up to 5 GB per project, and in our region. Free-plan request and transfer limits are not stated on the pages read. | Proposed 2026-10-24 (owner, D15 amended by D16), proven or rejected by S0.10 |
+| ADR-040 | Signed-in screens are a data-free shell plus plain data functions. The shell is the screen's prerendered HTML with no data, kept in the Cache API and served by the Worker entry only after the session check, with `Cache-Control: private, no-store` to the browser. The data is `GET /api/v1/admin/<name>` or `/api/v1/me/<name>`, a plain function: session query, then queries inside `inContext`, `no-store` JSON. Mutations are `POST /api/v1/<area>/<operation>` plain functions. Code: `src/server/edge/authed.ts` and `authed-runtime.ts`; the cookie is read by `src/server/auth/cookie.ts`, which does not import the Neon Auth SDK. Server Actions and server-rendered signed-in pages are not used. | The first Module S0.10 run measured 15 ms (staff) and 13 ms (student) of CPU for a signed-in page rendered by Next.js against an 8 ms gate and a 10 ms limit, while the session and row-level-security queries add only about 2 ms. A plain function avoids the Next.js server layer, as the lead POST and images already do (ADR-033). The owner chose to stay on the free plan (D18) over a paid plan. Cost: more client code per screen, no streaming server components for signed-in pages, and client navigation to design in Stage 5. | Proposed 2026-10-24 (owner, D18); proven or rejected by the S0.10 re-run |
 
 ## 19. Risks and mitigations
 
@@ -1173,7 +1185,7 @@ Passing in the same run: Cache API on `workers.dev` (works), Neon cold start 1.4
 | Data loss | Business loss | Weekly encrypted dump, owner export |
 | Scope too large for one developer | Delay | Ordered stages with exit criteria, Phase 0 first, tracker file |
 | Owner loses 2FA device | Lockout | Recovery codes, documented manual database recovery |
-| Removed admin keeps a cached session | Access after removal | Fresh session lookup for staff and every Server Action (ADR-020) |
+| Removed admin keeps a cached session | Access after removal | Fresh session lookup on every signed-in request: shell, data call and mutation (ADR-020). The cached shell holds no data, so it grants nothing |
 | Sign-up or resend abuse uses up the 100 emails per day | Not applicable | Removed: no email is sent (ADR-036) |
 | Backup artifacts fill GitHub free storage | Backups stop | Weekly dump without images, no image copy in GitHub (D17), retention, 70% warning (ADR-026) |
 | Images lost or corrupted in the bucket | Missing images on public pages | Immutable hash keys, no delete path, manifest in the weekly dump, owner-run copy checked by sha256 (D17); restore by re-uploading through the same code |
@@ -1262,3 +1274,11 @@ The owner delegated the image backup choice with three conditions: no security i
 ## Amendment (S0.10 implementation, 2026-10-24)
 
 Building S0.10 changed three details, none of them a change of decision. (1) No session cookie cache: the one query is used for every request (ADR-020 above). (2) The lead POST and the image miss path run in the Worker entry, not in Next.js (ADR-033 above). (3) Two more SECURITY DEFINER functions exist, `app_bootstrap_owner` (owner bootstrap, S2.3) and `app_create_phase0_lead` (anonymous lead creation, so a visitor needs no right to read leads back). Neon Auth also keeps the visitor's IP address and browser string in `neon_auth.session`; that conflicts with the rule "never store raw IP addresses" and is recorded as tracker flag F13.
+## Amendment (signed-in screens on the free plan, 2026-10-24, decision D18)
+
+Edited in place by the owner's instruction (D13). Version stays 1. Cause: the first Module S0.10 run failed the staff page gate (15 ms warm p50, 25 ms p95 against 8) and the lead POST gate (3 ms p50, 14 ms p95 against 8), and the owner chose option A, to stay on the free plan, over a paid plan.
+
+- **ADR-040 added; ADR-004, ADR-033, ADR-039 amended.** Signed-in screens are a data-free cached shell plus plain data functions in the Worker entry. Server Actions are no longer used for signed-in screens; mutations are `POST /api/v1/<area>/<operation>` (sections 6.1, 6.2, 8.2, 8.3, 8.4).
+- Sections 1, 4.3, 5, 6, 8, 9, 10, 12, 15, 17, 18 and 19 updated to match. The gate for the staff page is now a gate for each of a screen's two requests.
+- The lead POST tail is not yet explained. The measurement script now keeps every sampled CPU value in order (`cpuSamplesInOrder`) so the slow requests can be read one by one.
+- **Unproven until the re-run:** that the shell and the data call each meet 8 ms, that a mutation endpoint meets its gate, and how staff navigate between screens without Next.js client-side requests. A failed gate returns to the owner.

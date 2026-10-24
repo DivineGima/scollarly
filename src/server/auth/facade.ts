@@ -1,5 +1,5 @@
 import { type Actor, AuthError, effectiveRole, hasAtLeast, isRole, isStepUpFresh, mintActor, type ResolvedSession, type Role } from "./actor";
-import { readSessionToken } from "./session";
+import { readSessionToken } from "./cookie";
 
 export type ResolveSession = (token: string) => Promise<ResolvedSession | null>;
 

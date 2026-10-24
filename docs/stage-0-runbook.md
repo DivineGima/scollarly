@@ -70,8 +70,8 @@ What the workflow does, in order:
 |---|---|---|
 | Cache API on `workers.dev` (S0.1) | probe `cache` | `putThenMatchWorks` is true |
 | CPU: public page | CPU measurement | at most 5 ms warm p95 |
-| CPU: admin page (one session query, one query under row level security) | CPU measurement, throwaway admin session | at most 8 ms warm p95, nothing cut at the limit |
-| CPU: student page | CPU measurement, throwaway student session | recorded |
+| CPU: staff screen, shell and data call (ADR-040), each request | CPU measurement, throwaway admin session | at most 8 ms warm p95 each, nothing cut at the limit |
+| CPU: student screen, shell and data call, each request | CPU measurement, throwaway student session | at most 8 ms warm p95 each |
 | CPU: lead POST, 50 requests | CPU measurement | at most 8 ms warm p95 |
 | CPU: image cache hit, and first request from storage | CPU measurement | at most 8 ms; a hit makes no database access |
 | Runtime role and row level security | probe `rls` | role `app_runtime`, no BYPASSRLS, no rows without a context, Neon Auth tables unreadable |

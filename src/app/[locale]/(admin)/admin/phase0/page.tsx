@@ -1,29 +1,17 @@
-import { headers } from "next/headers";
-import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { loadAdminStub } from "@/modules/phase0/auth-stubs";
-import { AuthError, requireRole } from "@/server/auth";
+import { StubValue } from "@/components/shell/stub-value";
 
-// S0.4 stub admin page: the one-query session check (ADR-034), one Neon query under row level security, render. Online-only, never cached.
-export const dynamic = "force-dynamic";
+// S0.4 stub staff screen (ADR-040): a prerendered shell with no data and no session logic in it. The Worker entry checks the
+// session before it serves this page (src/server/edge/authed.ts) and the number comes from /api/v1/admin/phase0.
 
 export default async function AdminPhase0Page({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  let actor;
-  try {
-    actor = await requireRole(await headers(), "admin");
-  } catch (error) {
-    if (error instanceof AuthError) notFound(); // hide the page from anyone without access
-    throw error;
-  }
-  const [t, { leadCount }] = await Promise.all([getTranslations("phase0"), loadAdminStub(actor)]);
+  const t = await getTranslations("phase0");
   return (
     <main>
       <h1>{t("adminHeading")}</h1>
-      <p data-testid="lead-count">
-        {t("leadCount")}: {leadCount}
-      </p>
+      <StubValue url="/api/v1/admin/phase0" field="leadCount" label={t("leadCount")} testId="lead-count" />
     </main>
   );
 }
