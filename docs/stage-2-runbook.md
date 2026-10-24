@@ -62,8 +62,16 @@ A request that needs a fresh 2FA check and has none gets `403` with code `STEP_U
 
 These are the exit criteria that need something this session cannot do. None was marked done.
 
-1. **CI** must pass on the pull request (lint, typecheck, unit, integration on Postgres 16, the Worker build and its size gate, Lighthouse, Playwright). The OpenNext build fails silently on Windows, so the Worker bundle size was **not** checked locally.
-2. **Apply migration 0004** with the owner role (`npm run db:migrate`). Because it adds a trigger to Neon's own `neon_auth.session`, try it first on a throwaway Neon branch (`neon branches create`, point `MIGRATION_DATABASE_URL` at it, migrate, sign in once, check `select "ipAddress","userAgent" from neon_auth.session` is null, delete the branch). A read-only check on 2026-10-24 showed the migration role may update and add triggers to that table. If the trigger cannot be created, the migration prints a notice and `/auth/landing` still clears the columns after each sign-in.
+1. **CI: done (2026-10-24, pull request #18).** All five jobs passed; Worker 1.458 MiB compressed against 2.6 MiB. The pull request still needs the owner's merge.
+2. **Apply migration 0004 to production.** Tried on a throwaway Neon branch on 2026-10-24 (18 of 18 checks passed on Neon's real tables, branch deleted). Not yet applied to production. Run, from the repository root:
+
+   ```
+   neon connection-string production --project-id aged-recipe-72220939 --role-name neondb_owner --database-name neondb
+   # set the output as MIGRATION_DATABASE_URL for this one command, then:
+   npx drizzle-kit migrate
+   ```
+
+   Then check: `select count(*) from neon_auth.session where "ipAddress" is not null or "userAgent" is not null` returns 0 after the next sign-in.
 3. **Deploy and sign in once for real** with the Worker log open: record the CPU of `/auth/return` and `/auth/landing` (gate 10 ms) and whether Google accepted the `workers.dev` redirect (it did in Stage 0).
 4. **Owner first sign-in** with the address in `OWNER_EMAIL`: it should land on `/two-factor/enrol`. This is a human step.
 5. **Measure** the shell and data call of the new screens and the mutation endpoints (invite, remove): each at most 8 ms warm p95. Nothing is measured yet.
