@@ -44,6 +44,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # A step condition cannot read a secret, only the environment, so the answer is put here.
+      HAVE_REAL_TURNSTILE: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -125,6 +127,12 @@ jobs:
         run: node scripts/ci/seed-probe-sessions.mjs
 
       - name: Build the Worker
+        env:
+          # Public by design (it is in the page). Cloudflare's documented always-pass test site key until the owner adds a real
+          # widget as the repository secret TURNSTILE_SITE_KEY (docs/stage-4-runbook.md).
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY != '' && secrets.TURNSTILE_SITE_KEY || '1x00000000000000000000AA' }}
+          # The build reads the published content once (prerender) as the non-owner runtime role (ADR-038).
+          DATABASE_URL: ${{ steps.runtime.outputs.runtime_url }}
         run: npx opennextjs-cloudflare build
 
       - name: Worker size gate (at most 2.6 MiB compressed)
@@ -188,7 +196,13 @@ jobs:
           node scripts/measure-cpu.mjs --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" --media-list scripts/.generated/phase0-images.json --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
           { echo; echo "### CPU measurement (milliseconds of Worker CPU, from wrangler tail)"; echo; echo '```'; cat /tmp/measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Remove the throwaway Neon Auth users and sessions
+      - name: Set the real Turnstile secret (the measurement above needed the always-pass test secret)
+        if: ${{ always() && env.HAVE_REAL_TURNSTILE == 'true' }}
+        env:
+          REAL_TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
+        run: printf '%s' "$REAL_TURNSTILE_SECRET" | npx wrangler secret put TURNSTILE_SECRET_KEY
+
+      - name: Remove the throwaway Neon Auth users, sessions and probe leads
         if: always()
         env:
           DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}

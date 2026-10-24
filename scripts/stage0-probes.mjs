@@ -10,6 +10,7 @@
  * Nothing here prints a secret. The probe token only travels in the x-phase0-token request header.
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { probeLead } from "./probe-lead.mjs";
 import { markdownTable } from "./ci/lib.mjs";
 
 const args = Object.fromEntries(
@@ -145,14 +146,14 @@ if (media) {
   record("Image check skipped: no --media hash given", null, "run npm run phase0:seed-image and pass --media");
 }
 
-// 9. Lead POST stub: validation, idempotency, conflict and the rate limiter, end to end.
+// 9. Lead POST (S4.4): validation, idempotency, conflict and the rate limiter, end to end. The leads are removed by the workflow afterwards.
 {
   const post = (key, body, extra = {}) =>
     call("/api/v1/leads", { method: "POST", headers: { "content-type": "application/json", ...(key ? { "idempotency-key": key } : {}), ...extra }, body: JSON.stringify(body) });
-  const lead = { name: "Probe Student", whatsapp: "+237651232301", country_code: "CM", turnstile_token: "dummy-token" };
+  const lead = probeLead();
   const key = crypto.randomUUID();
   const noKey = await post(null, lead);
-  const invalid = await post(crypto.randomUUID(), { ...lead, country_code: "XX" });
+  const invalid = await post(crypto.randomUUID(), probeLead({ country_code: "XX" }));
   const created = await post(key, lead);
   const replay = await post(key, lead);
   const conflict = await post(key, { ...lead, name: "Someone Else" });

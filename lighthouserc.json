@@ -3,7 +3,24 @@
     "collect": {
       "startServerCommand": "npx next start -p 3101",
       "startServerReadyPattern": "Ready",
-      "url": ["http://localhost:3101/"],
+      "url": [
+        "http://localhost:3101/",
+        "http://localhost:3101/universities",
+        "http://localhost:3101/universities/alpha-university",
+        "http://localhost:3101/fees",
+        "http://localhost:3101/campus-tours",
+        "http://localhost:3101/process",
+        "http://localhost:3101/visa",
+        "http://localhost:3101/faq",
+        "http://localhost:3101/about",
+        "http://localhost:3101/blog",
+        "http://localhost:3101/blog/how-to-apply",
+        "http://localhost:3101/contact",
+        "http://localhost:3101/privacy",
+        "http://localhost:3101/terms",
+        "http://localhost:3101/apply",
+        "http://localhost:3101/offline"
+      ],
       "numberOfRuns": 3
     },
     "assert": {

@@ -19,6 +19,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { probeLead } from "./probe-lead.mjs";
 import { cpuStats, drainJsonObjects } from "./ci/lib.mjs";
 
 const args = Object.fromEntries(
@@ -149,13 +150,13 @@ try {
   // 5 a minute per caller, so the requests are spaced out (about 10 minutes for 50).
   rows.push(
     await scenario(
-      "Lead POST (stub), edge handler",
+      "Lead POST (quick lead), edge handler",
       "lead",
       (m) =>
         call(`/api/v1/leads?${m}`, {
           method: "POST",
           headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
-          body: JSON.stringify({ name: "Measure Probe", whatsapp: "+237651232301", country_code: "CM", turnstile_token: "dummy" }),
+          body: JSON.stringify(probeLead({ name: "Measure Probe" })),
         }),
       leadSamples,
       leadIntervalMs,

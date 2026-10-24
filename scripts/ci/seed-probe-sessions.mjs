@@ -6,6 +6,9 @@
  *   node scripts/ci/seed-probe-sessions.mjs            create an admin and a student; write scripts/.generated/probe-sessions.json
  *   node scripts/ci/seed-probe-sessions.mjs --cleanup  delete every throwaway user and its rows
  *
+ * The cleanup also removes the leads the probes and the CPU measurement created (`source.page = '/__probe'`, scripts/probe-lead.mjs): they
+ * are test rows made by this workflow, not business data, so removing them does not touch the no-physical-delete rule for real leads.
+ *
  * Environment: DATABASE_URL = the OWNER direct connection (it writes to Neon Auth's own tables, which the runtime role cannot).
  * Probe users use the reserved `.invalid` domain, sessions last two hours, and tokens are random and never printed.
  * This cannot exercise the Google sign-in round trip: that needs a person and is read from the Worker log by hand.
@@ -32,8 +35,14 @@ async function cleanup() {
       await client.query(`delete from neon_auth.session where "userId"::text = any($1)`, [ids]);
       await client.query(`delete from neon_auth."user" where id::text = any($1)`, [ids]);
     }
+    // Probe leads, children first. Only rows whose source page is the probe marker.
+    const probeLeads = "select id from public.lead where source ->> 'page' = '/__probe'";
+    await client.query(`delete from public.event where lead_id in (${probeLeads})`);
+    await client.query(`delete from public.lead_activity where lead_id in (${probeLeads})`);
+    await client.query(`delete from public.lead_programme_pref where lead_id in (${probeLeads})`);
+    const removedLeads = await client.query("delete from public.lead where source ->> 'page' = '/__probe'");
     await client.query("commit");
-    console.log(`Removed ${ids.length} throwaway user(s) and their sessions.`);
+    console.log(`Removed ${ids.length} throwaway user(s) and their sessions, and ${removedLeads.rowCount} probe lead(s).`);
   } catch (error) {
     await client.query("rollback");
     throw error;

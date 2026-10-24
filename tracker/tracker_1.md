@@ -9,10 +9,10 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stage 1 (foundation) is complete (2026-10-24): all seven modules S1.1 to S1.7 pass, and the real seed ran twice on the live database.** Stage 0 (proof of fit) is complete (2026-10-24): every Module S0.10 gate passed on the deployed Worker after the free-plan redesign (D14, D15, D18). The documents are edited in place and are still version 1 (D13). Stage 2 is built and under test but not complete (Session 16). |
-| Next stage | **Stage 2 is built and under test (2026-10-24, branch `feature/stage-2-auth-admin-shell`, nothing pushed), not complete.** Stage 3 has **not** started: working rule 1 says a stage starts only when the previous stage's exit criteria pass, and Stage 2's need CI, the migration on the live database and a real Google sign-in. Stage 3 also needs the owner's answer on F17 and H12. See Session 16. |
-| Blocked by | Stage 2 completion needs CI, migration 0004 on the live database and the real sign-in (Session 16). Stage 3 also needs F17 and H12. Nothing else blocks Stage 2. Open and not blocking: the `ContactSubmission` import (needs the old table's export, or confirmation that it is empty), H12 (Object Storage limits, carried to Stage 3), and the domain (F10, blocks launch only). |
-| Gate before Stage 2 | Stage 1 complete (all seven modules, which needs the real seed run) and H16 (confirmed by the owner 2026-10-24). Stage 2 needs Neon Auth and the Google credentials (H8, done per the owner). Stage 2 also builds the F13 fix (visitor IP kept by Neon Auth) and the owner bootstrap. **On 2026-10-24 the owner asked for Stages 1 and 2 together; Stage 2 was not started because this gate is not met (CLAUDE.md: halt and flag).** |
+| Phase | **Stages 3 and 4 are built together (Session 18, 2026-10-25, branch `feature/stage-3-4-content-leads`) at the owner's request and wait for CI.** Stage 2 is complete per the owner's words (merged as PR #18, deployed, the owner signed in with Google and enrolled 2FA). Stage 1 (foundation) is complete (2026-10-24). Stage 0 (proof of fit) is complete (2026-10-24). The documents are edited in place and are still version 1 (D13). |
+| Next stage | **Stages 3 and 4 need CI on their pull request, then the owner's steps in `docs/stage-3-4-runbook.md`** (merge, publish the content, deploy, real Turnstile keys, a phone check). Stage 5 (admin lead management) has not started. See Session 18. |
+| Blocked by | Nothing blocks the code. Stage 3 and 4 completion needs: CI green on the new pull request; migration 0005 applied by the deploy workflow; the published content; the real Turnstile widget and its two secrets (until then the always-pass test keys are in use, which is insecure); the CPU rows for `POST /api/v1/leads` and `POST /api/v1/events` measured on the deployed Worker. Open and not blocking: H4, H5, H9 (F7), H12, the `ContactSubmission` import, and the domain (F10, launch only). |
+| Gate before Stage 3 and 4 | Stage 2 exit criteria. **The owner waived the one-stage-at-a-time wait on 2026-10-25** ("bypass the logic of waiting one to get completed before doing the other") and said the Google sign-in and 2FA enrolment worked, so the gate is met and Stages 3 and 4 were built together. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -382,13 +382,13 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 | Module | Result (all `in-progress`: CI has not run) |
 |---|---|
-| S2.1 | `GET /auth/landing` (Worker entry plain function), the mutation router `POST /api/v1/<area>/<operation>` with `Access` rules, `EndpointEnv`, wiring in `authed-runtime.ts` and `worker/index.ts`. The facade is unchanged. |
-| S2.2 | `/sign-in` (plain link to `/auth/start`, no JavaScript needed), `/sign-out`. Invite tokens ride through `/auth/start` and `/auth/return`. |
-| S2.3 | Owner bootstrap in the landing step (audited); endpoints begin, confirm, verify, recovery; pages enrol (QR drawn in the browser) and verify; new `regenerateRecoveryCodes`. |
-| S2.4 | `denyAccess` (effective role, stored-owner, step-up); trigger that stops the owner being demoted; `app_remove_admin` (role, sessions expired, leads returned with an activity row, audit row, one transaction). |
-| S2.5 | Invites (hash only stored, 7 days, one open invite per email by unique index, resend replaces), `app_accept_invite`, `/accept-invite/[token]`, Team page. |
-| S2.6 | Admin layout with Tailwind and shadcn-style components (admin only; 11 KB stylesheet, no public page links it), role-based menu, offline banner, step-up prompt, Overview, Profile, Security. |
-| S2.7 | `auditEntry` joins a change's transaction; Audit page with person, action and WAT date filters and keyset paging. |
+| S2.1 | `GET /auth/landing` (Worker entry plain function), the mutation router `POST /api/v1/<area>/<operation>` with `Access` rules, `EndpointEnv`, wiring in `authed-runtime.ts` and `worker/index.ts`. The facade is unchanged. | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
+| S2.2 | `/sign-in` (plain link to `/auth/start`, no JavaScript needed), `/sign-out`. Invite tokens ride through `/auth/start` and `/auth/return`. | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
+| S2.3 | Owner bootstrap in the landing step (audited); endpoints begin, confirm, verify, recovery; pages enrol (QR drawn in the browser) and verify; new `regenerateRecoveryCodes`. | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
+| S2.4 | `denyAccess` (effective role, stored-owner, step-up); trigger that stops the owner being demoted; `app_remove_admin` (role, sessions expired, leads returned with an activity row, audit row, one transaction). | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
+| S2.5 | Invites (hash only stored, 7 days, one open invite per email by unique index, resend replaces), `app_accept_invite`, `/accept-invite/[token]`, Team page. | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
+| S2.6 | Admin layout with Tailwind and shadcn-style components (admin only; 11 KB stylesheet, no public page links it), role-based menu, offline banner, step-up prompt, Overview, Profile, Security. | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
+| S2.7 | `auditEntry` joins a change's transaction; Audit page with person, action and WAT date filters and keyset paging. | | complete (2026-10-25: CI passed, merged as PR #18, deployed; the owner signed in and enrolled 2FA) |
 
 **Dependencies added (exact versions, lockfile by npm 10):** `tailwindcss` and `@tailwindcss/postcss` 4.3.3, `class-variance-authority` 0.7.1, `clsx` 2.1.1, `tailwind-merge` 3.7.0, `qrcode-generator` 2.0.4 (loaded only on the enrol page). No Radix: dialogs use `<dialog>`.
 
@@ -425,6 +425,30 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Still open for Stage 2 (none can be done by Claude Code alone):** migration 0004 on production; merge of PR #18 and the manual deploy workflow (Claude Code cannot merge); the owner's first Google sign-in with `OWNER_EMAIL` and 2FA enrolment (human action); the CPU rows from that sign-in and from the new endpoints. Stage 2 modules stay `in-progress`.
 
+### 2026-10-25: Session 18 (Stages 3 and 4 built together; not yet in CI)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `feature/stage-3-4-content-leads`.
+
+**Owner statements (the owner's words, recorded as given):** "i signed and succeded to setup 2fa" (so Stage 2 is complete, S2.1 to S2.7). Then: round up Stages 3 and 4, "bypass the logic of waiting one to get completed before doing the other", code and test each, and explain every later job: steps, how, and which pages. The one-stage-at-a-time rule (CLAUDE.md working rule 1) was waived by the owner for this build only.
+
+**What was built.** Full list in `docs/stage-3-4-runbook.md`.
+- Stage 3: published-only content reads (repository, builders that re-apply the publish rules, tag cache with a revalidate of an hour); 15 public pages in English and French; fee gating (a fee shows only when confirmed, with a real range, never 0 or blank); `youtube-nocookie` facades that load only after a tap; trust components that render only when confirmed, verified and consented; text placeholders where there is no image (uploads arrive in Stage 6); a public bundle check and Lighthouse over 16 routes in CI.
+- Stage 4: service worker rules (never admin, student, auth or API), manifest and icons, install prompt for a returning visitor; IndexedDB lead queue with the retry steps 5 s, 30 s, 2 min, 10 min, hourly, Web Locks and the 30-day flag; quick form on every WhatsApp button and the full form at `/apply`, send first and wait up to 4 s; `POST /api/v1/leads` (idempotency, payload hash, Turnstile, 5 leads per number per 24 h, phone normalisation, server-time SLA, reference collisions) as a database function (migration `0005`) called from the Worker entry; `POST /api/v1/events` with counts in the Collector and a `wa_tap` row only with a lead reference (10 per reference per WAT day); contact page and the one WhatsApp helper.
+
+**Verification run locally (2026-10-25):** typecheck clean; lint clean; unit 447 of 447; integration 311 passed, 20 todo (the 13 new Stage 4 checks run on PGlite); `npm run check:bundle` passes (first load 102.1 to 113.3 KB gzip against a ceiling of 118); Playwright full run 100 passed and 6 failed, all six in the new Stage 4 spec. The six were fixed and the affected groups rerun green: two real defects (the "waiting to send" count did not update when a lead was queued after the page loaded, now a queue-changed event; the programme picker's button name read "Add : MBA", now "Add MBA, Alpha University") and four test locators. A single full Playwright rerun is left to CI.
+- **Found and fixed outside Stage 3 and 4:** the Stage 2 audit test took "today" in UTC while the endpoint filters by WAT date, so it failed between 23:00 and 24:00 UTC every day. One line in `tests/integration/stage2-auth.test.ts`.
+
+**Deviations and notes for the owner**
+- **Stages 3 and 4 built together** on one branch at the owner's request (see above).
+- **Translations shape (F17 / D19):** the content layer reads the English plain columns plus one object per extra locale in `translations`, and still reads the older whole-text shape. Architecture 6.4 and the essentials still show the older example; an amendment note is due in the next documents edit.
+- **Public JavaScript budget (F7, H9):** the framework alone is about 102 KB gzip, so the architecture's 100 KB cannot be met on any page. The check uses a ceiling of 118 KB (`PUBLIC_JS_CEILING_KB`); `/apply` is the largest at 113.3 KB. The owner decides whether to accept this.
+- **Turnstile:** until the owner creates the widget and sets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`, the Worker uses Cloudflare's always-pass test keys, which anyone can pass.
+- **Everything seeded is `draft`**, so the public pages show their "being added" messages until the owner publishes (`scripts/publish-content.mjs`, dry run first). Trust content is never published by that script.
+- **CPU rows still to measure** on the deployed Worker (at most 8 ms warm p95): `POST /api/v1/leads` (the deploy workflow now posts a real quick lead and removes the test leads) and `POST /api/v1/events` (no scenario yet in `scripts/measure-cpu.mjs`). The sign-in rows from Stage 2 were not recorded either.
+- Not yet run: CI on Postgres 16 with the `pg` driver for migration 0005; the migration on the live database; the Lighthouse run over the 16 routes.
+
+**Still open and not Claude Code's to do:** merge of the pull request; migration 0005 and publishing (owner, or on the owner's word); the real Turnstile widget and secrets; H4 (trust content), H5 (privacy notice and terms, legal), H9 (budget), H12 (Object Storage limits); a check on a real phone. Stage 5 has not started.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -435,7 +459,7 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F4 | `prd/`, `system_architecture/`, `essentials/`, `tracker/` and `CLAUDE.md` are untracked in git. | They are the build contract and are not versioned. The pre-build amendments of 2026-10-23 exist only in these files; the originals were not committed. | **Resolved 2026-10-23.** The owner asked for the Stage 0 work and these documents to be committed. They go in through one pull request from `feature/stage-0-proof-of-fit`, not a push to `main`. |
 | F5 | `CLAUDE.md` says "No physical deletes in v1. Archive instead." Architecture ADR-029 now names three carve-outs (erasure, raw event purge after rollup, expired auth rows). | The two texts disagree. `CLAUDE.md` is the owner's file and was not edited. | **Open.** Owner decides whether to add the carve-out wording to `CLAUDE.md`. |
 | F6 | `src/server/db` (client factory, schema, migrations) imports Drizzle. `CLAUDE.md` says only `server/repositories` may. | Architecture section 5 lists `server/db/` as its own directory beside repositories and calls it part of the data layer, so it was read as the repository layer's internals. The ESLint rule and a source-scan test allow `server/repositories` and `server/db` only. | **Open.** Owner confirms this reading, or the files move under `server/repositories`. |
-| F7 | The proposed public JavaScript budget (100 KB gzip) is already exceeded by the Next.js baseline (about 104 kB). | See Session 3, finding 5. Affects the Lighthouse gate and S3.5. | **Open.** Owner chooses: raise the budget, or accept a lower Lighthouse score target. |
+| F7 | The proposed public JavaScript budget (100 KB gzip) is already exceeded by the Next.js baseline (about 104 kB). | See Session 3, finding 5. Affects the Lighthouse gate and S3.5. | **Open (measured in Session 18: first load is 102.1 KB on a plain page and 113.3 KB on `/apply`, so the 100 KB budget is impossible).** Owner chooses: raise the budget, or accept a lower Lighthouse score target. |
 
 | F8 | Architecture 13.8 and `CLAUDE.md` say `main` is protected by a branch protection rule. GitHub refuses to enable it on a private repository on the free plan (HTTP 403, "Upgrade to GitHub Pro or make this repository public"). | Today only discipline stops a push to `main`. Rulesets are also limited on free private repositories. | **Open.** Owner chooses: make the repository public, upgrade to GitHub Pro, or accept discipline-only protection and record it as an accepted risk. |
 | F9 | `scollarly.co.in` is not on the Cloudflare account, and R2 is not needed (D16). | See Session 4. Blocks the domain and cache gates if the `workers.dev` Cache API probe fails (H7). | **Open.** Owner action: add the domain to Cloudflare and change the nameservers at the registrar. R2 is no longer planned (D16: images use Neon Object Storage). |
@@ -456,9 +480,9 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 |---|---|---|---|
 | 0 | Proof of fit (hard gate) | S0.1 to S0.10 | **complete** (2026-10-24) |
 | 1 | Foundation | S1.1 to S1.7 | complete (2026-10-24: S1.1 to S1.7, real seed ran twice on the live database) |
-| 2 | Authentication, roles, admin shell | S2.1 to S2.7 | in-progress (2026-10-24: all seven modules built and passing locally; waits for CI, migration 0004 on the live database and the real sign-in measurement, see Session 16) |
-| 3 | Public site | S3.1 to S3.5 | — (held: Stage 2 exit criteria not met, F17 and H12 open) |
-| 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | — |
+| 2 | Authentication, roles, admin shell | S2.1 to S2.7 | **complete** (2026-10-25: CI passed on all jobs, PR #18 merged and deployed, the owner signed in and enrolled 2FA per the owner's words; the sign-in CPU row was not recorded) |
+| 3 | Public site | S3.1 to S3.5 | in-progress (2026-10-25: all five modules built; unit, integration and Playwright pass locally; waits for CI, published content and a deploy, see Session 18) |
+| 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | in-progress (2026-10-25: all six modules built; unit, integration on PGlite and Playwright pass locally; waits for CI on Postgres 16, migration 0005 on the live database, real Turnstile keys and the CPU rows, see Session 18) |
 | 5 | Admin lead management | S5.1 to S5.6 | — |
 | 6 | Content management and images | S6.1 to S6.5 | — |
 | 7 | Analytics (funnel and sources) | S7.1 to S7.3 | — |
@@ -497,17 +521,17 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S2.5 | Admin invites and Team page | in-progress (2026-10-24: invites, accept-invite page, Team page; local tests pass) |
 | S2.6 | Admin shell | in-progress (2026-10-24: admin shell, Overview, Profile, Security; Playwright with mocked endpoints passes) |
 | S2.7 | Audit log | in-progress (2026-10-24: audit writer and Audit page; local tests pass) |
-| S3.1 | Content read layer and prerender | — |
-| S3.2 | Public pages | — |
-| S3.3 | Fee gating, video facade, media delivery | — |
-| S3.4 | Trust components | — |
-| S3.5 | Performance pass | — |
-| S4.1 | Service worker and manifest | — |
-| S4.2 | IndexedDB queue and sync engine | — |
-| S4.3 | Apply form, quick form, send-first order | — |
-| S4.4 | `POST /api/v1/leads` | — |
-| S4.5 | WhatsApp tap events | — |
-| S4.6 | Contact page, WhatsApp number from settings | — |
+| S3.1 | Content read layer and prerender | in-progress (2026-10-25: published-only reads through `runPublic`, tag cache, build fixture seam; unit and integration pass, CI not run) |
+| S3.2 | Public pages | in-progress (2026-10-25: 15 pages in English and French, no-JS rendering, axe clean; Playwright passes locally, CI not run) |
+| S3.3 | Fee gating, video facade, media delivery | in-progress (2026-10-25: fee gating, `youtube-nocookie` facades, text placeholders for images until Stage 6; unit and Playwright pass, CI not run) |
+| S3.4 | Trust components | in-progress (2026-10-25: figures, testimonials, journeys and team render only when confirmed and consented; nothing is published yet, H4) |
+| S3.5 | Performance pass | in-progress (2026-10-25: `check:bundle` and Lighthouse over 16 routes added to CI; the 100 KB budget cannot be met, F7; first load 102 to 113 KB) |
+| S4.1 | Service worker and manifest | in-progress (2026-10-25: service worker rules, manifest, icons, install prompt for a returning visitor; Playwright passes, a real phone check is the owner's) |
+| S4.2 | IndexedDB queue and sync engine | in-progress (2026-10-25: IndexedDB queue, backoff, Web Locks, 30-day flag, remove from phone; unit and Playwright pass) |
+| S4.3 | Apply form, quick form, send-first order | in-progress (2026-10-25: quick and full forms, send first, 4 second wait; unit and Playwright pass) |
+| S4.4 | `POST /api/v1/leads` | in-progress (2026-10-25: migration 0005 and `app_create_lead`, idempotency, 5 per number per day, Worker entry; 13 integration checks pass on PGlite; the Postgres 16 CI run and the CPU row are still to come) |
+| S4.5 | WhatsApp tap events | in-progress (2026-10-25: counts-only events in the Collector, `wa_tap` rows with a reference; unit and integration pass; the CPU row is still to come) |
+| S4.6 | Contact page, WhatsApp number from settings | in-progress (2026-10-25: contact page, the one WhatsApp helper, a test that fails on any other number or `wa.me` link) |
 | S5.1 | Leads list | — |
 | S5.2 | Lead detail | — |
 | S5.3 | Overdue, Unassigned, Overview | — |
@@ -622,6 +646,9 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H7 | Confirm scollarly.co.in can point at Cloudflare Workers (likely needs DNS managed in Cloudflare) | Launch, or before S0.2 if the S0.1 probe shows the Cache API is a no-op on `workers.dev` | Open. Blocked by F10 (no longer blocking the cache gates: the Cache API works on `workers.dev`) |
 | H8 | Create the Google OAuth credentials and enter them in the Neon Auth console (H13). Google's redirect address is Neon Auth's | Before S0.10 can measure the sign-in return trip, and before Stage 2 | **Done per the owner, 2026-10-24** ("i checked its okay, done its own testing for now and my email has been set as test user"). The app is in Google's Testing mode with the owner as test user, so publishing it is a launch step. |
 | H9 | Confirm every item tagged [Mine, confirm] in the PRD and architecture (SLA/phone/ref defaults, performance budget, image caps and 5 GB budget, step-up window, invite expiry, admin erasure, backup approach, and the values added on 2026-10-23: 4 s send wait, (the student email cap of 60 a day, 40 reserved and 3 per address was removed by D14), 10 `wa_tap` per ref per day, backup retention 28 and 60 days, hourly uptime check) | Before the stage that uses each | Open |
+| H17 | Create the real Turnstile widget (Cloudflare dashboard, Turnstile, Add widget, for the Worker's address) and add the repository secrets `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`, then run the deploy workflow again. Claude Code can do it with the Cloudflare and GitHub tools if the owner says so | Before launch (until then the always-pass test keys are in use) | Open |
+| H18 | Publish the seeded content: `node scripts/publish-content.mjs --dry-run`, then without the flag (or ask Claude Code to). Then run the deploy workflow once so the build prerenders it | Before the public pages show content | Open |
+| H19 | Check on a real phone on mobile data: tap a WhatsApp button, fill the quick form, confirm the chat opens with the reference and the lead is in the database; repeat in airplane mode and turn it off | Before launch | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
 | H12 | Read Neon's plans page for Object Storage and confirm the free-plan request and transfer limits (the pages read state 5 GB per project but no request or transfer limit). No card is needed. R2 is dropped (D16) | Before S0.10 measures images | **Carried to Stage 3 (image upload, S3.3) and before launch; does not block Stage 1** (owner, 2026-10-24). Open |
