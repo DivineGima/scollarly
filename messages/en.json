@@ -93,7 +93,9 @@
       "security": "Security",
       "signOut": "Sign out",
       "roleOwner": "Owner",
-      "roleAdmin": "Admin"
+      "roleAdmin": "Admin",
+      "leads": "Leads",
+      "dataRequests": "Data requests"
     },
     "offline": "You are offline. Admin pages need a connection.",
     "common": {
@@ -122,7 +124,17 @@
     "overview": {
       "title": "Overview",
       "welcome": "Welcome, {name}.",
-      "soon": "Leads, content and analytics arrive in the next stages."
+      "tiles": {
+        "unanswered": "New and unanswered",
+        "overdue": "Overdue",
+        "mine": "Assigned to me",
+        "unassigned": "Unassigned",
+        "pendingClaims": "Link requests",
+        "openDataRequests": "Data requests",
+        "today": "Today's leads (WAT)"
+      },
+      "funnelTitle": "Where students are",
+      "funnelEmpty": "No leads yet."
     },
     "profile": {
       "title": "My profile",
@@ -199,7 +211,14 @@
         "security_twoFactorEnrolled": "Set up two-factor sign-in",
         "security_recoveryCodeUsed": "Used a recovery code",
         "security_recoveryCodesRegenerated": "Made new recovery codes",
-        "security_signOutEverywhere": "Signed out everywhere"
+        "security_signOutEverywhere": "Signed out everywhere",
+        "leads_changeStage": "Moved a lead to another stage",
+        "leads_assign": "Assigned a lead",
+        "leads_resolveDuplicate": "Resolved a possible duplicate",
+        "leads_decideClaim": "Decided a link request",
+        "leads_eraseLead": "Erased a lead's personal data",
+        "dataRequests_log": "Logged a data request",
+        "dataRequests_complete": "Completed a data request"
       }
     },
     "security": {
@@ -218,6 +237,281 @@
       "codesSaved": "I saved them",
       "signOutEverywhere": "Sign out everywhere else",
       "signedOutEverywhere": "Signed out of {count} other sessions."
+    },
+    "leads": {
+      "title": "Leads",
+      "intro": "Everyone who asked about studying in India, newest first.",
+      "tabs": {
+        "label": "Lead views",
+        "all": "All",
+        "overdue": "Overdue",
+        "unassigned": "Unassigned",
+        "duplicates": "Duplicates",
+        "linkRequests": "Link requests"
+      },
+      "filters": {
+        "search": "Search by name, WhatsApp number or reference",
+        "stage": "Stage",
+        "country": "Country",
+        "university": "University",
+        "assigned": "Assigned to",
+        "any": "Any",
+        "me": "Me",
+        "nobody": "Nobody",
+        "apply": "Apply filters",
+        "clear": "Clear filters"
+      },
+      "columns": {
+        "ref": "Reference",
+        "name": "Name",
+        "country": "Country",
+        "stage": "Stage",
+        "assigned": "Assigned to",
+        "sla": "Reply",
+        "received": "Received"
+      },
+      "sla": {
+        "met": "Met",
+        "overdue": "Overdue since {time}",
+        "due": "Due {time}"
+      },
+      "empty": "No leads match.",
+      "emptyOverdue": "Nothing is overdue.",
+      "loadMore": "Show more",
+      "erasedName": "Erased",
+      "formerAdmin": "Former admin",
+      "unassignedValue": "Unassigned",
+      "errorFilters": "Check the filters.",
+      "duplicates": {
+        "title": "Possible duplicates",
+        "intro": "Leads with the same WhatsApp number. Nothing is merged unless you choose to.",
+        "empty": "No possible duplicates.",
+        "compare": "Compare",
+        "compareTitle": "Compare two leads",
+        "sameNumber": "These two leads have the same WhatsApp number.",
+        "mergeInto": "Merge into {ref}",
+        "notDuplicate": "Not a duplicate",
+        "errors": {
+          "network": "You are offline. Try again when you are back online.",
+          "stale": "Someone already decided on these two leads. Reload the page.",
+          "generic": "Something went wrong. Try again."
+        }
+      }
+    },
+    "lead": {
+      "back": "All leads",
+      "notFound": "That lead does not exist.",
+      "erasedName": "Erased",
+      "erasedBanner": "This lead's personal data was erased. Its history and counts remain.",
+      "mergedInto": "This lead was merged into {ref}.",
+      "openMerged": "Open it",
+      "assignedTo": "Assigned to {name}",
+      "unassigned": "Not assigned",
+      "formerAdmin": "Former admin",
+      "system": "The system",
+      "saving": "Saving…",
+      "reload": "Reload",
+      "pendingClaims": "{count, plural, one {# student link request is waiting} other {# student link requests are waiting}}",
+      "profile": {
+        "title": "Profile",
+        "whatsapp": "WhatsApp",
+        "email": "Email",
+        "intake": "Form",
+        "intakeKinds": {
+          "full": "Full application",
+          "quick": "Quick WhatsApp enquiry"
+        },
+        "qualification": "Qualification",
+        "qualifications": {
+          "olevel_alevel": "O-level and A-level",
+          "grade10_11": "Grade 10 and 11 (or equivalent)"
+        },
+        "source": "Asked from",
+        "account": "Student account",
+        "accountLinked": "Linked",
+        "accountNone": "Not linked",
+        "received": "Received",
+        "firstReply": "First reply",
+        "noReply": "No reply yet"
+      },
+      "results": {
+        "title": "Results",
+        "none": "No results sent."
+      },
+      "prefs": {
+        "title": "Programmes chosen",
+        "none": "No programmes chosen."
+      },
+      "notes": {
+        "title": "Notes",
+        "label": "Add a note",
+        "add": "Add note",
+        "erased": "Erased"
+      },
+      "timeline": {
+        "title": "Timeline",
+        "empty": "Nothing yet."
+      },
+      "events": {
+        "created": "Lead created",
+        "note": "Note added by {who}",
+        "stage_changed": "{who} moved the lead from {from} to {to}",
+        "reply_logged": "Reply logged by {who}",
+        "replyFirst": "First reply logged by {who}",
+        "assigned": "{who} assigned the lead to {to}",
+        "unassigned": "{who} moved the lead to the unassigned pool",
+        "admin_wa_opened": "{who} opened WhatsApp",
+        "claimed": "{who} linked the lead to a student account (checked: {method})",
+        "merged": "{who} merged two leads",
+        "duplicate_dismissed": "{who} marked two leads as not a duplicate",
+        "anonymised": "{who} erased the personal data"
+      },
+      "methods": {
+        "email_match": "email matches",
+        "whatsapp_confirmed": "replied on WhatsApp"
+      },
+      "actions": {
+        "logReply": "Log reply",
+        "whatsapp": "Message on WhatsApp",
+        "changeStage": "Change stage",
+        "assign": "Assign",
+        "erase": "Erase personal data"
+      },
+      "chip": {
+        "question": "Did you send it?",
+        "yes": "Log reply",
+        "no": "Not yet"
+      },
+      "stage": {
+        "title": "Change stage",
+        "confirm": "Move to {stage}?",
+        "move": "Move"
+      },
+      "assign": {
+        "title": "Assign this lead",
+        "me": "Assign to me",
+        "unassign": "Move to the unassigned pool"
+      },
+      "drawer": {
+        "title": "Message on WhatsApp",
+        "help": "Edit the message if you like, then open WhatsApp. It opens to the student's number.",
+        "message": "Message",
+        "open": "Open WhatsApp",
+        "noNumber": "There is no number on file."
+      },
+      "templates": {
+        "default": "Hello {name}, this is Scollarly about your application {ref}.",
+        "share_results": "Hello {name}, this is Scollarly. Thank you for your request {ref}. Please send us your O-level and A-level results (or Grade 10 and 11) so we can suggest programmes for {university}.",
+        "choose_course": "Hello {name}, this is Scollarly about {ref}. Here are programmes that fit your results. Which ones would you like us to apply to?",
+        "offer_letter": "Hello {name}, this is Scollarly about {ref}. We are following up on your offer letter. Is there anything you need from us?",
+        "confirm_admission": "Hello {name}, this is Scollarly about {ref}. Please confirm that you want to accept your admission so we can continue.",
+        "visa": "Hello {name}, this is Scollarly about {ref}. Let's prepare your visa documents. Which of them do you already have?",
+        "arrived": "Hello {name}, this is Scollarly about {ref}. We hope you arrived safely. How are you settling in?"
+      },
+      "duplicate": {
+        "banner": "Possible duplicate: {ref}"
+      },
+      "erase": {
+        "title": "Erase personal data",
+        "warning": "This removes the student's name, WhatsApp number, email and results, and overwrites the notes. It cannot be undone. Counts and payments stay.",
+        "identity": "I confirmed the student's identity",
+        "confirm": "Erase"
+      },
+      "errors": {
+        "network": "You are offline. Try again when you are back online.",
+        "stale": "This lead changed. Reload.",
+        "unavailable": "This lead was erased or merged and can no longer be changed.",
+        "notFound": "That lead does not exist.",
+        "forbidden": "You are not allowed to do that.",
+        "generic": "Something went wrong. Try again."
+      }
+    },
+    "linkRequests": {
+      "title": "Link requests",
+      "intro": "Students who asked to link their account to an application. Nothing is linked unless you approve it.",
+      "back": "All leads",
+      "empty": "No link requests are waiting.",
+      "unknownStudent": "A student",
+      "emailNotVerified": "Email not verified",
+      "erased": "Erased",
+      "asked": "Looked for an application by {method}:",
+      "methods": {
+        "ref": "reference",
+        "number": "WhatsApp number",
+        "auto": "sign-in"
+      },
+      "emailMatches": "The account's verified email matches the lead's email.",
+      "linkedToOther": "This lead already belongs to another account.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveTitle": "Approve link request",
+      "rejectTitle": "Reject link request",
+      "howVerified": "How did you check it is the same person?",
+      "verification": {
+        "email_match": "Email matches the lead",
+        "whatsapp_confirmed": "Student replied on WhatsApp from the number on file"
+      },
+      "reason": "Reason (the student will be told we could not match it)",
+      "errors": {
+        "network": "You are offline. Try again when you are back online.",
+        "generic": "Something went wrong. Try again.",
+        "REQUIRED": "Say how you verified the student.",
+        "EMAIL_MISMATCH": "The student's verified email does not match the lead's email. Choose the WhatsApp check, or reject.",
+        "NOT_PENDING": "Someone already decided on this request. Reload the page.",
+        "UNAVAILABLE": "That lead was erased or merged and cannot be linked.",
+        "ALREADY_LINKED": "That lead already belongs to another account."
+      }
+    },
+    "dataRequests": {
+      "title": "Data requests",
+      "intro": "Students asking for a copy of their data or for it to be erased. Log one here when someone asks on WhatsApp.",
+      "log": "Log request",
+      "logTitle": "Log a data request",
+      "show": "Show",
+      "scopeOpen": "Open requests",
+      "scopeAll": "All requests",
+      "empty": "No requests.",
+      "account": "Student account",
+      "alreadyErased": "already erased",
+      "doneBy": "done by {name}, {time}",
+      "someone": "someone",
+      "kinds": {
+        "export": "Data export",
+        "erasure": "Erasure"
+      },
+      "channels": {
+        "portal": "Student portal",
+        "whatsapp": "WhatsApp",
+        "other": "Other"
+      },
+      "statuses": {
+        "open": "Open",
+        "done": "Done",
+        "rejected": "Rejected"
+      },
+      "form": {
+        "kind": "Request type",
+        "channel": "Where it came from",
+        "ref": "Lead reference (SC-XXXXX-XXXXX)",
+        "submit": "Log request"
+      },
+      "runErasure": "Run erasure for {ref}",
+      "markDone": "Mark done",
+      "eraseTitle": "Run erasure",
+      "eraseWarning": "This erases the personal data of {ref} (and any lead merged into it). It cannot be undone. Counts and payments stay.",
+      "identity": "I confirmed the student's identity",
+      "eraseConfirm": "Erase",
+      "errors": {
+        "network": "You are offline. Try again when you are back online.",
+        "generic": "Something went wrong. Try again.",
+        "conflict": "That request changed. Reload the page.",
+        "INVALID": "A reference looks like SC-XXXXX-XXXXX.",
+        "NOT_FOUND": "No lead has that reference.",
+        "ALREADY_ERASED": "That lead was already erased.",
+        "ERASE_FIRST": "Run the erasure first: it completes the request.",
+        "MISMATCH": "That request is not an open erasure request for this lead. Reload the page.",
+        "REQUIRED": "Confirm the student's identity first."
+      }
     }
   },
   "site": {

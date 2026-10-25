@@ -235,6 +235,11 @@ export const lead = pgTable(
     lastActivityAt: tz("last_activity_at").notNull().defaultNow(),
     mergedIntoId: uuid("merged_into_id").references((): AnyPgColumn => lead.id),
     anonymisedAt: tz("anonymised_at"),
+    /**
+     * The version a screen carries when it saves (optimistic concurrency, architecture 13.6, S5.6). Set by a trigger whenever
+     * anything but `last_activity_at` changes, so adding a note never makes someone else's stage change fail.
+     */
+    updatedAt: tz("updated_at").notNull().defaultNow(),
   },
   (t) => [
     check("lead_ref_format", sql`${t.ref} ~ '^SC-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}$'`),
@@ -336,6 +341,8 @@ export const leadClaim = pgTable(
     verificationMethod: text("verification_method"),
     decidedBy: text("decided_by"),
     decidedAt: tz("decided_at"),
+    /** Why a claim was rejected (B4 step 3). Overwritten with the lead's other free text on erasure. */
+    rejectReason: text("reject_reason"),
     createdAt: tz("created_at").notNull().defaultNow(),
   },
   (t) => [

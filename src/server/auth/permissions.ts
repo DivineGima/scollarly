@@ -53,6 +53,8 @@ export const ACTION_PERMISSION = {
   "leads.resolveDuplicate": "leads.work",
   "leads.decideClaim": "leads.work",
   "leads.eraseLead": "leads.work",
+  "dataRequests.log": "leads.work",
+  "dataRequests.complete": "leads.work",
   "content.save": "content.manage",
   "content.publish": "content.manage",
   "content.unpublish": "content.manage",

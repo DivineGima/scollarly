@@ -8,6 +8,7 @@ const badgeVariants = cva("inline-block rounded-full px-2.5 py-0.5 text-sm font-
       owner: "bg-accent text-accent-fg",
       warning: "bg-surface text-warning",
       success: "bg-surface text-success",
+      danger: "bg-danger text-accent-fg",
     },
   },
   defaultVariants: { variant: "default" },

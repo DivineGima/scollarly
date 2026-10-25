@@ -462,6 +462,31 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 - **Live site checked by Claude Code:** `/`, `/universities`, `/fees`, `/faq`, `/process`, `/visa`, `/about`, `/campus-tours`, `/contact`, `/apply`, `/privacy`, `/offline` and `/manifest.webmanifest` return 200 with the published content; fees show "Fees to be confirmed" where none is confirmed. `/fr` is 404 by design: `locales = ["en"]` in `src/i18n/config.ts`, French strings exist but the locale is not switched on (Claude Code had said otherwise earlier; corrected).
 - **Next:** reproduce the lead POST tail with a lead-only measurement (needs a small workflow change: a dispatch input to run only the lead scenario), find the cause, fix, and measure again. S4.4 and S4.5 stay `in-progress` until that gate passes and the events row is measured.
 
+### 2026-10-25: Session 20 (Stage 5 built; Stage 4 lead CPU result recorded)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `feature/stage-5-admin-leads`.
+
+**Owner statement (the owner's words):** "yes start stage 5". Stage 4 was not yet complete (its lead-endpoint CPU gate was open), so this is a second start before the previous stage's exit criteria were met, at the owner's instruction (the owner had waived the one-stage-at-a-time wait on 2026-10-25).
+
+**Stage 4 CPU result, third deploy run (run 40147199254):** lead POST (quick lead) warm p50 5 ms, **p95 28 ms** (max 37), verdict FAIL against 8 ms. Across the three runs the lead POST p95 was 6, 22 and 28 ms; in runs 2 and 3 about a third of the requests cost 17 to 37 ms and the rest 3 to 5 ms. The same code, the always-pass test secret in all three. This is a real, repeated tail and not a single bad sample. No request was cut at the platform limit (exceeded 0 of 50 in each run). The cause is not found. S4.4 and S4.5 stay `in-progress`; this is the next thing to investigate after Stage 5 reaches CI (candidates: the cost of a request that lands on a freshly started isolate, and the size of the Worker bundle). The Neon cold-start probe also failed once (2.9 s against about 2 s) and passed at 1.5 s the other times.
+
+**What was built (Stage 5).** Full page list and steps in `docs/stage-5-runbook.md`.
+- Migration `0006` (additive): `lead.updated_at` with a trigger that moves it forward on any change except `last_activity_at`, `lead_claim.reject_reason`, and four SECURITY DEFINER functions (decide a claim, list claims with Neon Auth names and emails, resolve a duplicate, erase a lead), each checking for staff itself and granted to the runtime role alone.
+- Repositories `lead-admin.ts`, `claims.ts`, `data-requests.ts`; module `modules/leads/admin-*`; eight lead operations and two data-request operations as plain Worker mutations; six data calls (`overview`, `leads`, `lead`, `duplicates`, `link-requests`, `data-requests`). Every change is one statement or one function, so its activity and audit row commit with it.
+- Pages: Overview (real counts and funnel), `/admin/leads`, `/admin/leads/<id>` (one cached shell for every lead, the id read from the address), `/admin/leads/link-requests`, `/admin/data-requests`; menu items Leads and Data requests. Strings in English and French.
+
+**Verification run locally (2026-10-25):** typecheck clean; lint clean; unit 467 of 467; integration 416 passed, 12 todo (44 new Stage 5 checks, and the authorisation matrix now runs every lead and data-request operation under every role); Playwright 61 of 61 for the new Stage 5 spec and the Stage 2 spec (B1 to B5 flows, axe on every screen); `check:bundle` unchanged (no admin code in a public route).
+- **Exit criteria evidence:** `lead_activity` has no update or delete path (test: the runtime role is refused both). First reply sets `first_response_at` once and the badge becomes Met (test). The Overdue view reads the stored `sla_due_at`: the same leads become overdue only as the clock passes, nothing is recalculated (test). Erasure: the lead is anonymised, counts and payment rows remain, the payment's lead link is cleared, note text is overwritten, `event.lead_ref` is null for that lead, `lead_activity` is untouched apart from one `anonymised` entry, and a failure injected at the last step leaves nothing half-erased (tests). Approving a claim without a verification method is refused by the schema, by the function and by a CHECK constraint (tests). Playwright flows B1 to B5 pass.
+
+**Deviations and notes for the owner**
+- **Architecture amended in place (D13):** section 8.3 gains `dataRequests.log` and `dataRequests.complete` (B5 describes them; the table lacked them), and an amendment note records `lead.updated_at`, `lead_claim.reject_reason`, the erasure and duplicate details. The permission-coverage unit test now reads camel-case operation names.
+- **Concurrency token:** the architecture says `updated_at`, and `lead` had none, so migration 0006 adds it. It does not move for a note or a logged reply (they only move `last_activity_at`), so adding a note never makes someone else's stage change fail.
+- **Link requests** are built and tested, but nothing creates a claim until the student portal (Stage 8, `/me/link-application`) exists, so the page stays empty until then.
+- **WhatsApp templates:** the six stage messages are built in (English and French); the `message_template` table is read first, so staff-written templates (Stage 6) override them.
+- **Not yet run:** CI on Postgres 16 for migration 0006 and the new tests; the migration on the live database; the CPU rows for the Overview, the list, the detail and one write (the deploy workflow measures them); the deployed Stage 5 probes.
+
+**Still open and not Claude Code's to do:** merge of the pull request and the deploy run (the owner, or on the owner's word); the Stage 4 owner items (H4 trust content and H5 legal text at the end of the build, H19 phone check). Stage 6 has not started.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -496,7 +521,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 2 | Authentication, roles, admin shell | S2.1 to S2.7 | **complete** (2026-10-25: CI passed on all jobs, PR #18 merged and deployed, the owner signed in and enrolled 2FA per the owner's words; the sign-in CPU row was not recorded) |
 | 3 | Public site | S3.1 to S3.5 | in-progress (2026-10-25: all five modules built; unit, integration and Playwright pass locally; waits for CI, published content and a deploy, see Session 18) |
 | 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | in-progress (2026-10-25: all six modules built; unit, integration on PGlite and Playwright pass locally; waits for CI on Postgres 16, migration 0005 on the live database, real Turnstile keys and the CPU rows, see Session 18) |
-| 5 | Admin lead management | S5.1 to S5.6 | — |
+| 5 | Admin lead management | S5.1 to S5.6 | in-progress (2026-10-25: all six modules built; unit, integration and Playwright pass locally; waits for CI on Postgres 16, migration 0006 on the live database and the CPU rows, see Session 20) |
 | 6 | Content management and images | S6.1 to S6.5 | — |
 | 7 | Analytics (funnel and sources) | S7.1 to S7.3 | — |
 | 8 | Student portal | S8.1 to S8.3 | — |
@@ -545,12 +570,12 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S4.4 | `POST /api/v1/leads` | in-progress (2026-10-25: built, CI passed, migration 0005 applied on the live database by the deploy workflow, 20 of 20 probes passed in the first run; the CPU gate is NOT stably met: warm p95 6 ms in the first deploy, 22 ms in the second, see Session 19) |
 | S4.5 | WhatsApp tap events | in-progress (2026-10-25: built and CI passed; the CPU row for `POST /api/v1/events` has no scenario yet) |
 | S4.6 | Contact page, WhatsApp number from settings | in-progress (2026-10-25: contact page, the one WhatsApp helper, a test that fails on any other number or `wa.me` link) |
-| S5.1 | Leads list | — |
-| S5.2 | Lead detail | — |
-| S5.3 | Overdue, Unassigned, Overview | — |
-| S5.4 | Duplicate detection | — |
-| S5.5 | Link requests, data requests, erasure | — |
-| S5.6 | Optimistic concurrency helper | — |
+| S5.1 | Leads list | in-progress (2026-10-25: list, filters, search, URL filters, keyset paging; unit, integration and Playwright pass, CI not run) |
+| S5.2 | Lead detail | in-progress (2026-10-25: lead detail, stage, assign, notes, log reply, WhatsApp drawer and chip; unit, integration and Playwright pass, CI not run) |
+| S5.3 | Overdue, Unassigned, Overview | in-progress (2026-10-25: Overview with one COUNT(*) FILTER statement, Overdue and Unassigned views; the CPU row is still to come) |
+| S5.4 | Duplicate detection | in-progress (2026-10-25: duplicate query, merge and not-a-duplicate in one transaction, never automatic; integration and Playwright pass) |
+| S5.5 | Link requests, data requests, erasure | in-progress (2026-10-25: link requests with a checked verification method, data requests, erasure in one transaction; integration and Playwright pass) |
+| S5.6 | Optimistic concurrency helper | in-progress (2026-10-25: lead.updated_at with a trigger, version carried by every save, conflict message; integration passes) |
 | S6.1 | Content flow framework | — |
 | S6.2 | Content types | — |
 | S6.3 | Media | — |

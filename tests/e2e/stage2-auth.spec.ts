@@ -294,19 +294,20 @@ async function asRole(page: Page, session: typeof OWNER | typeof ADMIN) {
 }
 
 test.describe("S2.6 the admin shell", () => {
-  test("shows an admin only Overview, Profile and Sign out, and the owner everything", async ({ page }) => {
+  test("shows an admin the lead screens, Profile and Sign out, and the owner everything", async ({ page }) => {
     await asRole(page, ADMIN);
+    await page.route("**/api/v1/admin/overview", (route) => json(route, { unanswered: 0, overdue: 0, mine: 0, unassigned: 0, today: 0, pendingClaims: 0, openDataRequests: 0, funnel: [] }));
     await page.goto("/admin");
     const menu = page.getByRole("navigation", { name: "Admin menu" });
     await expect(menu.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
-    await expect(menu.getByRole("link")).toHaveText(["Overview", "Profile", "Sign out"]);
+    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Data requests", "Profile", "Sign out"]);
     await expect(page.getByText("Welcome, Priya.")).toBeVisible();
     await expect(page.getByText("priya@example.test")).toBeVisible();
     await axe(page);
 
     await asRole(page, OWNER);
     await page.goto("/admin");
-    await expect(menu.getByRole("link")).toHaveText(["Overview", "Profile", "Team", "Audit log", "Security", "Sign out"]);
+    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Data requests", "Profile", "Team", "Audit log", "Security", "Sign out"]);
   });
 
   test("an admin who opens an owner page sees nothing of it", async ({ page }) => {

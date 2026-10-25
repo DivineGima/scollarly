@@ -395,6 +395,8 @@ A mutation is `POST /api/v1/<area>/<operation>` (for example `/api/v1/admin/lead
 | leads.resolveDuplicate | admin, owner | Merge (sets merged_into_id) or dismiss | yes |
 | leads.decideClaim | admin, owner | Approve or reject a link request. Approval needs `verification_method` (section 9.6). | yes |
 | leads.eraseLead | admin, owner | Anonymises a lead after the identity checklist | yes |
+| dataRequests.log | admin, owner | Creates a `data_request` for a lead (B5 step 2) | yes |
+| dataRequests.complete | admin, owner | Marks an open request done (B5 step 4). An erasure request is completed by `leads.eraseLead`, which refuses to let it be marked done by hand while the lead is not erased | yes |
 | content.save, publish, unpublish, archive, restore (per entity) | admin, owner | Writes, runs publish gates, revalidates tags | yes |
 | media.upload, archive | admin, owner | Validates and stores image | yes |
 | payments.record | admin, owner | Inserts a ledger row | yes |
@@ -1293,3 +1295,14 @@ Building Stage 2 added details to the design without changing a decision. Edited
 - **Flag F13 (visitor IP kept by Neon Auth).** Built as the tracker suggested: a trigger on `neon_auth.session` blanks both columns as each row is written, and `app_scrub_session_pii` clears them after each sign-in (and is ready for the daily cron, S10.2) in case Neon replaces the trigger. Not yet applied to the live database.
 - **Fast path.** `/sign-in` and `/sign-out` are static and identical for everyone, so they join the edge-cached public pages (the reason for a return, `?error=`, is read in the browser). `/two-factor/*` is a signed-in shell of area `auth`.
 - **Admin styling.** Tailwind v4 and the shadcn/ui pattern are loaded by the admin layout only; the stylesheet is 11 KB and no public page links it.
+
+## Amendment (Stage 5 implementation, 2026-10-25)
+
+Building Stage 5 added details to the design without changing a decision. Edited in place (D13); version stays 1.
+
+- **Section 7.2.** `lead` gains `updated_at` (default now, moved forward by a trigger whenever anything except `last_activity_at` changes) and `lead_claim` gains `reject_reason` (B4 step 3 asks for a reason and the table had nowhere to keep it; erasure clears it). Migration 0006, additive. The optimistic concurrency of 13.6 compares `updated_at` as text with microseconds, so two saves in the same millisecond still conflict.
+- **Section 8.3.** Two operations added for B5, which describes them: `dataRequests.log` and `dataRequests.complete`. An erasure request is completed only by `leads.eraseLead`.
+- **Erasure (7.9, 10.8).** One database function, `app_erase_lead`, in one transaction: the lead and every lead merged into it (the same person) lose name, number, email and results and get `anonymised_at`; note text and a rejected claim's reason are overwritten; `event.lead_ref` and `event.lead_id` and the lead link on payment rows are cleared; `lead_activity` is untouched and one `anonymised` activity is added. A portal request that names an account (not a lead) is marked done only when none of the account's leads is left.
+- **Link requests (9.6).** `app_decide_claim` checks that "Email matches the lead" is true (the claiming account's verified email equals the lead's email) instead of trusting the click, and refuses to approve a lead that is erased, merged away or already linked to another account.
+- **Duplicates (7.2).** A query on `whatsapp_e164` over live leads with no decision recorded. Merging sets `merged_into_id`, re-points leads already merged into the other one (no chains), and hides the merged lead from every list. `app_resolve_duplicate` does it in one transaction.
+- **The lead detail page (16 B3).** In production the Worker serves one cached shell for every `/admin/leads/<id>`; the screen reads the id from the address.
