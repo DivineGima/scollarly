@@ -176,7 +176,7 @@ try {
     }
     if (probeLeadId) {
       const detailPath = `/api/v1/admin/lead?id=${probeLeadId}`;
-      rows.push(await scenario("Staff lead detail: lead, programmes, timeline, notes, team, duplicates", "lead-detail", () => call(detailPath, staff), samples, 150, detailPath));
+      rows.push(await scenario("Staff lead detail: lead, programmes, timeline, notes, team, duplicates", "lead-detail", () => call(detailPath, staff), samples, 150, (url) => /\/api\/v1\/admin\/lead(\?|$)/.test(url)));
       const writePath = "/api/v1/admin/leads.logAdminWhatsAppOpen";
       rows.push(
         await scenario(
