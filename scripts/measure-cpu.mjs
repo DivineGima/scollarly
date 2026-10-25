@@ -91,10 +91,13 @@ async function scenario(name, key, fn, count = samples, delayMs = 150, matchBy =
   const marker = `m=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const statuses = [];
   const clientMs = [];
+  const instanceNth = []; // `X-Instance-Request` of each answer, when the endpoint sends it (the lead endpoint does)
   for (let i = 0; i < count; i++) {
     const r = await fn(marker, i);
     statuses.push(r.status);
     clientMs.push(r.ms);
+    const nth = Number.parseInt(r.headers?.get?.("x-instance-request") ?? "", 10);
+    instanceNth.push(Number.isFinite(nth) ? nth : null);
     await sleep(delayMs);
   }
   await sleep(3000); // let the tail deliver the last events
@@ -111,6 +114,13 @@ async function scenario(name, key, fn, count = samples, delayMs = 150, matchBy =
   const stats = cpuStats(cpus, warmup);
   const exceeded = mine.filter((e) => /exceeded/i.test(e.outcome ?? "")).length;
   const limit = LIMITS[key];
+
+  // Warm means "not the first request of its Worker instance" when the endpoint says so. A fresh instance runs the Worker's start-up
+  // inside its first request (Cloudflare reports 37 to 40 ms for it at each deploy), which no handler can avoid, so those requests are
+  // reported on their own and the gate judges the rest. Requests and tail events are in the same order, so they pair by position.
+  const paired = cpus.length === instanceNth.length && instanceNth.some((n) => n !== null);
+  const firstOfInstance = paired ? cpus.filter((_, i) => instanceNth[i] === 1) : [];
+  const laterOfInstance = paired ? cpus.filter((_, i) => instanceNth[i] !== 1) : [];
   const row = {
     scenario: name,
     requests: count,
@@ -118,12 +128,15 @@ async function scenario(name, key, fn, count = samples, delayMs = 150, matchBy =
     httpStatuses: Object.fromEntries([...new Set(statuses)].map((s) => [s, statuses.filter((x) => x === s).length])),
     cpuMs: stats,
     cpuSamplesInOrder: cpus, // every sampled event, oldest first, so a slow tail can be read request by request
+    instanceRequestsInOrder: instanceNth,
+    instanceSplit: paired ? { firstOfInstance: { n: firstOfInstance.length, ...cpuStats(firstOfInstance, 0).all }, laterOfInstance: { n: laterOfInstance.length, ...cpuStats(laterOfInstance, 0).all } } : null,
     exceededCpuOutcomes: exceeded,
     limitMs: limit,
     clientWallMs: { median: [...clientMs].sort((a, b) => a - b)[Math.floor(clientMs.length / 2)] },
   };
   if (cpus.length === 0) row.result = "NO CPU DATA";
   else if (limit === null) row.result = "recorded";
+  else if (paired && laterOfInstance.length >= 10) row.result = exceeded === 0 && (row.instanceSplit.laterOfInstance.p95 ?? 0) <= limit ? "PASS" : "FAIL";
   else row.result = exceeded === 0 && (stats.warm.p95 ?? stats.all.p95) <= limit ? "PASS" : "FAIL";
   return row;
 }
@@ -230,7 +243,9 @@ console.table(
     n: r.requests,
     events: r.tailEvents,
     "warm p50": f(r.cpuMs.warm.p50),
-    "warm p95": f(r.cpuMs.warm.p95),
+    "warm p95": f(r.instanceSplit ? r.instanceSplit.laterOfInstance.p95 : r.cpuMs.warm.p95),
+    "first-of-instance n": f(r.instanceSplit?.firstOfInstance.n),
+    "first-of-instance worst": f(r.instanceSplit?.firstOfInstance.max),
     "all p95": f(r.cpuMs.all.p95),
     "worst": f(r.cpuMs.all.max),
     limit: f(r.limitMs),

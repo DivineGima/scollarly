@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { errorResponseFor, jsonResponse } from "@/lib/http";
 import { requiredText } from "@/lib/schemas/common";
 import { type Actor, AuthError, isStepUpFresh } from "@/server/auth/actor";

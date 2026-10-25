@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { EVENT_TYPES } from "@/lib/constants";
 import { PAGE_GROUPS } from "@/lib/page-group";
 import { REF_PATTERN } from "@/lib/ref";

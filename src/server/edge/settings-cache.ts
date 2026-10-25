@@ -1,6 +1,6 @@
 import { slaSettingsFrom, type SlaSettings } from "@/modules/sla/service";
 import type { Db } from "@/server/db/client";
-import { readSettings } from "@/server/repositories/settings";
+import { readSettings } from "@/server/repositories/settings-read";
 
 /**
  * `site_setting` read for the plain-function endpoints (leads, events). The settings that matter here change by an owner

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { CAMPUS_EXPERIENCE_KINDS, CURRENCIES, PROCESS_STEP_KINDS, YOUTUBE_ID_PATTERN } from "@/lib/constants";
 import { isE164 } from "@/lib/phone";
 import { contentStatusSchema, isoDateTimeSchema, translationsSchema } from "@/lib/schemas/common";
