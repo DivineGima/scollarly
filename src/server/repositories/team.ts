@@ -22,7 +22,14 @@ export interface TeamMember {
 
 /** Staff with names and emails, which live in Neon Auth's tables, so a SECURITY DEFINER function reads them (migration 0004). */
 export async function listTeam(db: Db, actor: Actor): Promise<TeamMember[]> {
-  const [result] = await runAs(db, actor, db.execute(sql`select * from public.app_list_team()`));
+  const [result] = await runAs(db, actor, teamQuery(db));
+  return teamMembersOf(result);
+}
+
+/** The statement behind `listTeam`, for a screen that runs it together with its other reads in one round trip. */
+export const teamQuery = (db: Db) => db.execute(sql`select * from public.app_list_team()`);
+
+export function teamMembersOf(result: unknown): TeamMember[] {
   return rowsOf<{ user_id: string; email: string; name: string; role: "admin" | "owner"; leads_held: string | number; since: string | Date }>(result).map((r) => ({
     userId: r.user_id,
     email: r.email,
