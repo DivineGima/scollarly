@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       cold_wait_seconds:
-        description: "Idle seconds before the Neon cold-start probe (Neon scales to zero after 5 minutes)"
+        description: "Idle seconds before the Neon cold-start probe (Neon scales to zero after 5 minutes). 0 skips the wait; use 330 only when that probe is wanted"
         required: false
-        default: "330"
+        default: "0"
         type: string
       run_cpu_measurement:
         description: "Run the CPU measurement after the probes (adds about 15 minutes)"
@@ -31,7 +31,7 @@ on:
       lead_samples:
         description: "Lead requests to measure, sent 12.5 seconds apart (50 takes about 10 minutes)"
         required: false
-        default: "50"
+        default: "30"
         type: string
 
 permissions:
