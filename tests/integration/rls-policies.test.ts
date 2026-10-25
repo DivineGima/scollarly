@@ -119,13 +119,11 @@ beforeAll(async () => {
   await insertRow(t, "recovery_code", { id: uuidv7(), user_id: "own-1", code_hash: "h" });
   await insertRow(t, "step_up", { session_id: "sess-1", user_id: "own-1", verified_at: new Date().toISOString() });
 
-  // Analytics, payments, media and the Stage 0 stubs.
+  // Analytics, payments and media.
   await insertRow(t, "event", { id: uuidv7(), type: "wa_tap" });
   await t.run(`insert into event_daily_agg (date, type, count) values ('2026-10-01', 'page_view', 1)`);
   await paymentRow(t, universityPublished, { entered_by: "adm-1" });
   await insertRow(t, "media_asset", { id: uuidv7(), kind: "logo", width: 1, height: 1, bytes: 1, mime: "image/webp", sha256: "b".repeat(64) });
-  await t.run(`insert into phase0_content (key, value) values ('k', 'v')`);
-  await t.run(`insert into phase0_lead_stub (id, idempotency_key, payload_hash, name, whatsapp_e164, country_code) values (${q(uuidv7())}, ${q(randomUUID())}, 'h', 'n', '+237651232301', 'CM')`);
 });
 
 afterAll(async () => {
@@ -153,7 +151,6 @@ const READS: [string, number, number, number, number][] = [
   ["pipeline_stage", 6, 6, 6, 6],
   ["site_setting", 10, 10, 10, 10],
   ["media_asset", 1, 1, 1, 1],
-  ["phase0_content", 1, 1, 1, 1],
   // Staff only.
   ["consent_record", 0, 0, 2, 2],
   ["message_template", 0, 0, 1, 1],
@@ -163,7 +160,6 @@ const READS: [string, number, number, number, number][] = [
   ["event", 0, 0, 1, 1],
   ["event_daily_agg", 0, 0, 1, 1],
   ["placement_payment", 0, 0, 1, 1],
-  ["phase0_lead_stub", 0, 0, 1, 1],
   // A student sees only their own.
   ["lead", 0, 1, 3, 3],
   ["lead_programme_pref", 0, 1, 2, 2],

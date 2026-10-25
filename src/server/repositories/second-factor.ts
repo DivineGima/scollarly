@@ -61,15 +61,19 @@ export function createSecondFactorStore(db: Db, ctx: RlsContext): SecondFactorSt
       return rows.length > 0;
     },
 
-    async recordFailure(userId, max, lockUntil) {
+    async recordFailure(userId, max, lockUntil, at) {
+      // An expired lock starts a fresh count (otherwise one wrong code after a lockout would lock the owner out again at once).
+      const atIso = at.toISOString();
+      const expired = sql`(${ownerTotp.lockedUntil} is not null and ${ownerTotp.lockedUntil} <= ${atIso}::timestamptz)`;
+      const nextCount = sql`(case when ${expired} then 1 else ${ownerTotp.failedCount} + 1 end)`;
       const [rows] = await inContext(
         db,
         ctx,
         db
           .update(ownerTotp)
           .set({
-            failedCount: sql`${ownerTotp.failedCount} + 1`,
-            lockedUntil: sql`case when ${ownerTotp.failedCount} + 1 >= ${max} then ${lockUntil.toISOString()}::timestamptz else ${ownerTotp.lockedUntil} end`,
+            failedCount: nextCount,
+            lockedUntil: sql`case when ${nextCount} >= ${max} then ${lockUntil.toISOString()}::timestamptz when ${expired} then null else ${ownerTotp.lockedUntil} end`,
           })
           .where(eq(ownerTotp.userId, userId))
           .returning({ failedCount: ownerTotp.failedCount, lockedUntil: ownerTotp.lockedUntil }),

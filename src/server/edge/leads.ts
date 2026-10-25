@@ -3,6 +3,8 @@ import { createLead, type CreateLeadOutcome } from "@/modules/leads/service";
 import { getDb } from "@/server/db/runtime";
 import { insertLead } from "@/server/repositories/lead-intake";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
+import { logError } from "@/server/log";
+import { isMeasurementRequest } from "@/server/security/measurement";
 import { verifyTurnstile } from "@/server/security/turnstile";
 import { cachedSlaSettings } from "./settings-cache";
 
@@ -37,16 +39,18 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
   const limiter = createDurableObjectLimiter(env.RATE_LIMITER);
   const key = await limiterKey({ route: "leads", ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET);
 
+  const measurement = isMeasurementRequest(request, env.PHASE0_PROBE_TOKEN);
   const outcome = await createLead(
     {
       insert: (row) => insertLead(db, row),
-      verifyTurnstile: (token) => verifyTurnstile(env.TURNSTILE_SECRET_KEY, token),
+      verifyTurnstile: (token) => (measurement ? Promise.resolve("ok") : verifyTurnstile(env.TURNSTILE_SECRET_KEY, token)),
       limit: () => limiter(key, LIMIT, WINDOW_MS),
       slaSettings: () => cachedSlaSettings(db, env.DATABASE_URL),
       now: () => new Date(),
       newId: () => crypto.randomUUID(),
+      onError: (error) => logError(requestId, "leads", error),
     },
-    { idempotencyKey: request.headers.get("idempotency-key"), body: body.value },
+    { idempotencyKey: request.headers.get("idempotency-key"), body: body.value, measurement },
   );
   return toResponse(outcome, requestId);
 }

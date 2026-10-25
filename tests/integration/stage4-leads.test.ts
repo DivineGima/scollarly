@@ -3,7 +3,7 @@ import { uuidv7 } from "@/lib/uuid";
 import { createLead, type CreateLeadDeps } from "@/modules/leads/service";
 import { planEvents } from "@/modules/events/service";
 import { insertLead } from "@/server/repositories/leads";
-import { recordWaTaps, WA_TAP_DAILY_CAP } from "@/server/repositories/events";
+import { recordWaTaps, WA_TAP_DAILY_CAP, WA_TAP_UNLINKED_DAILY_CAP } from "@/server/repositories/events";
 import { createTestDb, type TestDb } from "./helpers/db";
 import { insertRow, programmeRow, q, uni } from "./helpers/fixtures";
 
@@ -302,5 +302,24 @@ describe("S4.5: wa_tap rows, the daily cap, and linking (architecture 7.5, owner
     } finally {
       await t.asRuntime();
     }
+  });
+
+  // Last on purpose: it uses up the day's allowance for taps that match no lead.
+  it("bounds taps for references that match no lead (a script inventing references), while a tap for a real lead is still stored", async () => {
+    const real = freshRef();
+    expect(await createLead(deps(), { idempotencyKey: crypto.randomUUID(), body: quick({ client_ref: real, whatsapp: "677777777" }) })).toMatchObject({ ok: true });
+    let stored = 0;
+    for (let i = 0; i < 5; i++) stored += await recordWaTaps(t.db, Array.from({ length: 50 }, () => tap(freshRef())));
+    await t.asOwner();
+    let unlinked: number;
+    try {
+      unlinked = await count(`select count(*) as n from event where type = 'wa_tap' and lead_id is null`);
+    } finally {
+      await t.asRuntime();
+    }
+    expect(WA_TAP_UNLINKED_DAILY_CAP).toBe(200);
+    expect(unlinked).toBe(WA_TAP_UNLINKED_DAILY_CAP); // 250 invented references were offered; only the allowance was stored
+    expect(stored).toBeLessThan(250);
+    expect(await recordWaTaps(t.db, [tap(real)])).toBe(1);
   });
 });

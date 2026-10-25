@@ -1,4 +1,4 @@
-/** Constant-time comparison of two byte arrays (for shared secrets such as the Stage 0 probe token). */
+/** Constant-time comparison of two byte arrays (for shared secrets such as the measurement token). */
 export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;

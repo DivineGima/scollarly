@@ -1,4 +1,5 @@
 import { errorResponse, errorResponseFor, isSameOrigin, newRequestId } from "@/lib/http";
+import { logError } from "@/server/log";
 import { type Actor, AuthError, hasAtLeast, isStepUpFresh, type Role } from "@/server/auth/actor";
 import { readSessionToken } from "@/server/auth/cookie";
 import type { LimitDecision } from "@/server/security/rate-limit";
@@ -123,7 +124,8 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
       const status = error.code === "UNAUTHENTICATED" ? 401 : 403;
       return errorResponse(status, error.code, error.message, requestId);
     }
-    // No stack trace, no message from the database: the client gets the request id and nothing else (architecture 13.4).
+    // No stack trace, no message from the database: the client gets the request id and nothing else (architecture 13.4). The id is logged with the error class.
+    logError(requestId, `${route.area}/${route.operation}`, error);
     return errorResponseFor("INTERNAL", "Something went wrong.", requestId);
   }
 }

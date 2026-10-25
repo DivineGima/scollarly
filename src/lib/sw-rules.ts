@@ -1,3 +1,5 @@
+import { locales } from "../i18n/config";
+
 /**
  * What the service worker may and may not keep (architecture 11.1, S4.1). The matchers are plain functions of a path so a unit
  * test can prove the rules without a browser.
@@ -6,7 +8,10 @@
  * pages and every API route. The offline copy of the student portal is not a cached page; it is the small IndexedDB
  * `progressSnapshot` record (architecture 11.2).
  */
-export const NEVER_CACHE = /^\/(admin|me|api|auth|sign-in|sign-out|sign-up|verify-email|forgot-password|reset-password|accept-invite|two-factor)(\/|$)/;
+export const NEVER_CACHE = new RegExp(
+  // A page can also be reached under its locale prefix (`/en/admin`, `/en/accept-invite/<token>`); the rule covers both.
+  `^(?:/(?:${locales.join("|")}))?/(admin|me|api|auth|sign-in|sign-out|sign-up|verify-email|forgot-password|reset-password|accept-invite|two-factor)(/|$)`,
+);
 
 export function isNeverCached(pathname: string): boolean {
   return NEVER_CACHE.test(pathname);

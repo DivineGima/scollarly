@@ -5,7 +5,7 @@
  * Wall-clock time seen by a client is NOT CPU time and is never reported as such.
  *
  *   node scripts/measure-cpu.mjs --base https://scollarly.<you>.workers.dev --token $PHASE0_PROBE_TOKEN \
- *        [--worker scollarly] [--samples 50] [--only public,admin-shell,admin-data,student-shell,student-data,lead,media,media-miss,rls,storage] \
+ *        [--worker scollarly] [--samples 50] [--only public,admin-shell,admin-data,student-shell,student-data,lead,media,media-miss] \
  *        [--sessions scripts/.generated/probe-sessions.json] [--media <sha256>] [--media-list scripts/.generated/phase0-images.json] \
  *        [--lead-samples 50] [--lead-interval-ms 12500] [--warmup 3]
  *
@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,lead,media,media-miss,rls,storage").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,lead,media,media-miss").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, lead: 8, media: 8, "media-miss": 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -84,7 +84,8 @@ async function call(path, init = {}) {
   }
 }
 
-const probeHeaders = { "x-phase0-token": token };
+// Proves to the Worker that this is the measurement: it skips Turnstile for these leads and stamps them so the cleanup finds them (security/measurement.ts).
+const measurementHeaders = { "x-phase0-token": token };
 
 async function scenario(name, key, fn, count = samples, delayMs = 150, matchBy = null) {
   if (!only.has(key)) return null;
@@ -191,7 +192,7 @@ try {
     } else if ([...only].some((k) => k === "lead-detail" || k === "lead-write")) {
       console.error("No probe lead found: the lead detail and write scenarios were skipped.");
     }
-    // The remaining Stage 4 and 5 paths (S4.5, S5.4, S5.5). Each needs probe leads of its own (source.page = "/__probe", removed by the cleanup
+    // The remaining Stage 4 and 5 paths (S4.5, S5.4, S5.5). Each needs probe leads of its own (stamped `source.measurement`, removed by the cleanup
     // step): a merge uses up a pair and an erasure uses up a lead, so they are made first. The lead endpoint allows five a minute per caller.
     const wantsSeeded = ["events", "lead-merge", "lead-erase"].some((k) => only.has(k));
     if (wantsSeeded) {
@@ -200,7 +201,7 @@ try {
         try {
           const created = await fetch(base + "/api/v1/leads", {
             method: "POST",
-            headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
+            headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID(), ...measurementHeaders },
             body: JSON.stringify(body),
             signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
           });
@@ -277,9 +278,6 @@ try {
     console.error("No --sessions file: the staff and student scenarios were skipped.");
   }
 
-  // Row level security and Neon Object Storage probes (recorded; their CPU is the cost of the check itself).
-  rows.push(await scenario("Probe: runtime role and row level security", "rls", (m) => call(`/api/v1/probe/rls?${m}`, { headers: probeHeaders }), 10));
-  rows.push(await scenario("Probe: signed write and public read to Neon Object Storage", "storage", (m) => call(`/api/v1/probe/storage?n=${Date.now()}&${m}`, { headers: probeHeaders }), 10));
 
   // Lead POST, run by the Worker entry before Next.js starts. Gate: at most 8 ms over at least 50 requests. The limiter allows
   // 5 a minute per caller, so the requests are spaced out (about 10 minutes for 50).
@@ -290,7 +288,7 @@ try {
       (m) =>
         call(`/api/v1/leads?${m}`, {
           method: "POST",
-          headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
+          headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID(), ...measurementHeaders },
           body: JSON.stringify(probeLead({ name: "Measure Probe" })),
         }),
       leadSamples,

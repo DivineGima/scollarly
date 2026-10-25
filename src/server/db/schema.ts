@@ -842,32 +842,6 @@ export const placementPayment = pgTable(
   ],
 );
 
-// ---------------------------------------------------------------------------------------------
-// 6. Phase 0 throwaway tables
-// ---------------------------------------------------------------------------------------------
-
-/** @deprecated Stage 0 stub for the lead POST CPU gate. Replaced by the real `lead` table; removed in a later version once nothing references it. */
-export const phase0LeadStub = pgTable(
-  "phase0_lead_stub",
-  {
-    id: uuid("id").primaryKey(),
-    idempotencyKey: uuid("idempotency_key").notNull().unique(),
-    payloadHash: text("payload_hash").notNull(),
-    name: text("name").notNull(),
-    whatsappE164: text("whatsapp_e164").notNull(),
-    countryCode: text("country_code").notNull(),
-    receivedAt: tz("received_at").notNull().defaultNow(),
-  },
-  (t) => [index("phase0_lead_stub_whatsapp_idx").on(t.whatsappE164)],
-);
-
-/** @deprecated Stage 0 content row used only to prove tag revalidation (S0.6). */
-export const phase0Content = pgTable("phase0_content", {
-  key: text("key").primaryKey(),
-  value: text("value").notNull(),
-  updatedAt: tz("updated_at").notNull().defaultNow(),
-});
-
 export const schema = {
   appUser,
   ownerTotp,
@@ -904,7 +878,5 @@ export const schema = {
   event,
   eventDailyAgg,
   placementPayment,
-  phase0LeadStub,
-  phase0Content,
 };
 export type Schema = typeof schema;

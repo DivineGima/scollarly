@@ -1,4 +1,5 @@
 import { errorResponse, jsonResponse, newRequestId } from "@/lib/http";
+import { logError } from "@/server/log";
 import { type Actor, AuthError, hasAtLeast, type Role } from "@/server/auth/actor";
 import { readSessionToken } from "@/server/auth/cookie";
 import { isStorablePage, toEdgeCopy } from "./fast-path";
@@ -88,7 +89,8 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
   let actor: Actor | null;
   try {
     actor = await deps.checkSession(request.headers);
-  } catch {
+  } catch (error) {
+    logError(requestId, `${route.area}/${route.kind === "api" ? route.name : "shell"}`, error);
     return route.kind === "shell" ? notFound() : errorResponse(503, "TEMPORARILY_UNAVAILABLE", "Please try again shortly.", requestId);
   }
   const allowed = actor !== null && hasAtLeast(actor, AREA_ROLE[route.area]);
@@ -109,6 +111,7 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
         ? errorResponse(401, "UNAUTHENTICATED", error.message, requestId)
         : errorResponse(403, "FORBIDDEN", error.message, requestId);
     }
+    logError(requestId, `${route.area}/${route.name}`, error);
     return errorResponse(500, "INTERNAL", "Something went wrong.", requestId);
   }
 }

@@ -38,6 +38,5 @@
 
   // Secrets are never in this file. Set them with `wrangler secret put` (see .dev.vars.example):
   // DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-  // TURNSTILE_SECRET_KEY, RESEND_API_KEY, OWNER_EMAIL, PHASE0_PROBE_TOKEN,
-  // NEON_API_KEY and NEON_PROJECT_ID (optional, CU-hours probe).
+  // TURNSTILE_SECRET_KEY, RESEND_API_KEY, OWNER_EMAIL, PHASE0_PROBE_TOKEN (the CPU measurement secret).
 }

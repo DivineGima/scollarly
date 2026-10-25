@@ -29,6 +29,4 @@ interface CloudflareEnv {
   TURNSTILE_SECRET_KEY: string;
   OWNER_EMAIL: string;
   PHASE0_PROBE_TOKEN: string;
-  NEON_API_KEY?: string;
-  NEON_PROJECT_ID?: string;
 }

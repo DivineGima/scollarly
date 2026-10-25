@@ -37,11 +37,12 @@ function fakeStore() {
       totp.set(userId, { ...r, lastUsedStep: step, confirmed: true, failedCount: 0, lockedUntil: null });
       return true;
     },
-    async recordFailure(userId, max, lockUntil) {
+    async recordFailure(userId, max, lockUntil, at) {
       const r = totp.get(userId);
       if (!r) return { failedCount: 0, lockedUntil: null };
-      const failedCount = r.failedCount + 1;
-      const lockedUntil = failedCount >= max ? lockUntil : r.lockedUntil;
+      const expired = r.lockedUntil !== null && r.lockedUntil <= at;
+      const failedCount = expired ? 1 : r.failedCount + 1;
+      const lockedUntil = failedCount >= max ? lockUntil : expired ? null : r.lockedUntil;
       totp.set(userId, { ...r, failedCount, lockedUntil });
       return { failedCount, lockedUntil };
     },
@@ -169,6 +170,19 @@ describe("verifyCode", () => {
     s.clock.now = new Date(s.clock.now.getTime() + LOCKOUT_MS + 1000);
     expect(await s.factor.verifyCode("owner-1", "s", s.codeFor(secret, s.clock.now))).toBe("ok");
     expect(s.totp.get("owner-1")?.failedCount).toBe(0);
+  });
+
+  it("gives a full set of attempts again once a lockout has expired (one wrong code does not re-lock at once)", async () => {
+    const s = setup();
+    await enrolled(s);
+    s.clock.now = new Date(s.clock.now.getTime() + 60_000);
+    for (let i = 0; i < MAX_FAILED_ATTEMPTS; i++) await s.factor.verifyCode("owner-1", "s", "000000");
+    expect(s.totp.get("owner-1")?.lockedUntil).not.toBeNull();
+    s.clock.now = new Date(s.clock.now.getTime() + LOCKOUT_MS + 1000);
+    expect(await s.factor.verifyCode("owner-1", "s", "000000")).toBe("invalid");
+    expect(s.totp.get("owner-1")).toMatchObject({ failedCount: 1, lockedUntil: null });
+    for (let i = 2; i < MAX_FAILED_ATTEMPTS; i++) expect(await s.factor.verifyCode("owner-1", "s", "000000")).toBe("invalid");
+    expect(await s.factor.verifyCode("owner-1", "s", "000000")).toBe("locked");
   });
 
   it("returns not_enrolled for a user with no secret", async () => {

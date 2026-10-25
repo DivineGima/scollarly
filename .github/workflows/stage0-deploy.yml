@@ -1,7 +1,7 @@
 name: Stage 0 deploy and measure
 
 # Manual only. Builds on Linux (OpenNext does not build reliably on Windows), deploys the Stage 0 slice to the
-# free workers.dev address, then runs the functional probes and the CPU measurement from architecture section 17.
+# free workers.dev address, then runs the CPU measurement from architecture section 17 (the Stage 0 functional probes were removed once Stage 0 closed).
 # Deploys run only from `main` after merge (architecture 13.3). Nothing here runs on a push or a pull request.
 #
 # Secrets used (repository secrets): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, PHASE0_DATABASE_URL (owner, pooled),
@@ -13,11 +13,6 @@ name: Stage 0 deploy and measure
 on:
   workflow_dispatch:
     inputs:
-      cold_wait_seconds:
-        description: "Idle seconds before the Neon cold-start probe (Neon scales to zero after 5 minutes). 0 skips the wait; use 330 only when that probe is wanted"
-        required: false
-        default: "0"
-        type: string
       run_cpu_measurement:
         description: "Run the CPU measurement after the probes (adds about 15 minutes)"
         required: false
@@ -54,8 +49,6 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      # A step condition cannot read a secret, only the environment, so the answer is put here.
-      HAVE_REAL_TURNSTILE: ${{ secrets.TURNSTILE_SECRET_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -164,13 +157,22 @@ jobs:
           NEON_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.PHASE0_NEON_STORAGE_SECRET_ACCESS_KEY }}
           OWNER_EMAIL: ${{ secrets.PHASE0_OWNER_EMAIL }}
           PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
+          REAL_TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           node -e '
             const names = ["DATABASE_URL","NEON_AUTH_BASE_URL","NEON_AUTH_COOKIE_SECRET","TOTP_ENCRYPTION_KEY","RATE_LIMIT_SECRET","NEON_STORAGE_ENDPOINT","NEON_STORAGE_REGION","NEON_STORAGE_ACCESS_KEY_ID","NEON_STORAGE_SECRET_ACCESS_KEY","OWNER_EMAIL","PHASE0_PROBE_TOKEN"];
             const out = {};
             for (const n of names) { if (!process.env[n]) { console.error("::error::" + n + " is empty"); process.exit(1); } out[n] = process.env[n]; }
-            // Cloudflare documents this always-pass test secret. It is used only so Stage 0 can call the lead endpoint with a dummy token.
-            out.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+            // The real Turnstile secret is set from the first deploy, and stays. The CPU measurement does not need a weaker secret: it sends
+            // the measurement header, which the Worker accepts only with PHASE0_PROBE_TOKEN (src/server/security/measurement.ts).
+            // Until the owner adds the widget secret (docs/stage-4-runbook.md), the always-pass test secret documented by Cloudflare is used and
+            // the lead form is NOT protected from scripts: the warning below says so on every run.
+            if (process.env.REAL_TURNSTILE_SECRET) {
+              out.TURNSTILE_SECRET_KEY = process.env.REAL_TURNSTILE_SECRET;
+            } else {
+              console.log("::warning::TURNSTILE_SECRET_KEY repository secret is missing. The always-pass test secret is on the Worker, so the lead form accepts any token. Add the real widget secret before launch.");
+              out.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+            }
             require("fs").writeFileSync("secrets.json", JSON.stringify(out));
           '
           npx wrangler secret bulk secrets.json
@@ -186,16 +188,6 @@ jobs:
           done
           echo "::error::The Worker did not answer 200 at /api/v1/health"; exit 1
 
-      - name: Stage 0 functional probes
-        env:
-          PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
-        run: >
-          node scripts/stage0-probes.mjs
-          --base "${{ steps.url.outputs.url }}"
-          --media "${{ steps.seed.outputs.sha }}"
-          --sessions scripts/.generated/probe-sessions.json
-          --cold-wait "${{ inputs.cold_wait_seconds }}"
-
       - name: CPU measurement (needs a fresh rate-limit window first)
         if: ${{ inputs.run_cpu_measurement }}
         continue-on-error: true
@@ -207,12 +199,6 @@ jobs:
           sleep 70
           node scripts/measure-cpu.mjs ${CPU_SCENARIOS:+--only "$CPU_SCENARIOS"} --lead-samples "${LEAD_SAMPLES:-50}" --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" --media-list scripts/.generated/phase0-images.json --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
           { echo; echo "### CPU measurement (milliseconds of Worker CPU, from wrangler tail)"; echo; echo '```'; cat /tmp/measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Set the real Turnstile secret (the measurement above needed the always-pass test secret)
-        if: ${{ always() && env.HAVE_REAL_TURNSTILE == 'true' }}
-        env:
-          REAL_TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
-        run: printf '%s' "$REAL_TURNSTILE_SECRET" | npx wrangler secret put TURNSTILE_SECRET_KEY
 
       - name: Remove the throwaway Neon Auth users, sessions and probe leads
         if: always()

@@ -3,8 +3,9 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- every admin screen is a cached shell plus a data call, so moving between screens is a full page load on purpose (ADR-040) */
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
+import { STUDENT_COUNTRIES } from "@/lib/constants";
 import { formatWat } from "@/lib/time";
 import { DuplicateDialog } from "./leads/duplicate-dialog";
 import { type DuplicatePairData, type LeadListItem, type Person, SlaBadge, type StageOption, stageName } from "./leads/shared";
@@ -13,8 +14,6 @@ import { FieldError, Input, Label } from "./ui/input";
 import { ScrollRegion } from "./ui/scroll-region";
 import { DataStatus } from "./use-admin-data";
 
-/** The countries students come from (architecture 7.2 `STUDENT_COUNTRIES`), for the filter. */
-const COUNTRIES = ["CM", "NG", "GH", "CI", "SN", "GN", "ZA", "IN"] as const;
 
 type View = "all" | "unanswered" | "overdue" | "unassigned" | "duplicates";
 const VIEWS: readonly View[] = ["all", "overdue", "unassigned", "duplicates"];
@@ -80,6 +79,9 @@ export function LeadsPanel() {
   const [data, setData] = useState<LeadsData | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error" | "filters">("loading");
   const [loadingMore, setLoadingMore] = useState(false);
+  // Each load and each "more" takes a number; an answer is used only if no later request has started, so a slow answer for an
+  // earlier filter can never replace the list for the current one.
+  const latest = useRef(0);
 
   // The shell is the same HTML for every address, so the filters are read in the browser.
   useEffect(() => {
@@ -94,8 +96,11 @@ export function LeadsPanel() {
   }, []);
 
   const load = useCallback(async (filters: Filters) => {
+    const mine = ++latest.current;
     setStatus("loading");
+    setLoadingMore(false);
     const result = await api<LeadsData>("GET", dataPath(filters));
+    if (mine !== latest.current) return;
     if (result.ok) {
       setData(result.data);
       setStatus("ready");
@@ -115,10 +120,12 @@ export function LeadsPanel() {
 
   async function more() {
     if (!applied || !data?.nextBefore || loadingMore) return;
+    const mine = ++latest.current;
     setLoadingMore(true);
     const result = await api<LeadsData>("GET", dataPath(applied, data.nextBefore));
+    if (mine !== latest.current) return;
     setLoadingMore(false);
-    if (result.ok) setData({ ...data, leads: [...data.leads, ...result.data.leads], nextBefore: result.data.nextBefore });
+    if (result.ok) setData((current) => (current ? { ...current, leads: [...current.leads, ...result.data.leads], nextBefore: result.data.nextBefore } : current));
     else setStatus("error");
   }
 
@@ -182,7 +189,7 @@ export function LeadsPanel() {
               <Label htmlFor={`${id}-country`}>{t("filters.country")}</Label>
               <select id={`${id}-country`} className="min-h-11 w-full rounded-md border border-border bg-bg px-3" value={draft.country} onChange={(event) => setDraft({ ...draft, country: event.target.value })}>
                 <option value="">{t("filters.any")}</option>
-                {COUNTRIES.map((code) => (
+                {STUDENT_COUNTRIES.map((code) => (
                   <option key={code} value={code}>
                     {code}
                   </option>
