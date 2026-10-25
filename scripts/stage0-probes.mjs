@@ -223,6 +223,48 @@ if (sessionsFile && existsSync(sessionsFile)) {
   record("Auth: the staff data call returns the lead count to an admin (session query, then one query under row level security)", adminData.status === 200 && Number.isInteger(parse(adminData)?.leadCount) && /no-store/.test(adminData.headers.get("cache-control") ?? ""), { status: adminData.status, ms: adminData.ms, body: parse(adminData) });
   record("Auth: the staff data call refuses an anonymous visitor (401), a student (403) and a forged cookie (401)", anonData.status === 401 && studentOnAdminData.status === 403 && forgedData.status === 401, { anonymous: anonData.status, student: studentOnAdminData.status, forged: forgedData.status });
   record("Auth: the student data call returns the student's own role", studentData.status === 200 && parse(studentData)?.role === "student", { status: studentData.status, ms: studentData.ms, body: parse(studentData) });
+
+  // Stage 5 (S5.1 to S5.5): the lead screens' data calls and mutations. The first lock is the facade (401 and 403), the second is row
+  // level security; the shapes are the ones tests/integration/stage5-leads.test.ts and the Playwright specs rely on.
+  const asJson = (who, method, path, body) =>
+    call(path, { method, headers: { ...(who === "none" ? {} : as(who).headers), origin: base, "content-type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const leadCalls = ["overview", "leads", "duplicates", "link-requests", "data-requests"];
+  const anonymousLead = await Promise.all(leadCalls.map((n) => call(`/api/v1/admin/${n}`)));
+  const studentLead = await Promise.all(leadCalls.map((n) => call(`/api/v1/admin/${n}`, as("student"))));
+  const adminLead = await Promise.all(leadCalls.map((n) => call(`/api/v1/admin/${n}`, as("admin"))));
+  record(
+    "Stage 5: every lead screen's data call refuses an anonymous visitor (401) and a student (403)",
+    anonymousLead.every((r) => r.status === 401) && studentLead.every((r) => r.status === 403),
+    { anonymous: anonymousLead.map((r) => r.status), student: studentLead.map((r) => r.status) },
+  );
+  record(
+    "Stage 5: an admin gets the overview counts, the leads list, the duplicate pairs, the link requests and the data requests in their documented shape",
+    adminLead.every((r) => r.status === 200) &&
+      Number.isInteger(adminLead[0]?.json?.unanswered) &&
+      Array.isArray(adminLead[0]?.json?.funnel) &&
+      Array.isArray(adminLead[1]?.json?.leads) &&
+      Array.isArray(adminLead[1]?.json?.stages) &&
+      Array.isArray(adminLead[2]?.json?.pairs) &&
+      Array.isArray(adminLead[3]?.json?.claims) &&
+      Array.isArray(adminLead[4]?.json?.requests),
+    { statuses: adminLead.map((r) => r.status), ms: adminLead.map((r) => r.ms) },
+  );
+  const badFilter = await call("/api/v1/admin/leads?view=everything", as("admin"));
+  record("Stage 5: a filter the screen could not have produced is a 400, not a silent full list", badFilter.status === 400 && badFilter.json?.error?.code === "VALIDATION", { status: badFilter.status });
+  const unknownLead = await call("/api/v1/admin/lead?id=0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b", as("admin"));
+  record("Stage 5: a lead that does not exist is a 404 with the error envelope", unknownLead.status === 404 && unknownLead.json?.error?.code === "NOT_FOUND", { status: unknownLead.status });
+  const noLead = "0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b";
+  const writeAnonymous = await asJson("none", "POST", "/api/v1/admin/leads.logReply", { leadId: noLead });
+  const writeStudent = await asJson("student", "POST", "/api/v1/admin/leads.logReply", { leadId: noLead });
+  const writeAdmin = await asJson("admin", "POST", "/api/v1/admin/leads.logReply", { leadId: noLead });
+  const writeBad = await asJson("admin", "POST", "/api/v1/admin/leads.logReply", { leadId: "nope" });
+  record(
+    "Stage 5: a lead operation refuses an anonymous visitor (401) and a student (403), answers an admin 404 for a missing lead, and 400 for a malformed body",
+    writeAnonymous.status === 401 && writeStudent.status === 403 && writeAdmin.status === 404 && writeBad.status === 400,
+    { anonymous: writeAnonymous.status, student: writeStudent.status, admin: writeAdmin.status, malformed: writeBad.status },
+  );
+  const eraseNoBox = await asJson("admin", "POST", "/api/v1/admin/leads.eraseLead", { leadId: noLead, identityConfirmed: false });
+  record("Stage 5: erasure without the identity box ticked is refused before it reaches the database (400)", eraseNoBox.status === 400, { status: eraseNoBox.status });
 } else {
   record("Auth page checks skipped: no --sessions file", null, "run scripts/ci/seed-probe-sessions.mjs first");
 }

@@ -93,7 +93,9 @@
       "security": "Sécurité",
       "signOut": "Se déconnecter",
       "roleOwner": "Propriétaire",
-      "roleAdmin": "Administrateur"
+      "roleAdmin": "Administrateur",
+      "leads": "Dossiers",
+      "dataRequests": "Demandes de données"
     },
     "offline": "Vous êtes hors ligne. Les pages d'administration nécessitent une connexion.",
     "common": {
@@ -122,7 +124,17 @@
     "overview": {
       "title": "Vue d'ensemble",
       "welcome": "Bienvenue, {name}.",
-      "soon": "Les demandes, le contenu et les statistiques arrivent aux prochaines étapes."
+      "tiles": {
+        "unanswered": "Nouveaux, sans réponse",
+        "overdue": "En retard",
+        "mine": "Qui me sont confiés",
+        "unassigned": "Non attribués",
+        "pendingClaims": "Demandes de rattachement",
+        "openDataRequests": "Demandes de données",
+        "today": "Dossiers du jour (WAT)"
+      },
+      "funnelTitle": "Où en sont les étudiants",
+      "funnelEmpty": "Aucun dossier pour le moment."
     },
     "profile": {
       "title": "Mon profil",
@@ -199,7 +211,14 @@
         "security_twoFactorEnrolled": "A activé la connexion en deux étapes",
         "security_recoveryCodeUsed": "A utilisé un code de secours",
         "security_recoveryCodesRegenerated": "A créé de nouveaux codes de secours",
-        "security_signOutEverywhere": "S'est déconnecté partout"
+        "security_signOutEverywhere": "S'est déconnecté partout",
+        "leads_changeStage": "A fait passer un dossier à une autre étape",
+        "leads_assign": "A attribué un dossier",
+        "leads_resolveDuplicate": "A traité un doublon possible",
+        "leads_decideClaim": "A tranché une demande de rattachement",
+        "leads_eraseLead": "A effacé les données personnelles d’un dossier",
+        "dataRequests_log": "A enregistré une demande de données",
+        "dataRequests_complete": "A clôturé une demande de données"
       }
     },
     "security": {
@@ -218,6 +237,281 @@
       "codesSaved": "Je les ai enregistrés",
       "signOutEverywhere": "Se déconnecter partout ailleurs",
       "signedOutEverywhere": "Déconnecté de {count} autres sessions."
+    },
+    "leads": {
+      "title": "Dossiers",
+      "intro": "Toutes les personnes qui ont demandé à étudier en Inde, les plus récentes d’abord.",
+      "tabs": {
+        "label": "Vues des dossiers",
+        "all": "Tous",
+        "overdue": "En retard",
+        "unassigned": "Non attribués",
+        "duplicates": "Doublons",
+        "linkRequests": "Demandes de rattachement"
+      },
+      "filters": {
+        "search": "Rechercher par nom, numéro WhatsApp ou référence",
+        "stage": "Étape",
+        "country": "Pays",
+        "university": "Université",
+        "assigned": "Attribué à",
+        "any": "Tous",
+        "me": "Moi",
+        "nobody": "Personne",
+        "apply": "Appliquer les filtres",
+        "clear": "Effacer les filtres"
+      },
+      "columns": {
+        "ref": "Référence",
+        "name": "Nom",
+        "country": "Pays",
+        "stage": "Étape",
+        "assigned": "Attribué à",
+        "sla": "Réponse",
+        "received": "Reçu"
+      },
+      "sla": {
+        "met": "Respecté",
+        "overdue": "En retard depuis {time}",
+        "due": "Avant {time}"
+      },
+      "empty": "Aucun dossier ne correspond.",
+      "emptyOverdue": "Rien n’est en retard.",
+      "loadMore": "Afficher plus",
+      "erasedName": "Effacé",
+      "formerAdmin": "Ancien administrateur",
+      "unassignedValue": "Non attribué",
+      "errorFilters": "Vérifiez les filtres.",
+      "duplicates": {
+        "title": "Doublons possibles",
+        "intro": "Des dossiers avec le même numéro WhatsApp. Rien n’est fusionné sans votre décision.",
+        "empty": "Aucun doublon possible.",
+        "compare": "Comparer",
+        "compareTitle": "Comparer deux dossiers",
+        "sameNumber": "Ces deux dossiers ont le même numéro WhatsApp.",
+        "mergeInto": "Fusionner dans {ref}",
+        "notDuplicate": "Ce n’est pas un doublon",
+        "errors": {
+          "network": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "stale": "Quelqu’un a déjà tranché pour ces deux dossiers. Rechargez la page.",
+          "generic": "Une erreur est survenue. Réessayez."
+        }
+      }
+    },
+    "lead": {
+      "back": "Tous les dossiers",
+      "notFound": "Ce dossier n’existe pas.",
+      "erasedName": "Effacé",
+      "erasedBanner": "Les données personnelles de ce dossier ont été effacées. Son historique et les totaux restent.",
+      "mergedInto": "Ce dossier a été fusionné dans {ref}.",
+      "openMerged": "L’ouvrir",
+      "assignedTo": "Attribué à {name}",
+      "unassigned": "Non attribué",
+      "formerAdmin": "Ancien administrateur",
+      "system": "Le système",
+      "saving": "Enregistrement…",
+      "reload": "Recharger",
+      "pendingClaims": "{count, plural, one {# demande de rattachement d’étudiant est en attente} other {# demandes de rattachement d’étudiants sont en attente}}",
+      "profile": {
+        "title": "Profil",
+        "whatsapp": "WhatsApp",
+        "email": "E-mail",
+        "intake": "Formulaire",
+        "intakeKinds": {
+          "full": "Candidature complète",
+          "quick": "Demande rapide par WhatsApp"
+        },
+        "qualification": "Diplôme",
+        "qualifications": {
+          "olevel_alevel": "O-level et A-level",
+          "grade10_11": "Grade 10 et 11 (ou équivalent)"
+        },
+        "source": "Demandé depuis",
+        "account": "Compte étudiant",
+        "accountLinked": "Rattaché",
+        "accountNone": "Non rattaché",
+        "received": "Reçu",
+        "firstReply": "Première réponse",
+        "noReply": "Pas encore de réponse"
+      },
+      "results": {
+        "title": "Résultats",
+        "none": "Aucun résultat envoyé."
+      },
+      "prefs": {
+        "title": "Programmes choisis",
+        "none": "Aucun programme choisi."
+      },
+      "notes": {
+        "title": "Notes",
+        "label": "Ajouter une note",
+        "add": "Ajouter la note",
+        "erased": "Effacée"
+      },
+      "timeline": {
+        "title": "Historique",
+        "empty": "Rien pour le moment."
+      },
+      "events": {
+        "created": "Dossier créé",
+        "note": "Note ajoutée par {who}",
+        "stage_changed": "{who} a fait passer le dossier de {from} à {to}",
+        "reply_logged": "Réponse enregistrée par {who}",
+        "replyFirst": "Première réponse enregistrée par {who}",
+        "assigned": "{who} a attribué le dossier à {to}",
+        "unassigned": "{who} a remis le dossier parmi les non attribués",
+        "admin_wa_opened": "{who} a ouvert WhatsApp",
+        "claimed": "{who} a rattaché le dossier à un compte étudiant (vérifié : {method})",
+        "merged": "{who} a fusionné deux dossiers",
+        "duplicate_dismissed": "{who} a indiqué que deux dossiers ne sont pas des doublons",
+        "anonymised": "{who} a effacé les données personnelles"
+      },
+      "methods": {
+        "email_match": "l’e-mail correspond",
+        "whatsapp_confirmed": "réponse sur WhatsApp"
+      },
+      "actions": {
+        "logReply": "Enregistrer la réponse",
+        "whatsapp": "Écrire sur WhatsApp",
+        "changeStage": "Changer d’étape",
+        "assign": "Attribuer",
+        "erase": "Effacer les données personnelles"
+      },
+      "chip": {
+        "question": "L’avez-vous envoyé ?",
+        "yes": "Enregistrer la réponse",
+        "no": "Pas encore"
+      },
+      "stage": {
+        "title": "Changer d’étape",
+        "confirm": "Passer à {stage} ?",
+        "move": "Passer"
+      },
+      "assign": {
+        "title": "Attribuer ce dossier",
+        "me": "Me l’attribuer",
+        "unassign": "Remettre parmi les non attribués"
+      },
+      "drawer": {
+        "title": "Écrire sur WhatsApp",
+        "help": "Modifiez le message si vous le souhaitez, puis ouvrez WhatsApp. Il s’ouvre sur le numéro de l’étudiant.",
+        "message": "Message",
+        "open": "Ouvrir WhatsApp",
+        "noNumber": "Aucun numéro enregistré."
+      },
+      "templates": {
+        "default": "Bonjour {name}, c’est Scollarly au sujet de votre dossier {ref}.",
+        "share_results": "Bonjour {name}, c’est Scollarly. Merci pour votre demande {ref}. Pouvez-vous nous envoyer vos résultats (O-level et A-level, ou Grade 10 et 11) pour que nous vous proposions des programmes à {university} ?",
+        "choose_course": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Voici des programmes qui correspondent à vos résultats. Lesquels souhaitez-vous que nous demandions ?",
+        "offer_letter": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Nous faisons le point sur votre lettre d’offre. Avez-vous besoin de quelque chose de notre part ?",
+        "confirm_admission": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Merci de confirmer que vous acceptez votre admission afin que nous continuions.",
+        "visa": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Préparons vos documents de visa. Lesquels avez-vous déjà ?",
+        "arrived": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Nous espérons que vous êtes bien arrivé. Comment se passe votre installation ?"
+      },
+      "duplicate": {
+        "banner": "Doublon possible : {ref}"
+      },
+      "erase": {
+        "title": "Effacer les données personnelles",
+        "warning": "Cela supprime le nom, le numéro WhatsApp, l’e-mail et les résultats de l’étudiant, et remplace le texte des notes. C’est irréversible. Les totaux et les paiements restent.",
+        "identity": "J’ai vérifié l’identité de l’étudiant",
+        "confirm": "Effacer"
+      },
+      "errors": {
+        "network": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+        "stale": "Ce dossier a changé. Rechargez.",
+        "unavailable": "Ce dossier a été effacé ou fusionné et ne peut plus être modifié.",
+        "notFound": "Ce dossier n’existe pas.",
+        "forbidden": "Vous n’avez pas le droit de faire cela.",
+        "generic": "Une erreur est survenue. Réessayez."
+      }
+    },
+    "linkRequests": {
+      "title": "Demandes de rattachement",
+      "intro": "Des étudiants demandent à rattacher leur compte à une candidature. Rien n’est rattaché sans votre accord.",
+      "back": "Tous les dossiers",
+      "empty": "Aucune demande de rattachement en attente.",
+      "unknownStudent": "Un étudiant",
+      "emailNotVerified": "E-mail non vérifié",
+      "erased": "Effacé",
+      "asked": "A cherché une candidature par {method} :",
+      "methods": {
+        "ref": "référence",
+        "number": "numéro WhatsApp",
+        "auto": "connexion"
+      },
+      "emailMatches": "L’e-mail vérifié du compte correspond à celui du dossier.",
+      "linkedToOther": "Ce dossier appartient déjà à un autre compte.",
+      "approve": "Approuver",
+      "reject": "Refuser",
+      "approveTitle": "Approuver la demande",
+      "rejectTitle": "Refuser la demande",
+      "howVerified": "Comment avez-vous vérifié qu’il s’agit de la même personne ?",
+      "verification": {
+        "email_match": "L’e-mail correspond à celui du dossier",
+        "whatsapp_confirmed": "L’étudiant a répondu sur WhatsApp depuis le numéro enregistré"
+      },
+      "reason": "Motif (l’étudiant saura que nous n’avons pas pu faire la correspondance)",
+      "errors": {
+        "network": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+        "generic": "Une erreur est survenue. Réessayez.",
+        "REQUIRED": "Indiquez comment vous avez vérifié l’étudiant.",
+        "EMAIL_MISMATCH": "L’e-mail vérifié de l’étudiant ne correspond pas à celui du dossier. Choisissez la vérification par WhatsApp, ou refusez.",
+        "NOT_PENDING": "Quelqu’un a déjà tranché cette demande. Rechargez la page.",
+        "UNAVAILABLE": "Ce dossier a été effacé ou fusionné et ne peut pas être rattaché.",
+        "ALREADY_LINKED": "Ce dossier appartient déjà à un autre compte."
+      }
+    },
+    "dataRequests": {
+      "title": "Demandes de données",
+      "intro": "Des étudiants demandent une copie de leurs données ou leur effacement. Enregistrez ici une demande faite sur WhatsApp.",
+      "log": "Enregistrer une demande",
+      "logTitle": "Enregistrer une demande de données",
+      "show": "Afficher",
+      "scopeOpen": "Demandes ouvertes",
+      "scopeAll": "Toutes les demandes",
+      "empty": "Aucune demande.",
+      "account": "Compte étudiant",
+      "alreadyErased": "déjà effacé",
+      "doneBy": "clôturée par {name}, {time}",
+      "someone": "quelqu’un",
+      "kinds": {
+        "export": "Export des données",
+        "erasure": "Effacement"
+      },
+      "channels": {
+        "portal": "Espace étudiant",
+        "whatsapp": "WhatsApp",
+        "other": "Autre"
+      },
+      "statuses": {
+        "open": "Ouverte",
+        "done": "Faite",
+        "rejected": "Refusée"
+      },
+      "form": {
+        "kind": "Type de demande",
+        "channel": "D’où vient la demande",
+        "ref": "Référence du dossier (SC-XXXXX-XXXXX)",
+        "submit": "Enregistrer la demande"
+      },
+      "runErasure": "Effacer {ref}",
+      "markDone": "Marquer comme faite",
+      "eraseTitle": "Lancer l’effacement",
+      "eraseWarning": "Cela efface les données personnelles de {ref} (et de tout dossier fusionné dans celui-ci). C’est irréversible. Les totaux et les paiements restent.",
+      "identity": "J’ai vérifié l’identité de l’étudiant",
+      "eraseConfirm": "Effacer",
+      "errors": {
+        "network": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+        "generic": "Une erreur est survenue. Réessayez.",
+        "conflict": "Cette demande a changé. Rechargez la page.",
+        "INVALID": "Une référence ressemble à SC-XXXXX-XXXXX.",
+        "NOT_FOUND": "Aucun dossier n’a cette référence.",
+        "ALREADY_ERASED": "Ce dossier a déjà été effacé.",
+        "ERASE_FIRST": "Lancez d’abord l’effacement : il clôture la demande.",
+        "MISMATCH": "Cette demande n’est pas une demande d’effacement ouverte pour ce dossier. Rechargez la page.",
+        "REQUIRED": "Confirmez d’abord l’identité de l’étudiant."
+      }
     }
   },
   "site": {

@@ -92,7 +92,7 @@ describe("the permission helpers", () => {
     // First cell of each operation row: "leads.changeStage", "content.save, publish, ... (per entity)", "student.a, student.b".
     const named = section
       .split(/\r?\n/)
-      .map((line) => /^\|\s*([a-z]+\.[^|]+?)\s*\|/.exec(line)?.[1])
+      .map((line) => /^\|\s*([a-zA-Z]+\.[^|]+?)\s*\|/.exec(line)?.[1])
       .filter((cell): cell is string => cell !== undefined)
       .flatMap((cell) => {
         const area = cell.split(".")[0] ?? "";

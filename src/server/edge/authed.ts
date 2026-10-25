@@ -30,6 +30,18 @@ const SHELL_PATH = /^\/(?:en\/)?(admin|me|two-factor)(?:\/.*)?$/;
 const API_PATH = /^\/api\/v1\/(admin|me|auth)\/([a-z0-9-]+)$/;
 const SHELL_AREA: Record<string, Area> = { admin: "admin", me: "me", "two-factor": "auth" };
 
+/**
+ * A screen for one record (`/admin/leads/<id>`) is still one shell: it has no data in it, and the screen reads the id from the
+ * address. So every id shares one cached copy, kept under a fixed placeholder path, instead of one prerender per lead.
+ */
+const RECORD_SHELL = /^(\/(?:en\/)?admin\/leads)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/?$/i;
+export const RECORD_SHELL_PLACEHOLDER = "_";
+
+export function canonicalShellPath(pathname: string): string {
+  const match = RECORD_SHELL.exec(pathname);
+  return match ? `${match[1]}/${RECORD_SHELL_PLACEHOLDER}` : pathname;
+}
+
 export type AuthedRoute = { kind: "shell"; area: Area } | { kind: "api"; area: Area; name: string };
 
 /** Plain HTML navigations only. Next.js client-side (RSC) requests, other methods and unknown paths are not handled here. */
@@ -101,7 +113,9 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
   }
 }
 
-async function serveShell(request: Request, url: URL, deps: AuthedDeps): Promise<Response> {
+async function serveShell(request: Request, original: URL, deps: AuthedDeps): Promise<Response> {
+  const url = new URL(original);
+  url.pathname = canonicalShellPath(original.pathname);
   const key = new Request(`${url.origin}${url.pathname.replace(/\/+$/, "") || "/"}`);
   const hit = await deps.cache.match(key);
   if (hit) return privateCopy(hit);

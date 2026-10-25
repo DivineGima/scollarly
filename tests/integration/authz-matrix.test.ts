@@ -5,6 +5,9 @@ import { type Actor, AuthError, STEP_UP_WINDOW_MS } from "@/server/auth/actor";
 import { createAuthFacade, type AuthFacade } from "@/server/auth/facade";
 import { resolveSession, setRoleQuery } from "@/server/repositories/identity";
 import { listLeads } from "@/server/repositories/leads";
+import { decideClaim } from "@/server/repositories/claims";
+import { completeDataRequest, logDataRequest } from "@/server/repositories/data-requests";
+import { addNote, assignLead, changeStage, eraseLead, logAdminWhatsAppOpen, logReply, resolveDuplicate } from "@/server/repositories/lead-admin";
 import { runAs } from "@/server/repositories/as-actor";
 import { updateSetting } from "@/server/repositories/settings";
 import { createInvite, removeAdmin, revokeInvite } from "@/server/repositories/team";
@@ -90,8 +93,10 @@ beforeAll(async () => {
   );
 
   // Two leads, neither linked to the student, so "views all leads" is visible as a count.
-  await leadRow(t);
-  await leadRow(t);
+  ids.lead = await leadRow(t);
+  ids.lead2 = await leadRow(t);
+  const [leadRef] = (await t.run(`select ref from lead where id = ${q(ids.lead)}`)) as { ref: string }[];
+  ids.leadRef = leadRef?.ref ?? "";
 });
 
 afterAll(async () => {
@@ -176,6 +181,60 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
         return rows.length === 1;
       },
     ),
+
+  // Stage 5 (S5.2 to S5.5). The facade is the first lock (an admin, or an owner after 2FA); the lead policies and the database
+  // functions (which check for staff themselves) are the second. As above, an attempt counts as done when the call returns.
+  "leads.changeStage": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await changeStage(t.db, actor, { leadId: ids.lead ?? "", stage: "choose_course", version: "2000-01-01T00:00:00.000000Z" });
+      return true;
+    }),
+  "leads.assign": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await assignLead(t.db, actor, { leadId: ids.lead ?? "", adminId: null, version: "2000-01-01T00:00:00.000000Z" });
+      return true;
+    }),
+  "leads.addNote": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await addNote(t.db, actor, { leadId: ids.lead2 ?? "", body: "matrix" });
+      return true;
+    }),
+  "leads.logReply": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await logReply(t.db, actor, ids.lead2 ?? "");
+      return true;
+    }),
+  "leads.logAdminWhatsAppOpen": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await logAdminWhatsAppOpen(t.db, actor, ids.lead2 ?? "");
+      return true;
+    }),
+  "leads.resolveDuplicate": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await resolveDuplicate(t.db, actor, ids.lead ?? "", uuidv7(), "not_duplicate");
+      return true;
+    }),
+  "leads.decideClaim": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await decideClaim(t.db, actor, uuidv7(), { decision: "reject", reason: "matrix" });
+      return true;
+    }),
+  "leads.eraseLead": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      // Identity not confirmed: the function runs its staff check and then refuses, so no lead is erased by the harness.
+      await eraseLead(t.db, actor, { leadId: ids.lead ?? "", identityConfirmed: false });
+      return true;
+    }),
+  "dataRequests.log": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await logDataRequest(t.db, actor, { kind: "export", channel: "whatsapp", leadRef: ids.leadRef ?? "" });
+      return true;
+    }),
+  "dataRequests.complete": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await completeDataRequest(t.db, actor, uuidv7());
+      return true;
+    }),
 };
 
 /** Operations of architecture 8.3 whose endpoint is built by a later stage. */

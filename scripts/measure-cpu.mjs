@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,lead,media,media-miss,rls,storage").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead,media,media-miss,rls,storage").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -43,7 +43,8 @@ if (!base || !token) {
 
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
+// Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -85,7 +86,7 @@ async function call(path, init = {}) {
 
 const probeHeaders = { "x-phase0-token": token };
 
-async function scenario(name, key, fn, count = samples, delayMs = 150) {
+async function scenario(name, key, fn, count = samples, delayMs = 150, matchBy = null) {
   if (!only.has(key)) return null;
   const marker = `m=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const statuses = [];
@@ -97,7 +98,15 @@ async function scenario(name, key, fn, count = samples, delayMs = 150) {
     await sleep(delayMs);
   }
   await sleep(3000); // let the tail deliver the last events
-  const mine = events.filter((e) => urlOf(e).includes(marker)).sort((a, b) => a.eventTimestamp - b.eventTimestamp);
+  const decoded = (e) => {
+    try {
+      return decodeURIComponent(urlOf(e));
+    } catch {
+      return urlOf(e);
+    }
+  };
+  const found = (e) => (typeof matchBy === "function" ? matchBy(decoded(e)) : matchBy ? decoded(e).includes(matchBy) : decoded(e).includes(marker));
+  const mine = events.filter(found).sort((a, b) => a.eventTimestamp - b.eventTimestamp);
   const cpus = mine.map(cpuOf).filter((v) => v !== null);
   const stats = cpuStats(cpus, warmup);
   const exceeded = mine.filter((e) => /exceeded/i.test(e.outcome ?? "")).length;
@@ -136,6 +145,39 @@ try {
     const as = (who) => ({ headers: { cookie: cookieOf(who) } });
     rows.push(await scenario("Staff screen, shell: session query, then the cached page", "admin-shell", (m) => call(`/admin/phase0?${m}`, as("admin"))));
     rows.push(await scenario("Staff screen, data: session query, then one query under row level security", "admin-data", (m) => call(`/api/v1/admin/phase0?${m}`, as("admin"))));
+    // The lead screens (S5.1 to S5.3). Each is a data call: the session query, then the queries under row level security.
+    const staff = as("admin");
+    rows.push(await scenario("Staff Overview counts: one COUNT(*) FILTER statement and the funnel", "overview", (m) => call(`/api/v1/admin/overview?${m}`, staff)));
+    // The list's query is strict (no marker can travel in it), so its events are found by the exact address.
+    rows.push(
+      await scenario("Staff leads list: the newest 51, the stage names, universities and the team", "leads-list", () => call("/api/v1/admin/leads", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/leads")),
+    );
+    // A probe lead for the detail read and the write: only probe leads are written to (the cleanup step removes their rows).
+    let probeLeadId = "";
+    try {
+      const listed = await fetch(`${base}/api/v1/admin/leads?q=Probe`, { headers: staff.headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      const body = listed.ok ? await listed.json() : { leads: [] };
+      probeLeadId = body.leads.find((l) => /Probe/.test(l.name ?? ""))?.id ?? "";
+    } catch {
+      probeLeadId = "";
+    }
+    if (probeLeadId) {
+      const detailPath = `/api/v1/admin/lead?id=${probeLeadId}`;
+      rows.push(await scenario("Staff lead detail: lead, programmes, timeline, notes, team, duplicates", "lead-detail", () => call(detailPath, staff), samples, 150, detailPath));
+      const writePath = "/api/v1/admin/leads.logAdminWhatsAppOpen";
+      rows.push(
+        await scenario(
+          "Staff write: log a WhatsApp open (one insert under row level security)",
+          "lead-write",
+          () => call(writePath, { method: "POST", headers: { ...staff.headers, origin: base, "content-type": "application/json" }, body: JSON.stringify({ leadId: probeLeadId }) }),
+          samples,
+          150,
+          writePath,
+        ),
+      );
+    } else if ([...only].some((k) => k === "lead-detail" || k === "lead-write")) {
+      console.error("No probe lead found: the lead detail and write scenarios were skipped.");
+    }
     rows.push(await scenario("Student screen, shell: session query, then the cached page", "student-shell", (m) => call(`/me/phase0?${m}`, as("student"))));
     rows.push(await scenario("Student screen, data: session query, then one query under row level security", "student-data", (m) => call(`/api/v1/me/phase0?${m}`, as("student"))));
   } else if ([...only].some((k) => /^(admin|student)-/.test(k))) {

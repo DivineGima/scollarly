@@ -25,18 +25,25 @@ export function useAdminSession(): AdminSession {
 
 interface NavItem {
   href: string;
-  label: "overview" | "profile" | "team" | "audit" | "security";
+  label: "overview" | "leads" | "dataRequests" | "profile" | "team" | "audit" | "security";
   ownerOnly?: boolean;
 }
 
 /** Every screen a stage adds is one line here. The menu follows the role (B-part intro, C-part intro of architecture 16). */
 const NAV: readonly NavItem[] = [
   { href: "/admin", label: "overview" },
+  { href: "/admin/leads", label: "leads" },
+  { href: "/admin/data-requests", label: "dataRequests" },
   { href: "/admin/profile", label: "profile" },
   { href: "/admin/team", label: "team", ownerOnly: true },
   { href: "/admin/audit", label: "audit", ownerOnly: true },
   { href: "/admin/security", label: "security", ownerOnly: true },
 ];
+
+/** A screen inside a section (a lead, the link requests) keeps its section's menu item lit; the Overview is only itself. */
+function isCurrent(path: string, href: string): boolean {
+  return href === "/admin" ? path === href : path === href || path.startsWith(`${href}/`);
+}
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(true);
@@ -88,8 +95,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 {/* Full page loads on purpose: each screen is a cached shell plus a data call (ADR-040). */}
                 <a
                   href={item.href}
-                  aria-current={path === item.href ? "page" : undefined}
-                  className={cn("inline-flex min-h-11 items-center rounded-md px-3 font-semibold hover:bg-surface", path === item.href && "bg-surface")}
+                  aria-current={isCurrent(path, item.href) ? "page" : undefined}
+                  className={cn("inline-flex min-h-11 items-center rounded-md px-3 font-semibold hover:bg-surface", isCurrent(path, item.href) && "bg-surface")}
                 >
                   {t(`nav.${item.label}`)}
                 </a>
