@@ -166,6 +166,27 @@ try {
     rows.push(
       await scenario("Staff leads list: the newest 51, the stage names, universities and the team", "leads-list", () => call("/api/v1/admin/leads", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/leads")),
     );
+    const seedLead = async (overrides = {}) => {
+      const body = probeLead({ name: "Measure Probe", ...overrides });
+      try {
+        const created = await fetch(base + "/api/v1/leads", {
+          method: "POST",
+          headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID(), ...measurementHeaders },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        await sleep(leadIntervalMs);
+        if (created.status !== 201) return null;
+        const { ref } = await created.json();
+        const listed = await fetch(`${base}/api/v1/admin/leads?q=${encodeURIComponent(ref)}`, { headers: staff.headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        const id = listed.ok ? ((await listed.json()).leads?.[0]?.id ?? "") : "";
+        return id ? { ref, id } : null;
+      } catch {
+        return null;
+      }
+    };
+    const staffWrite = (path, payload) => call(path, { method: "POST", headers: { ...staff.headers, origin: base, "content-type": "application/json" }, body: JSON.stringify(payload) });
+
     // A probe lead for the detail read and the write: only probe leads are written to (the cleanup step removes their rows).
     let probeLeadId = "";
     try {
@@ -175,6 +196,9 @@ try {
     } catch {
       probeLeadId = "";
     }
+    // The cleanup step removes every measurement lead at the end of a run, so none is left for this one: make one (the deploy of
+    // 2026-10-26 skipped both scenarios for that reason).
+    if (!probeLeadId && (only.has("lead-detail") || only.has("lead-write"))) probeLeadId = (await seedLead())?.id ?? "";
     if (probeLeadId) {
       const detailPath = `/api/v1/admin/lead?id=${probeLeadId}`;
       rows.push(await scenario("Staff lead detail: lead, programmes, timeline, notes, team, duplicates", "lead-detail", () => call(detailPath, staff), samples, 150, (url) => /\/api\/v1\/admin\/lead(\?|$)/.test(url)));
@@ -196,27 +220,6 @@ try {
     // step): a merge uses up a pair and an erasure uses up a lead, so they are made first. The lead endpoint allows five a minute per caller.
     const wantsSeeded = ["events", "lead-merge", "lead-erase"].some((k) => only.has(k));
     if (wantsSeeded) {
-      const seedLead = async (overrides = {}) => {
-        const body = probeLead({ name: "Measure Probe", ...overrides });
-        try {
-          const created = await fetch(base + "/api/v1/leads", {
-            method: "POST",
-            headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID(), ...measurementHeaders },
-            body: JSON.stringify(body),
-            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-          });
-          await sleep(leadIntervalMs);
-          if (created.status !== 201) return null;
-          const { ref } = await created.json();
-          const listed = await fetch(`${base}/api/v1/admin/leads?q=${encodeURIComponent(ref)}`, { headers: staff.headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-          const id = listed.ok ? ((await listed.json()).leads?.[0]?.id ?? "") : "";
-          return id ? { ref, id } : null;
-        } catch {
-          return null;
-        }
-      };
-      const staffWrite = (path, payload) => call(path, { method: "POST", headers: { ...staff.headers, origin: base, "content-type": "application/json" }, body: JSON.stringify(payload) });
-
       // S4.5: a batch with a WhatsApp tap on a real lead reference (the heaviest case: one insert) and two counted events.
       if (only.has("events")) {
         const tapLead = await seedLead();
