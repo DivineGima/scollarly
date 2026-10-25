@@ -9,8 +9,6 @@
  * The cleanup also removes the leads the CPU measurement created. The Worker stamps `source.measurement = true` on a lead only when
  * the request carried the measurement secret (src/server/security/measurement.ts), so a visitor cannot make a lead match. They
  * are test rows made by this workflow, not business data, so removing them does not touch the no-physical-delete rule for real leads.
- * LEGACY: leads made by runs before 2026-10-26 were tagged `source.page = '/__probe'` (a visitor could send that); rows received before
- * LEGACY_CUTOFF with that tag are removed once more. Drop the legacy clause after the first clean deploy.
  *
  * Environment: DATABASE_URL = the OWNER direct connection (it writes to Neon Auth's own tables, which the runtime role cannot).
  * Probe users use the reserved `.invalid` domain, sessions last two hours, and tokens are random and never printed.
@@ -24,7 +22,6 @@ if (!process.env.DATABASE_URL) {
   console.error("DATABASE_URL (owner, direct) is required.");
   process.exit(1);
 }
-const LEGACY_CUTOFF = "2026-10-27T00:00:00Z";
 const EMAIL_PATTERN = "s010-probe-%@scollarly.invalid";
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
@@ -40,7 +37,7 @@ async function cleanup() {
       await client.query(`delete from neon_auth."user" where id::text = any($1)`, [ids]);
     }
     // Probe leads, children first. Only rows whose source page is the probe marker.
-    const isProbeLead = `(source ->> 'measurement' = 'true' or (source ->> 'page' = '/__probe' and received_at < '${LEGACY_CUTOFF}'))`;
+    const isProbeLead = "(source ->> 'measurement' = 'true')";
     const probeLeads = `select id from public.lead where ${isProbeLead}`;
     // Every table with a foreign key to lead (the merge and erase measurements leave duplicate decisions, notes and an `anonymised` activity).
     await client.query(`delete from public.lead_duplicate_decision where lead_a_id in (${probeLeads}) or lead_b_id in (${probeLeads})`);
