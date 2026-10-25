@@ -5,10 +5,12 @@ import { effectiveRole, isRole } from "@/server/auth/actor";
 import { createAuthFacade } from "@/server/auth/facade";
 import { createSecondFactor } from "@/server/auth/second-factor";
 import { ANONYMOUS, contextOf, inContext, type RlsContext } from "@/server/db/rls";
+import { uuidv7 } from "@/lib/uuid";
+import { createLead } from "@/modules/leads/service";
+import { insertLead } from "@/server/repositories/leads";
 import { insertMediaAssetQuery } from "@/server/repositories/media";
-import { adminOverviewQuery, ownRowQuery, readPhase0TitleQuery, rlsProbe, writePhase0TitleQuery } from "@/server/repositories/phase0-probe";
+import { adminOverviewQuery, ownRowQuery, rlsProbe } from "@/server/repositories/phase0-probe";
 import { bootstrapOwner, resolveSession, setRoleQuery } from "@/server/repositories/identity";
-import { insertStubLead } from "@/server/repositories/phase0-leads";
 import { createSecondFactorStore } from "@/server/repositories/second-factor";
 import { createTestDb, type SignedInUser, type TestDb } from "./helpers/db";
 
@@ -215,24 +217,49 @@ describe("row level security: a second lock under the facade", () => {
     });
   });
 
-  it("lets anyone read public content but only staff publish it", async () => {
+  it("starts the failure count again once a lockout has expired (real SQL)", async () => {
+    const a = await t.signIn();
     await asRuntime(async () => {
-      await expect(inContext(t.db, ANONYMOUS, writePhase0TitleQuery(t.db, "defaced"))).rejects.toThrow();
-      await expect(inContext(t.db, { userId: "x", role: "student" }, writePhase0TitleQuery(t.db, "defaced"))).rejects.toThrow();
-      await inContext(t.db, { userId: "x", role: "admin" }, writePhase0TitleQuery(t.db, "Published"));
-      const [anon] = await inContext(t.db, ANONYMOUS, readPhase0TitleQuery(t.db));
-      expect(anon[0]?.value).toBe("Published");
+      await resolveSession(t.db, a.token);
+      const store = createSecondFactorStore(t.db, asUser(a));
+      await store.saveUnconfirmed(a.userId, "v1.secret.a");
+      const t0 = new Date("2026-10-21T12:00:00Z");
+      const lock = new Date(t0.getTime() + 15 * 60_000);
+      expect(await store.recordFailure(a.userId, 2, lock, t0)).toMatchObject({ failedCount: 1, lockedUntil: null });
+      expect(await store.recordFailure(a.userId, 2, lock, t0)).toMatchObject({ failedCount: 2, lockedUntil: lock });
+      const later = new Date(lock.getTime() + 1000);
+      expect(await store.recordFailure(a.userId, 2, new Date(later.getTime() + 15 * 60_000), later)).toMatchObject({ failedCount: 1, lockedUntil: null });
     });
   });
 
-  it("lets anyone submit a lead through the function, but only staff read leads", async () => {
-    const key = randomUUID();
-    const row = { id: randomUUID(), idempotencyKey: key, payloadHash: "h1", name: "Amina", whatsappE164: "+237651232301", countryCode: "CM" };
+  it("lets only staff count leads (the stub admin data call)", async () => {
     await asRuntime(async () => {
-      expect(await insertStubLead(t.db, row)).toEqual({ kind: "created", id: row.id });
-      expect(await insertStubLead(t.db, { ...row, id: randomUUID() })).toEqual({ kind: "replayed", id: row.id });
-      expect(await insertStubLead(t.db, { ...row, id: randomUUID(), payloadHash: "h2" })).toEqual({ kind: "key_reused" });
-      await expect(t.run(`insert into phase0_lead_stub (id, idempotency_key, payload_hash, name, whatsapp_e164, country_code) values ('${randomUUID()}', '${randomUUID()}', 'x', 'x', '+1', 'CM')`)).rejects.toThrow(/permission denied/);
+      const created = await createLead(
+        {
+          insert: (row) => insertLead(t.db, row),
+          verifyTurnstile: async () => "ok",
+          limit: async () => ({ allowed: true, remaining: 9, retryAfterSeconds: 0 }),
+          slaSettings: async () => ({ weekdayHours: 4, weekendHours: 24 }),
+          now: () => new Date("2026-10-21T12:00:00Z"),
+          newId: () => uuidv7(),
+        },
+        {
+          idempotencyKey: randomUUID(),
+          body: {
+            intake_kind: "quick",
+            name: "Amina",
+            whatsapp: "651232301",
+            country_code: "CM",
+            source: { university_id: randomUUID() },
+            locale: "en",
+            client_ref: "SC-7K3M9-Q2W4X",
+            client_created_at: "2026-10-21T11:59:00Z",
+            consent: { notice_version: "draft-1" },
+            turnstile_token: "tok",
+          },
+        },
+      );
+      expect(created).toMatchObject({ ok: true, status: 201 });
       const [anon] = await inContext(t.db, ANONYMOUS, adminOverviewQuery(t.db));
       expect(anon[0]?.n).toBe(0);
       const [staff] = await inContext(t.db, { userId: "s", role: "admin" }, adminOverviewQuery(t.db));

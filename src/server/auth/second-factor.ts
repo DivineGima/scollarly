@@ -34,8 +34,11 @@ export interface SecondFactorStore {
   saveUnconfirmed(userId: string, secretEncrypted: string): Promise<boolean>;
   /** Atomically accepts a step only if it is newer than the last used one. Marks the secret confirmed. Resets failures. */
   acceptStep(userId: string, step: number): Promise<boolean>;
-  /** Atomically adds one failure and locks until `lockUntil` once `max` is reached. Returns the new state. */
-  recordFailure(userId: string, max: number, lockUntil: Date): Promise<{ failedCount: number; lockedUntil: Date | null }>;
+  /**
+   * Atomically adds one failure and locks until `lockUntil` once `max` is reached. Returns the new state. A lock that has already
+   * expired at `at` starts the count again from this failure, so the owner gets a full set of attempts after each lockout.
+   */
+  recordFailure(userId: string, max: number, lockUntil: Date, at: Date): Promise<{ failedCount: number; lockedUntil: Date | null }>;
   replaceRecoveryCodes(userId: string, hashes: string[]): Promise<void>;
   /** Atomically marks one unused code as used. Returns false when no unused code with this hash exists. */
   consumeRecoveryCode(userId: string, hash: string): Promise<boolean>;
@@ -77,7 +80,8 @@ export function createSecondFactor(deps: SecondFactorDeps) {
   }
 
   async function failed(userId: string): Promise<"invalid" | "locked"> {
-    const result = await store.recordFailure(userId, MAX_FAILED_ATTEMPTS, new Date(now().getTime() + LOCKOUT_MS));
+    const at = now();
+    const result = await store.recordFailure(userId, MAX_FAILED_ATTEMPTS, new Date(at.getTime() + LOCKOUT_MS), at);
     return result.lockedUntil && result.lockedUntil > now() ? "locked" : "invalid";
   }
 

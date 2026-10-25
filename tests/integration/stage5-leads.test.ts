@@ -11,8 +11,6 @@ import {
   assignLead,
   changeStage,
   eraseLead,
-  findStageTemplate,
-  getLeadDetail,
   getLeadScreen,
   getOverviewCounts,
   listDuplicatePairs,
@@ -219,7 +217,7 @@ describe("S5.2 and S5.6 changes, activity and versions", () => {
     expect(second).toMatchObject({ kind: "ok", first: false });
     expect(new Date(String(await stampedAt())).getTime()).toBe(new Date(String(stamped)).getTime());
     expect(await count(`select count(*) as n from lead_activity where lead_id = ${q(id)} and type = 'reply_logged'`)).toBe(2);
-    const detail = await asRuntime(() => getLeadDetail(t.db, admin, id));
+    const detail = await asRuntime(() => getLeadScreen(t.db, admin, id));
     expect(detail && slaStatus(detail.lead, new Date())).toBe("met");
   });
 
@@ -231,21 +229,18 @@ describe("S5.2 and S5.6 changes, activity and versions", () => {
   });
 
   it("the detail read joins programmes, activity and notes, newest activity first", async () => {
-    const detail = await asRuntime(() => getLeadDetail(t.db, admin, id));
+    const detail = await asRuntime(() => getLeadScreen(t.db, admin, id));
     expect(detail?.activities[0]?.createdAt.getTime()).toBeGreaterThanOrEqual(detail?.activities[1]?.createdAt.getTime() ?? 0);
     expect(detail?.notes).toHaveLength(1);
     expect(detail?.lead.version).toBe(await versionOf(id));
-    expect(await asRuntime(() => getLeadDetail(t.db, admin, uuidv7()))).toBeNull();
+    expect(await asRuntime(() => getLeadScreen(t.db, admin, uuidv7()))).toBeNull();
   });
 
-  it("the lead screen in one round trip returns what the separate reads return, and null for a lead that does not exist", async () => {
+  it("the lead screen in one round trip also carries the stages, team and duplicates, and is null for a lead that does not exist", async () => {
     const screen = await asRuntime(() => getLeadScreen(t.db, admin, id));
-    const detail = await asRuntime(() => getLeadDetail(t.db, admin, id));
     expect(screen).not.toBeNull();
-    expect(screen && { ...screen, stages: undefined, team: undefined, template: undefined, duplicates: undefined }).toEqual({ ...detail, stages: undefined, team: undefined, template: undefined, duplicates: undefined });
     expect(screen?.stages).toEqual(await asRuntime(() => listStageNames(t.db, admin)));
     expect(screen?.team).toEqual(await asRuntime(() => listTeam(t.db, admin)));
-    expect(screen?.template).toEqual(await asRuntime(() => findStageTemplate(t.db, admin, screen?.lead.stageCode ?? "", screen?.lead.locale ?? "")));
     expect(screen?.duplicates).toEqual(await asRuntime(() => listDuplicatePairs(t.db, admin, { leadId: id, limit: 5 })));
     expect(await asRuntime(() => getLeadScreen(t.db, admin, uuidv7()))).toBeNull();
     // A student is refused by row level security: no lead row, so no screen.

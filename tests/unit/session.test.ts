@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NEON_AUTH_SESSION_COOKIE_NAME } from "@neondatabase/auth/server";
-import { readSessionToken, SESSION_COOKIE_NAME } from "@/server/auth/session";
+import { isAllowedAuthRoute, readSessionToken, SESSION_COOKIE_NAME } from "@/server/auth/session";
 
 const COOKIE = "__Secure-neon-auth.session_token";
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345"; // 32 characters, the shape Better Auth issues
@@ -51,5 +51,27 @@ describe("readSessionToken: the opaque Neon Auth session token from the cookie",
 describe("the cookie name", () => {
   it("is the one the Neon Auth SDK sets (the thin paths read it without importing the SDK)", () => {
     expect(SESSION_COOKIE_NAME).toBe(NEON_AUTH_SESSION_COOKIE_NAME);
+  });
+});
+
+describe("isAllowedAuthRoute: the public /api/auth proxy forwards only what the product uses", () => {
+  it("allows the session read, sign-out, the Google start and the provider callback", () => {
+    expect(isAllowedAuthRoute("GET", "get-session")).toBe(true);
+    expect(isAllowedAuthRoute("POST", "sign-out")).toBe(true);
+    expect(isAllowedAuthRoute("POST", "sign-in/social")).toBe(true);
+    expect(isAllowedAuthRoute("GET", "callback/google")).toBe(true);
+  });
+
+  it("refuses email sign-up, email sign-in, password reset, email change, profile update and anything unknown", () => {
+    for (const path of ["sign-up/email", "sign-in/email", "forget-password", "reset-password", "change-email", "update-user", "delete-user", "send-verification-email", "", "get-session/x", "../get-session"]) {
+      expect(isAllowedAuthRoute("POST", path), path).toBe(false);
+      expect(isAllowedAuthRoute("GET", path), path).toBe(false);
+    }
+  });
+
+  it("checks the method too", () => {
+    expect(isAllowedAuthRoute("GET", "sign-out")).toBe(false);
+    expect(isAllowedAuthRoute("POST", "get-session")).toBe(false);
+    expect(isAllowedAuthRoute("DELETE", "get-session")).toBe(false);
   });
 });

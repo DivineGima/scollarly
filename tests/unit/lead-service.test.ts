@@ -4,6 +4,7 @@ import { leadIntakeSchema } from "@/lib/schemas/lead";
 import { buildFullPayload, buildQuickPayload, validateFull, validateQuick, utmFromSearch, type FullValues } from "@/lib/lead-form";
 import { LEADS_PER_NUMBER_PER_DAY, createLead, type CreateLeadDeps } from "@/modules/leads/service";
 import { toResponse } from "@/server/edge/leads";
+import { isMeasurementRequest } from "@/server/security/measurement";
 import type { InsertLeadOutcome, NewLead } from "@/server/repositories/leads";
 
 /**
@@ -200,6 +201,38 @@ describe("idempotency (architecture 8.2, 13.5)", () => {
     const outcome = await createLead(deps({ insert: async () => Promise.reject(new Error("connection terminated")) }).deps, { idempotencyKey: KEY, body: quick() });
     expect(outcome).toEqual({ ok: false, status: 503, code: "TEMPORARILY_UNAVAILABLE", message: "Please try again shortly." });
     expect(JSON.stringify(toResponse(outcome, "r"))).not.toContain("connection terminated");
+  });
+
+  it("tells onError about the fault behind a 503, so the handler can log it", async () => {
+    const seen: unknown[] = [];
+    const fault = new Error("connection terminated");
+    await createLead(deps({ insert: async () => Promise.reject(fault), onError: (error) => seen.push(error) }).deps, { idempotencyKey: KEY, body: quick() });
+    expect(seen).toEqual([fault]);
+  });
+});
+
+describe("a measurement lead is stamped by the server, never by the client (security/measurement.ts)", () => {
+  it("stamps source.measurement only when the handler says the request proved itself", async () => {
+    const real = deps();
+    await createLead(real.deps, { idempotencyKey: KEY, body: quick() });
+    expect(real.inserted[0]?.source).not.toHaveProperty("measurement");
+    const measured = deps();
+    await createLead(measured.deps, { idempotencyKey: KEY, body: quick(), measurement: true });
+    expect(measured.inserted[0]?.source).toMatchObject({ page: "/universities/alpha", measurement: true });
+  });
+
+  it("refuses a client that sends the stamp itself (the lead source schema is strict)", async () => {
+    const outcome = await createLead(deps().deps, { idempotencyKey: KEY, body: quick({ source: { page: "/x", university_id: UNI, measurement: true } }) });
+    expect(outcome).toMatchObject({ ok: false, status: 400 });
+  });
+
+  it("isMeasurementRequest accepts only the exact secret", () => {
+    const req = (token?: string) => new Request("https://x.test/api/v1/leads", { method: "POST", headers: token ? { "x-phase0-token": token } : {} });
+    expect(isMeasurementRequest(req("secret-1"), "secret-1")).toBe(true);
+    expect(isMeasurementRequest(req("secret-2"), "secret-1")).toBe(false);
+    expect(isMeasurementRequest(req(), "secret-1")).toBe(false);
+    expect(isMeasurementRequest(req("secret-1"), undefined)).toBe(false);
+    expect(isMeasurementRequest(req(""), "")).toBe(false);
   });
 });
 

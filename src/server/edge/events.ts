@@ -1,6 +1,7 @@
 import { errorResponseFor, isSameOrigin, newRequestId, readJsonBody, validationErrorResponse } from "@/lib/http";
 import { eventsBodySchema } from "@/modules/events/schema";
 import { planEvents } from "@/modules/events/service";
+import { logError } from "@/server/log";
 import { getDb } from "@/server/db/runtime";
 import { recordWaTaps } from "@/server/repositories/events";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
@@ -59,7 +60,8 @@ export async function handleEventsPost(request: Request, env: CloudflareEnv): Pr
       status: 202,
       headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
     });
-  } catch {
+  } catch (error) {
+    logError(requestId, "events", error);
     // Events are not worth an error page: the client keeps them and sends them again at the next flush.
     return errorResponseFor("TEMPORARILY_UNAVAILABLE", "Please try again shortly.", requestId, { headers: { "Retry-After": "60" } });
   }

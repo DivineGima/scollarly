@@ -1,3 +1,5 @@
+import { newRequestId } from "@/lib/http";
+import { logError } from "@/server/log";
 import type { MediaStore } from "@/server/media/store";
 
 /**
@@ -36,7 +38,8 @@ export async function serveMedia(deps: ServeMediaDeps): Promise<Response> {
   let upstream: Response | null;
   try {
     upstream = await deps.store.get(sha256);
-  } catch {
+  } catch (error) {
+    logError(newRequestId(), "media", error);
     return new Response("Image storage is unavailable", { status: 502, headers: { "Cache-Control": "no-store" } });
   }
   if (!upstream) return notFound();

@@ -28,7 +28,6 @@ export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set([
   "/privacy",
   "/terms",
   "/offline",
-  "/phase0/published",
   "/sign-in",
   "/sign-out",
 ]);

@@ -28,9 +28,5 @@ TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 # First verified sign-in with this email becomes the owner (architecture 9.3).
 OWNER_EMAIL=owner@example.com
 
-# Stage 0 only: shared secret required by /api/v1/probe/*. Remove with the probes.
+# Shared secret of the CPU measurement workflow: a lead POST carrying it in the x-phase0-token header skips Turnstile and is stamped as a test lead.
 PHASE0_PROBE_TOKEN=replace-with-a-long-random-string
-
-# Optional, non-gating CU-hours probe (S0.3).
-NEON_API_KEY=
-NEON_PROJECT_ID=

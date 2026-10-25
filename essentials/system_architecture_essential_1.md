@@ -165,7 +165,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S4.2 | IndexedDB queue and sync engine: backoff, Web Locks, 30-day expiry, delete on success, "Remove from this phone" |
 | S4.3 | Full apply form (A5) and the quick WhatsApp form (A5b, ADR-030), lazy Turnstile, and the send-first order: online, wait up to 4 seconds for the server before opening WhatsApp; offline or slow, queue and open WhatsApp; a visible "Open WhatsApp" button if the browser blocks the jump (ADR-031) |
 | S4.4 | `POST /api/v1/leads`: idempotency, payload hash, Turnstile verification, layered rate limiting (Durable Object limiter, per-number database limit of 5 per 24 hours), phone normalisation, `received_at` and SLA target, reference collision handling. The handler stays thin enough for its 8 ms CPU gate, checked against the deployed endpoint (S0.10) |
-| S4.5 | WhatsApp tap events and `POST /api/v1/events` (collector or the ADR-003 fallback decided in Stage 0). Anonymous events are counts only; a `wa_tap` with a lead ref is stored, at most 10 per ref per day. |
+| S4.5 | WhatsApp tap events and `POST /api/v1/events` (collector or the ADR-003 fallback decided in Stage 0). Anonymous events are counts only; a `wa_tap` with a lead ref is stored, at most 5 per request, 10 per ref per day and 200 per day for refs that match no lead (migration 0008). |
 | S4.6 | Contact page and every WhatsApp button reading the number from `site_setting` |
 
 **Exit criteria**
@@ -177,7 +177,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 - Test proves no hardcoded WhatsApp number exists in the code (grep check).
 - Playwright, online: Continue saves the lead on the server within 4 seconds and then opens WhatsApp with the reference. Online but slow (over 4 seconds): WhatsApp opens, the lead stays queued, and a later sync gives exactly one lead.
 - Tests prove the quick form creates a lead from name, number, country and a page university; a full lead without 3 programmes is refused; a quick lead is not.
-- Tests prove `page_view`, `form_start`, `form_submit` and `install` create no Neon rows, and the 11th `wa_tap` for one lead ref in a day is not stored.
+- Tests prove `page_view`, `form_start`, `form_submit` and `install` create no Neon rows, and the 11th `wa_tap` for one lead ref in a day is not stored, and invented references stop being stored once the day's allowance for unlinked taps is used.
 
 ---
 
@@ -240,7 +240,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 
 | ID | Module |
 |---|---|
-| S7.1 | Collector aggregation (or the Stage 0 fallback), daily rollup into `event_daily_agg` at 23:05 UTC, raw event purge, kill switch. Anonymous events are counts only. |
+| S7.1 | Collector aggregation (or the Stage 0 fallback), daily rollup into `event_daily_agg` at 23:05 UTC, raw event purge, kill switch. Anonymous events are counts only. The rollup that clears the collector's `agg:` keys also clears its `agg_key_count` (the collector caps distinct keys at 10,000 between rollups). |
 | S7.2 | Funnel and Sources pages with date, country and university filters, all in WAT, with the limitations notice (B10) |
 | S7.3 | "My performance" tab for admins |
 
@@ -393,3 +393,7 @@ The first S0.10 run failed two gates and the owner chose to stay on the free pla
 ## Amendment (Stage 2 implementation, 2026-10-24)
 
 Stage 2 was built to this file without a change of scope. Two clarifications: (1) **S2.1** is the existing facade plus the sign-in landing step (`/auth/landing`) and the mutation router; no Neon Auth configuration was changed. (2) **S2.2 sign-up** has no page of its own, and the `/sign-in` button is a plain link to `/auth/start`. Stage 2 exit criteria that need the deployed Worker, CI and a person (the real Google sign-in CPU, the owner's first sign-in, and CI itself) are listed in `docs/stage-2-runbook.md` and are not marked done. Stage 3 does not start until they pass (working rule 1).
+
+## Amendment (code review of Stages 0 to 5, 2026-10-26)
+
+Stages 0 to 5 were reviewed against this file and the architecture; ten issues were repaired and the architecture text was corrected to match (see its amendment of the same date). No module is added or removed. Scope changes inside modules: **S4.5** gains the per-request and unlinked-tap caps above; **S7.1** gains the `agg_key_count` reset; **S2.3** lockout restarts the count once it has expired; **S0.10** probes (`/api/v1/probe/*`, the stub lead intake and the Stage 0 stub tables) are removed now that Stage 0 is closed, and the CPU measurement proves itself with a secret header instead of a weakened Turnstile secret. The `admin/phase0` and `me/phase0` stub screens stay as fixtures for the shell-plus-data-call pattern.

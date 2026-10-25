@@ -5,6 +5,12 @@ import { rowsOf } from "@/server/db/rows";
 /** The most `wa_tap` rows stored for one lead reference per WAT day (architecture 7.5, owner decision D7). */
 export const WA_TAP_DAILY_CAP = 10;
 
+/**
+ * The most `wa_tap` rows stored per WAT day for references that match no lead (an offline-made lead not yet synced). It bounds the table
+ * against a script that invents references; a real day has a handful (migration 0008).
+ */
+export const WA_TAP_UNLINKED_DAILY_CAP = 200;
+
 export interface WaTap {
   leadRef: string;
   sessionId: string | null;
@@ -17,7 +23,7 @@ export interface WaTap {
 
 /**
  * Stores `wa_tap` events that carry a lead reference, over the daily cap per reference dropped without an error
- * (`app_record_wa_taps`, migration 0005). Returns how many rows were stored. Page views, form events and installs never come
+ * (`app_record_wa_taps`, migrations 0005 and 0008). Returns how many rows were stored. Page views, form events and installs never come
  * here: they are counts in the collector.
  */
 export async function recordWaTaps(db: Db, taps: readonly WaTap[]): Promise<number> {
@@ -31,7 +37,7 @@ export async function recordWaTaps(db: Db, taps: readonly WaTap[]): Promise<numb
     occurred_at: t.occurredAt,
   }));
   const [row] = rowsOf<{ stored: number }>(
-    await db.execute(sql`select public.app_record_wa_taps(${JSON.stringify(payload)}::jsonb, ${WA_TAP_DAILY_CAP}::integer) as stored`),
+    await db.execute(sql`select public.app_record_wa_taps(${JSON.stringify(payload)}::jsonb, ${WA_TAP_DAILY_CAP}::integer, ${WA_TAP_UNLINKED_DAILY_CAP}::integer) as stored`),
   );
   return Number(row?.stored ?? 0);
 }

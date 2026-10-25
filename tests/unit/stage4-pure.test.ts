@@ -5,7 +5,7 @@ import { EVENT_TYPES } from "@/lib/constants";
 import { pageGroupOf, PAGE_GROUPS } from "@/lib/page-group";
 import { isBuildAsset, isMediaImage, isNeverCached } from "@/lib/sw-rules";
 import { eventsBodySchema, MAX_EVENTS_PER_BATCH } from "@/modules/events/schema";
-import { countKey, planEvents } from "@/modules/events/service";
+import { countKey, MAX_TAPS_PER_BATCH, planEvents } from "@/modules/events/service";
 import { cachedSlaSettings, pageViewsEnabled, resetSettingsCache, SETTINGS_TTL_MS } from "@/server/edge/settings-cache";
 import type { Db } from "@/server/db/client";
 
@@ -14,6 +14,14 @@ const UNI = "0194f3c2-8a4b-7c1d-9e2f-3a4b5c6d7e80";
 
 describe("S4.5: events (architecture 8.2, 10.3)", () => {
   const body = (events: unknown[]) => eventsBodySchema.safeParse({ events });
+
+  it("stores at most five taps from one batch; the rest are dropped, not counted", () => {
+    const taps = Array.from({ length: 9 }, () => ({ type: "wa_tap" as const, lead_ref: REF }));
+    const plan = planEvents(taps, { country: "CM", now: new Date("2026-10-21T12:00:00Z"), collectPageViews: true });
+    expect(plan.taps).toHaveLength(MAX_TAPS_PER_BATCH);
+    expect(plan.dropped).toBe(4);
+    expect(plan.counts).toEqual({});
+  });
 
   it("accepts the five event types, a batch of up to 50, and nothing identifying", () => {
     expect(MAX_EVENTS_PER_BATCH).toBe(50);
@@ -93,13 +101,13 @@ describe("S4.5: events (architecture 8.2, 10.3)", () => {
 
 describe("S4.1: what the service worker may keep (architecture 11.1)", () => {
   it("never caches the signed-in areas, the auth pages and steps, or any API route", () => {
-    for (const path of ["/admin", "/admin/leads", "/me", "/me/progress", "/api/v1/leads", "/api/v1/events", "/api/auth/get-session", "/auth/start", "/auth/return", "/auth/landing", "/sign-in", "/sign-out", "/accept-invite/abc", "/two-factor/enrol", "/two-factor/verify", "/verify-email", "/forgot-password"]) {
+    for (const path of ["/admin", "/admin/leads", "/me", "/me/progress", "/api/v1/leads", "/api/v1/events", "/api/auth/get-session", "/auth/start", "/auth/return", "/auth/landing", "/sign-in", "/sign-out", "/accept-invite/abc", "/two-factor/enrol", "/two-factor/verify", "/verify-email", "/forgot-password", "/en/admin", "/en/admin/leads", "/en/me/progress", "/en/two-factor/verify", "/en/accept-invite/abc", "/en/sign-in"]) {
       expect(isNeverCached(path), path).toBe(true);
     }
   });
 
   it("keeps public pages, build files and images cacheable, and does not mistake a page that starts with the same letters", () => {
-    for (const path of ["/", "/universities", "/apply", "/blog/me-and-my-visa", "/mexico-study-guide", "/administration", "/media/abc.webp", "/_next/static/chunks/a.js"]) {
+    for (const path of ["/", "/universities", "/apply", "/blog/me-and-my-visa", "/mexico-study-guide", "/administration", "/en/administration", "/en/universities", "/media/abc.webp", "/_next/static/chunks/a.js"]) {
       expect(isNeverCached(path), path).toBe(false);
     }
     expect(isBuildAsset("/_next/static/chunks/app.js")).toBe(true);

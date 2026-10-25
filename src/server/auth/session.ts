@@ -19,6 +19,22 @@ export interface NeonAuthConfig {
   cookieSecret: string;
 }
 
+/**
+ * What the public `/api/auth/*` route may forward. Sign-in is Google only, so email sign-up, email sign-in, password reset, email change
+ * and profile update are not reachable from outside, whatever the Neon Auth project allows. The Worker's own sign-in start calls
+ * `proxyAuthRequest` directly and is not limited by this list.
+ */
+const ALLOWED_AUTH_ROUTES: readonly { method: string; path: RegExp }[] = [
+  { method: "GET", path: /^get-session$/ },
+  { method: "POST", path: /^sign-out$/ },
+  { method: "POST", path: /^sign-in\/social$/ },
+  { method: "GET", path: /^callback\/[a-z0-9-]+$/ },
+];
+
+export function isAllowedAuthRoute(method: string, path: string): boolean {
+  return ALLOWED_AUTH_ROUTES.some((route) => route.method === method && route.path.test(path));
+}
+
 /** `/api/auth/[...path]`: forwards the request to Neon Auth and returns its response, cookies included. */
 export function proxyAuthRequest(request: Request, path: string, config: NeonAuthConfig): Promise<Response> {
   return handleAuthProxyRequest({ request, path, baseUrl: config.baseUrl, cookieSecret: config.cookieSecret, sameSite: "lax" });

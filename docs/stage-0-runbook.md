@@ -63,8 +63,8 @@ What the workflow does, in order:
 3. Applies the migrations to Neon over the direct connection, sets the password of the non-owner `app_runtime` role, and builds the Worker's connection string from it.
 4. Uploads ten test images (about 300 KB each) to Neon Object Storage and checks they can be read with no credential.
 5. Creates a throwaway admin and a throwaway student in Neon Auth's tables, with two-hour sessions (removed again at the end, even if the run fails).
-6. Builds the Worker, enforces the 2.6 MiB size gate, deploys, and sets the Worker secrets (Turnstile uses Cloudflare's documented always-pass test secret, for measurement only).
-7. Runs `scripts/stage0-probes.mjs` and then `scripts/measure-cpu.mjs`. Results go to the job summary and are saved as the `stage0-reports` artifact for 30 days.
+6. Builds the Worker, enforces the 2.6 MiB size gate, deploys, and sets the Worker secrets (the real Turnstile secret from the repository secret `TURNSTILE_SECRET_KEY`; only if that secret is missing does the Worker get Cloudflare's always-pass test secret, and the run warns).
+7. Runs `scripts/measure-cpu.mjs` (the Stage 0 functional probes script was removed on 2026-10-26, with the probe routes; the measurement posts leads with the `x-phase0-token` header, which skips Turnstile for the measurement only). Results go to the job summary and are saved as the `stage0-reports` artifact for 30 days.
 
 | Gate | Where it is measured | Pass when |
 |---|---|---|
@@ -95,8 +95,7 @@ Record them in the tracker. The Worker only does the return trip; Google and Neo
 ## After the gates are decided
 
 1. Record every measured value in `tracker/tracker_1.md` (the Module S0.10 gates table).
-2. Remove the Phase 0 probes before any real data exists: `src/app/api/v1/probe/`, `src/modules/phase0/`, the `phase0*` tables
-   (as a later additive-first migration, see architecture 14). The throwaway probe users are removed by the workflow itself.
+2. Done on 2026-10-26 (tracker Session 28): the probe routes, `scripts/stage0-probes.mjs`, the stub lead intake and the `phase0_*` tables (migration 0007) are removed. The `admin/phase0` and `me/phase0` stub screens remain as the shell-plus-data-call fixtures. The throwaway probe users and measurement leads are removed by the workflow itself.
 3. The owner confirms the commercial-use terms of Cloudflare, Neon (including Neon Auth and Object Storage) and Turnstile free plans (tracker H1, H12). Claude Code never marks this done.
 
 ## Why some things are the way they are

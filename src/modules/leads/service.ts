@@ -34,6 +34,8 @@ export interface CreateLeadDeps {
   newId: () => string;
   /** A random server reference, used only when the device's own reference is already taken. */
   newRef?: () => string;
+  /** Told about the fault behind a 503, so the caller can log it (the outcome itself carries no detail). */
+  onError?: (error: unknown) => void;
 }
 
 export type CreateLeadOutcome =
@@ -46,7 +48,10 @@ export type CreateLeadOutcome =
 
 const NUMBER_LIMIT_RETRY_SECONDS = 3600;
 
-export async function createLead(deps: CreateLeadDeps, input: { idempotencyKey: string | null; body: unknown }): Promise<CreateLeadOutcome> {
+export async function createLead(
+  deps: CreateLeadDeps,
+  input: { idempotencyKey: string | null; body: unknown; /** Set by the edge handler only, for a request that proved it is the CPU measurement (security/measurement.ts). */ measurement?: boolean },
+): Promise<CreateLeadOutcome> {
   const key = idempotencyKeySchema.safeParse(input.idempotencyKey);
   if (!key.success) {
     return { ok: false, status: 400, code: "VALIDATION", message: "Idempotency-Key must be a UUID.", fields: { "Idempotency-Key": V.INVALID } };
@@ -91,7 +96,7 @@ export async function createLead(deps: CreateLeadDeps, input: { idempotencyKey: 
       intakeKind: payload.intake_kind,
       qualificationType: payload.intake_kind === "full" ? payload.qualification_type : null,
       results: payload.intake_kind === "full" ? payload.results : [],
-      source: payload.source,
+      source: input.measurement ? { ...payload.source, measurement: true } : payload.source,
       locale: payload.locale,
       consentNoticeVersion: payload.consent.notice_version,
       consentAt: receivedAt,
@@ -124,7 +129,8 @@ export async function createLead(deps: CreateLeadDeps, input: { idempotencyKey: 
       case "ref_exhausted":
         return { ok: false, status: 503, code: "TEMPORARILY_UNAVAILABLE", message: "Please try again shortly." };
     }
-  } catch {
+  } catch (error) {
+    deps.onError?.(error);
     // The database may be asleep or failing. The client retries with backoff (architecture 10.1).
     return { ok: false, status: 503, code: "TEMPORARILY_UNAVAILABLE", message: "Please try again shortly." };
   }

@@ -2,7 +2,7 @@ import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-or
 import type { Actor } from "@/server/auth/actor";
 import type { Db } from "@/server/db/client";
 import { rowsOf } from "@/server/db/rows";
-import { lead, leadActivity, leadClaim, leadNote, leadProgrammePref, messageTemplate, pipelineStage, programme, university } from "@/server/db/schema";
+import { lead, leadActivity, leadClaim, leadNote, leadProgrammePref, pipelineStage, programme, university } from "@/server/db/schema";
 import { uuidv7 } from "@/lib/uuid";
 import { runAs } from "./as-actor";
 import { teamMembersOf, teamQuery, type TeamMember } from "./team";
@@ -342,55 +342,6 @@ export interface LeadDetail {
 
 export const TIMELINE_LIMIT = 200;
 
-export async function getLeadDetail(db: Db, actor: Actor, id: string): Promise<LeadDetail | null> {
-  const [leads, prefs, activities, notes, claims] = await runAs(
-    db,
-    actor,
-    db.select(detailColumns).from(lead).where(eq(lead.id, id)).limit(1),
-    db
-      .select({ rank: leadProgrammePref.rank, programmeId: programme.id, programmeName: programme.name, universityName: university.name })
-      .from(leadProgrammePref)
-      .innerJoin(programme, eq(programme.id, leadProgrammePref.programmeId))
-      .innerJoin(university, eq(university.id, programme.universityId))
-      .where(eq(leadProgrammePref.leadId, id))
-      .orderBy(asc(leadProgrammePref.rank)),
-    db
-      .select({ id: leadActivity.id, type: leadActivity.type, actorId: leadActivity.actorId, data: leadActivity.data, createdAt: leadActivity.createdAt })
-      .from(leadActivity)
-      .where(eq(leadActivity.leadId, id))
-      .orderBy(desc(leadActivity.createdAt), desc(leadActivity.id))
-      .limit(TIMELINE_LIMIT),
-    db
-      .select({ id: leadNote.id, authorId: leadNote.authorId, body: leadNote.body, createdAt: leadNote.createdAt, erasedAt: leadNote.erasedAt })
-      .from(leadNote)
-      .where(eq(leadNote.leadId, id))
-      .orderBy(desc(leadNote.createdAt))
-      .limit(TIMELINE_LIMIT),
-    db.select({ n: sql<number>`count(*)::int` }).from(leadClaim).where(and(eq(leadClaim.leadId, id), eq(leadClaim.status, "pending"))),
-  );
-  const row = leads[0];
-  if (!row) return null;
-
-  // Two small reads that need the row first. They run together.
-  const universityId = typeof row.source.university_id === "string" && /^[0-9a-f-]{36}$/i.test(row.source.university_id) ? row.source.university_id : null;
-  const [mergedTo, sourceUniversity] = await runAs(
-    db,
-    actor,
-    row.mergedIntoId ? db.select({ ref: lead.ref }).from(lead).where(eq(lead.id, row.mergedIntoId)).limit(1) : db.select({ ref: lead.ref }).from(lead).where(sql`false`),
-    universityId ? db.select({ name: university.name }).from(university).where(eq(university.id, universityId)).limit(1) : db.select({ name: university.name }).from(university).where(sql`false`),
-  );
-
-  return {
-    lead: row,
-    mergedIntoRef: mergedTo[0]?.ref ?? null,
-    prefs,
-    activities,
-    notes: notes.map((n) => ({ id: n.id, authorId: n.authorId, body: n.body, createdAt: n.createdAt, erased: n.erasedAt !== null })),
-    sourceUniversityName: sourceUniversity[0]?.name ?? null,
-    pendingClaims: claims[0]?.n ?? 0,
-  };
-}
-
 export interface LeadScreen extends LeadDetail {
   stages: { code: string; position: number; name: Record<string, string> | string }[];
   team: TeamMember[];
@@ -461,21 +412,6 @@ export async function getLeadScreen(db: Db, actor: Actor, id: string): Promise<L
 export async function listStageNames(db: Db, actor: Actor): Promise<{ code: string; position: number; name: Record<string, string> | string }[]> {
   const [rows] = await runAs(db, actor, db.select().from(pipelineStage).orderBy(asc(pipelineStage.position)));
   return rows.map((r) => ({ code: r.code, position: r.position, name: r.name as Record<string, string> }));
-}
-
-/** The message template for a stage and locale, when staff have published one (B3 step 2). Null means the screen uses its built-in text. */
-export async function findStageTemplate(db: Db, actor: Actor, stageCode: string, locale: string): Promise<string | null> {
-  const [rows] = await runAs(
-    db,
-    actor,
-    db
-      .select({ body: messageTemplate.body })
-      .from(messageTemplate)
-      .where(and(eq(messageTemplate.stageCode, stageCode), eq(messageTemplate.locale, locale), eq(messageTemplate.status, "published")))
-      .orderBy(asc(messageTemplate.id))
-      .limit(1),
-  );
-  return rows[0]?.body ?? null;
 }
 
 // ----------------------------------------------------------------------------------------------------------------
@@ -673,14 +609,6 @@ export async function eraseLead(db: Db, actor: Actor, input: { leadId: string; i
   );
   return (rowsOf<{ outcome: EraseOutcome }>(result)[0]?.outcome ?? "not_found") as EraseOutcome;
 }
-
-/** Exists so a caller can ask "is there any lead with this reference" without reading the row (data request logging). */
-export async function findLeadIdByRef(db: Db, actor: Actor, ref: string): Promise<{ id: string; anonymised: boolean } | null> {
-  const [rows] = await runAs(db, actor, db.select({ id: lead.id, anonymisedAt: lead.anonymisedAt }).from(lead).where(eq(lead.ref, ref.toUpperCase())).limit(1));
-  const row = rows[0];
-  return row ? { id: row.id, anonymised: row.anonymisedAt !== null } : null;
-}
-
 
 /** Universities for the list filter (staff see every status). */
 export async function listUniversityOptions(db: Db, actor: Actor): Promise<{ id: string; name: string }[]> {

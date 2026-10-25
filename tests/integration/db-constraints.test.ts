@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sha256Hex } from "@/lib/hash";
 import { inContext } from "@/server/db/rls";
 import { findAssetBySha256Query, insertMediaAssetQuery } from "@/server/repositories/media";
-import { readPhase0TitleQuery, selectOne, transactionRoundTrip, writePhase0TitleQuery } from "@/server/repositories/phase0-probe";
+import { selectOne, transactionRoundTrip } from "@/server/repositories/phase0-probe";
 import { createTestDb, type TestDb } from "./helpers/db";
 
 let t: TestDb;
@@ -22,7 +22,7 @@ describe("S0.1/S0.3: migrations and the two query paths", () => {
     const tables = (await t.run("select table_name from information_schema.tables where table_schema = 'public' order by 1")) as { table_name: string }[];
     // Stage 1 (S1.1) adds the rest of architecture 7; the every-table list is asserted in schema-foundation.test.ts.
     expect(tables.map((r) => r.table_name)).toEqual(
-      expect.arrayContaining(["app_user", "media_asset", "owner_totp", "phase0_content", "phase0_lead_stub", "recovery_code", "step_up"]),
+      expect.arrayContaining(["app_user", "media_asset", "owner_totp", "recovery_code", "step_up"]),
     );
   });
 
@@ -94,15 +94,5 @@ describe("S0.5: image metadata (the bytes live in Neon Object Storage)", () => {
   it("only accepts image/webp and known kinds at the database", async () => {
     await expect(t.run(`insert into media_asset (id, kind, width, height, bytes, mime, sha256) values ('${randomUUID()}', 'photo', 1, 1, 1, 'image/svg+xml', '${"b".repeat(64)}')`)).rejects.toThrow();
     await expect(t.run(`insert into media_asset (id, kind, width, height, bytes, mime, sha256) values ('${randomUUID()}', 'video', 1, 1, 1, 'image/webp', '${"c".repeat(64)}')`)).rejects.toThrow();
-  });
-});
-
-describe("S0.6: the content row behind tag revalidation", () => {
-  it("returns nothing before anything is published, then the latest value", async () => {
-    expect((await inContext(t.db, OWNER_CTX, readPhase0TitleQuery(t.db)))[0]).toHaveLength(0);
-    await inContext(t.db, OWNER_CTX, writePhase0TitleQuery(t.db, "First"));
-    expect((await inContext(t.db, OWNER_CTX, readPhase0TitleQuery(t.db)))[0][0]?.value).toBe("First");
-    await inContext(t.db, OWNER_CTX, writePhase0TitleQuery(t.db, "Second"));
-    expect((await inContext(t.db, OWNER_CTX, readPhase0TitleQuery(t.db)))[0][0]?.value).toBe("Second");
   });
 });

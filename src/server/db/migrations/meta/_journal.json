@@ -50,6 +50,20 @@
       "when": 1792888784403,
       "tag": "0006_stage5_lead_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792956406196,
+      "tag": "0007_drop_phase0_scaffolding",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792956660058,
+      "tag": "0008_cap_unlinked_wa_taps",
+      "breakpoints": true
     }
   ]
 }

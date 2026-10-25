@@ -5,6 +5,10 @@ import { DurableObject } from "cloudflare:workers";
  * (ADR-003, counts only, never rows). In Stage 0 it proves a counter works on the free plan and records
  * the last cron run so the scheduled handler is observable.
  */
+/** The most distinct `agg:` keys held between two rollups. A real day is a few hundred (types x countries x universities x page groups). */
+export const AGG_KEY_CAP = 10_000;
+const AGG_KEY_COUNT = "agg_key_count";
+
 export class Collector extends DurableObject<CloudflareEnv> {
   async increment(type: string, by = 1): Promise<number> {
     const key = `count:${type}`;
@@ -22,8 +26,23 @@ export class Collector extends DurableObject<CloudflareEnv> {
     const keys = Object.keys(counts).slice(0, 128);
     if (keys.length === 0) return;
     const current = await this.ctx.storage.get<number>(keys);
+    // The university and page group in a key come from the client, so a script could invent endless keys. The number of distinct `agg:`
+    // keys is capped (`AGG_KEY_CAP`); a key over the cap is not counted. The rollup (S7.1) deletes the `agg:` keys and must also delete
+    // `AGG_KEY_COUNT` in the same step.
+    const known = (await this.ctx.storage.get<number>(AGG_KEY_COUNT)) ?? 0;
+    let room = Math.max(0, AGG_KEY_CAP - known);
+    let added = 0;
     const next: Record<string, number> = {};
-    for (const key of keys) next[key] = (current.get(key) ?? 0) + (counts[key] ?? 0);
+    for (const key of keys) {
+      const seen = current.get(key);
+      if (seen === undefined) {
+        if (room === 0) continue;
+        room -= 1;
+        added += 1;
+      }
+      next[key] = (seen ?? 0) + (counts[key] ?? 0);
+    }
+    if (added > 0) next[AGG_KEY_COUNT] = known + added;
     await this.ctx.storage.put(next);
   }
 

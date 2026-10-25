@@ -1,4 +1,4 @@
-# Tracker 1: Scollarly v2 in-progress (2026-10-24: `/auth/landing`, mutation router, endpoint wiring; local tests pass, CI not run) | in-progress (2026-10-24: sign-in, sign-out pages; Google redirect on `workers.dev` already proven in Stage 0, real run of the new landing step not yet measured) | in-progress (2026-10-24: bootstrap, 2FA endpoints and pages, step-up prompt; the owner has not yet signed in with it) | in-progress (2026-10-24: access rules, owner-is-permanent trigger, removal; local tests pass) | in-progress (2026-10-24: invites, accept-invite page, Team page; local tests pass) | in-progress (2026-10-24: admin shell, Overview, Profile, Security; Playwright with mocked endpoints passes) | in-progress (2026-10-24: audit writer and Audit page; local tests pass) |
+# Tracker 1: Scollarly v2
 
 Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, vendor terms, owner sign-off) are recorded here only when the owner says they are done.
 
@@ -9,10 +9,10 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stages 3 and 4 are built together (Session 18, 2026-10-25, branch `feature/stage-3-4-content-leads`) at the owner's request and wait for CI.** Stage 2 is complete per the owner's words (merged as PR #18, deployed, the owner signed in with Google and enrolled 2FA). Stage 1 (foundation) is complete (2026-10-24). Stage 0 (proof of fit) is complete (2026-10-24). The documents are edited in place and are still version 1 (D13). |
-| Next stage | **Stages 3 and 4 need CI on their pull request, then the owner's steps in `docs/stage-3-4-runbook.md`** (merge, publish the content, deploy, real Turnstile keys, a phone check). Stage 5 (admin lead management) has not started. See Session 18. |
-| Blocked by | Nothing blocks the code. Stage 3 and 4 completion needs: CI green on the new pull request; migration 0005 applied by the deploy workflow; the published content; the real Turnstile widget and its two secrets (until then the always-pass test keys are in use, which is insecure); the CPU rows for `POST /api/v1/leads` and `POST /api/v1/events` measured on the deployed Worker. Open and not blocking: H4, H5, H9 (F7), H12, the `ContactSubmission` import, and the domain (F10, launch only). |
-| Gate before Stage 3 and 4 | Stage 2 exit criteria. **The owner waived the one-stage-at-a-time wait on 2026-10-25** ("bypass the logic of waiting one to get completed before doing the other") and said the Google sign-in and 2FA enrolment worked, so the gate is met and Stages 3 and 4 were built together. |
+| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. Stage 6 has not started. The documents are edited in place and are still version 1 (D13). |
+| Next stage | **Stage 6 (content management and images)** once the review branch is merged and its deploy run is checked (Session 28). The owner decides when to start it. |
+| Blocked by | Nothing blocks the code. Open and not blocking: the real Turnstile secret is kept on the Worker from now on (the repository secret `TURNSTILE_SECRET_KEY` exists, Session 19; the deploy workflow warns on every run if it ever goes missing); H4, H5, H9 (F7), H12, H19, H20, the `ContactSubmission` import, and the domain (F10, launch only). |
+| Gate before Stage 3 and 4 | Met and passed. **The owner waived the one-stage-at-a-time wait on 2026-10-25** and said the Google sign-in and 2FA enrolment worked, so Stages 3 and 4 were built together and Stage 5 followed. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -600,6 +600,31 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Status:** S4.5 complete (events row). S5.4 and S5.5 complete (merge and erase rows). S5.6 complete (every write carries and checks the version; exercised by the measured writes and the integration tests). The claim decision (inside S5.5) has no scenario until Stage 8 makes link requests possible; its Worker-side cost is the same shape as the measured writes. Stage 4 and Stage 5 are complete except for the owner items: phone test H19, repository back to private H20, trust and legal text at the end (E1 to E8).
 
+### 2026-10-26: Session 28 (code review of Stages 0 to 5; ten issues repaired; source files aligned)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `fix/review-findings`. Requested by the owner: a senior review of the code of Stages 0 to 5 for bugs, security, performance, architecture, duplicated logic and drift from the four source files, repaired before any further stage.
+
+**Start-of-task checks:** `/tracker/` read; essentials, architecture and PRD are all N=1 and cite each other correctly; no version drift.
+
+| # | Issue found | Repair |
+|---|---|---|
+| 1 | The deploy workflow set Cloudflare's always-pass Turnstile test secret on the live Worker for the whole 15 to 20 minute measurement, and left it there if the run crashed. | The real secret is set from the first deploy and stays. The measurement proves itself with the `x-phase0-token` header (`src/server/security/measurement.ts`); the Worker skips Turnstile for it only. The workflow warns on every run if the repository secret is missing. |
+| 2 | `POST /api/v1/events` could grow `event` without bound (every invented lead reference is a new reference) and the collector without bound (client-chosen university in the key). | Migration 0008: at most 200 `wa_tap` rows a WAT day for references that match no lead. At most 5 taps stored per request. The collector caps distinct keys at 10,000. Tests added. **Stage 7 must clear `agg_key_count` with the `agg:` keys.** |
+| 3 | No server fault was logged although every error response carried a request id. | `src/server/log.ts` (`logError`: request id, route, error class, SQLSTATE; never the message). Used in the mutation, data-call, landing, events, media and lead handlers. |
+| 4 | `/api/auth/*` forwarded every Neon Auth route (email sign-up, password reset and so on). | Allow-list of four routes (`isAllowedAuthRoute`); the rest is 404. No extra rate limiter was added: the four routes are cheap and tied to a session. |
+| 5 | Stage 0 scaffolding was live: probe routes (one wrote with a forged admin context), stub lead intake, `phase0_*` tables, `app_create_phase0_lead`, the published-content page, three dead repository functions. | Removed; migration 0007 drops the two tables and the function (contract step; they held only throwaway rows). `scripts/stage0-probes.mjs` and its workflow step removed. **Kept on purpose:** the `admin/phase0` and `me/phase0` stub screens, which the edge, offline and e2e tests and the staff and student measurements use as the shell-plus-data-call fixtures. |
+| 6 | After a 2FA lockout expired, one wrong code locked the owner out again for 15 minutes (the failure count was never reset). | `recordFailure` takes the clock and starts the count at one once the lock has expired. Unit test and a real-SQL integration test. |
+| 7 | The deploy cleanup hard-deleted any lead with `source.page = '/__probe'`, a field a visitor can send. | The server stamps `source.measurement = true` only for a request that proved itself with the secret; cleanup matches that. One legacy clause (page `/__probe` and received before 2026-10-27) removes the leads of earlier runs once; drop it after the first clean deploy. |
+| 8 | The service worker never-cache rule missed `/en/admin`, `/en/accept-invite/<token>` and the other locale-prefixed signed-in paths. | The rule accepts the locale prefix (built from `locales`). Tests added. |
+| 9 | The leads list could show the rows of an earlier filter; its country filter had an extra `IN`. | A request counter ignores superseded answers; the filter uses `STUDENT_COUNTRIES`. |
+| 10 | This tracker's position, stage table and registry contradicted Sessions 19 to 27; S3.2 said English and French. | Corrected in place: Stages 2 to 5 and their modules are complete (CI green in PRs #18, #19, #21 and the later ones; owner items stay open); S3.2 says English only (French strings exist, the locale is off, ADR-018). |
+
+**Source files amended in place (D13, version stays 1):** architecture (7.5, 8.2, 10.3, 11.1, 13.1, 13.4, ADR-003, ADR-037, and an amendment of this date; the text said the collector enforces the tap cap while the database function does), essentials (S4.5, S7.1, an amendment of this date), this tracker. The PRD needed no change: none of the repairs alters a requirement.
+
+**Verification (local, 2026-10-26):** typecheck clean; lint clean; unit tests 467 of 467; integration suite on PGlite 408 passed, 12 todo (it applies migrations 0007 and 0008 and runs the new tap-cap, lockout and auth-route tests). **Not yet run:** CI on Postgres 16 for this branch; the deploy workflow with the edited steps (the header-based measurement, the real Turnstile secret, the cleanup) and migrations 0007 and 0008 on the live database. Run the deploy workflow once after the merge and read its summary before relying on it.
+
+**Open for the owner:** nothing new. H19 (phone test), H20 (repository back to private) and the trust and legal text stay as before.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -635,9 +660,9 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 0 | Proof of fit (hard gate) | S0.1 to S0.10 | **complete** (2026-10-24) |
 | 1 | Foundation | S1.1 to S1.7 | complete (2026-10-24: S1.1 to S1.7, real seed ran twice on the live database) |
 | 2 | Authentication, roles, admin shell | S2.1 to S2.7 | **complete** (2026-10-25: CI passed on all jobs, PR #18 merged and deployed, the owner signed in and enrolled 2FA per the owner's words; the sign-in CPU row was not recorded) |
-| 3 | Public site | S3.1 to S3.5 | in-progress (2026-10-25: all five modules built; unit, integration and Playwright pass locally; waits for CI, published content and a deploy, see Session 18) |
-| 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | in-progress (2026-10-25: all six modules built; unit, integration on PGlite and Playwright pass locally; waits for CI on Postgres 16, migration 0005 on the live database, real Turnstile keys and the CPU rows, see Session 18) |
-| 5 | Admin lead management | S5.1 to S5.6 | in-progress (2026-10-25: all six modules built; unit, integration and Playwright pass locally; waits for CI on Postgres 16, migration 0006 on the live database and the CPU rows, see Session 20) |
+| 3 | Public site | S3.1 to S3.5 | **complete** (2026-10-25: PR #19 CI green, merged, deployed, content published; the 100 KB first-load budget cannot be met, flag F7; trust content H4 and legal text H5 are the owner's) |
+| 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | **complete** (2026-10-26: PR #19 CI green, deployed; lead POST accepted at the platform limit by F19 (a); events POST measured PASS; the phone check H19 is the owner's) |
+| 5 | Admin lead management | S5.1 to S5.6 | **complete** (2026-10-26: PR #21 CI green, deployed; lead detail accepted by F20 (a); list, overview, write, merge and erase measured PASS; see Sessions 23 to 27) |
 | 6 | Content management and images | S6.1 to S6.5 | — |
 | 7 | Analytics (funnel and sources) | S7.1 to S7.3 | — |
 | 8 | Student portal | S8.1 to S8.3 | — |
@@ -668,24 +693,24 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S1.5 | Full CI | complete (2026-10-24, CI) |
 | S1.6 | i18n scaffolding | complete (2026-10-24, CI) |
 | S1.7 | Seed and migration scripts, logo and image import | complete (2026-10-24: real seed run twice on the live database; `ContactSubmission` import not built, no rows supplied, see Session 14) |
-| S2.1 | Production Neon Auth configuration behind the facade | in-progress (2026-10-24: `/auth/landing`, mutation router, endpoint wiring; local tests pass, CI not run) |
-| S2.2 | Sign-in and sign-out pages (Google only) | in-progress (2026-10-24: sign-in and sign-out pages; the Google redirect on `workers.dev` was proven in Stage 0, the new landing step has not been run for real) |
-| S2.3 | Owner bootstrap, 2FA, step-up | in-progress (2026-10-24: bootstrap, 2FA endpoints and pages, step-up prompt; the owner has not yet signed in with it) |
-| S2.4 | `Actor` issuance, role guards, fresh staff session lookup | in-progress (2026-10-24: access rules, owner-is-permanent trigger, admin removal; local tests pass) |
-| S2.5 | Admin invites and Team page | in-progress (2026-10-24: invites, accept-invite page, Team page; local tests pass) |
-| S2.6 | Admin shell | in-progress (2026-10-24: admin shell, Overview, Profile, Security; Playwright with mocked endpoints passes) |
-| S2.7 | Audit log | in-progress (2026-10-24: audit writer and Audit page; local tests pass) |
-| S3.1 | Content read layer and prerender | in-progress (2026-10-25: published-only reads through `runPublic`, tag cache, build fixture seam; unit and integration pass, CI not run) |
-| S3.2 | Public pages | in-progress (2026-10-25: 15 pages in English and French, no-JS rendering, axe clean; Playwright passes locally, CI not run) |
-| S3.3 | Fee gating, video facade, media delivery | in-progress (2026-10-25: fee gating, `youtube-nocookie` facades, text placeholders for images until Stage 6; unit and Playwright pass, CI not run) |
-| S3.4 | Trust components | in-progress (2026-10-25: figures, testimonials, journeys and team render only when confirmed and consented; nothing is published yet, H4) |
-| S3.5 | Performance pass | in-progress (2026-10-25: `check:bundle` and Lighthouse over 16 routes added to CI; the 100 KB budget cannot be met, F7; first load 102 to 113 KB) |
-| S4.1 | Service worker and manifest | in-progress (2026-10-25: service worker rules, manifest, icons, install prompt for a returning visitor; Playwright passes, a real phone check is the owner's) |
-| S4.2 | IndexedDB queue and sync engine | in-progress (2026-10-25: IndexedDB queue, backoff, Web Locks, 30-day flag, remove from phone; unit and Playwright pass) |
-| S4.3 | Apply form, quick form, send-first order | in-progress (2026-10-25: quick and full forms, send first, 4 second wait; unit and Playwright pass) |
+| S2.1 | Production Neon Auth configuration behind the facade | complete (CI green in PR #18, merged and deployed; 2026-10-24: `/auth/landing`, mutation router, endpoint wiring) |
+| S2.2 | Sign-in and sign-out pages (Google only) | complete (CI green in PR #18, merged and deployed; 2026-10-24: sign-in and sign-out pages; the Google redirect on `workers.dev` was proven in Stage 0; the owner signed in through the landing step, per the owner's words; the sign-in CPU row was not recorded) |
+| S2.3 | Owner bootstrap, 2FA, step-up | complete (CI green in PR #18, merged and deployed; 2026-10-24: bootstrap, 2FA endpoints and pages, step-up prompt; the owner signed in and enrolled 2FA, per the owner's words) |
+| S2.4 | `Actor` issuance, role guards, fresh staff session lookup | complete (CI green in PR #18, merged and deployed; 2026-10-24: access rules, owner-is-permanent trigger, admin removal) |
+| S2.5 | Admin invites and Team page | complete (CI green in PR #18, merged and deployed; 2026-10-24: invites, accept-invite page, Team page) |
+| S2.6 | Admin shell | complete (CI green in PR #18, merged and deployed; 2026-10-24: admin shell, Overview, Profile, Security; Playwright with mocked endpoints passes) |
+| S2.7 | Audit log | complete (CI green in PR #18, merged and deployed; 2026-10-24: audit writer and Audit page) |
+| S3.1 | Content read layer and prerender | complete (CI green in PR #19, merged and deployed; 2026-10-25: published-only reads through `runPublic`, tag cache, build fixture seam) |
+| S3.2 | Public pages | complete (CI green in PR #19, merged and deployed; 2026-10-25: 15 pages in English, no-JS rendering, axe clean; French strings exist in `messages/fr.json` but the locale is not switched on, `locales = ["en"]` (ADR-018), so `/fr` is 404) |
+| S3.3 | Fee gating, video facade, media delivery | complete (CI green in PR #19, merged and deployed; 2026-10-25: fee gating, `youtube-nocookie` facades, text placeholders for images until Stage 6) |
+| S3.4 | Trust components | complete (CI green in PR #19, merged and deployed; 2026-10-25: figures, testimonials, journeys and team render only when confirmed and consented; nothing is published yet, H4) |
+| S3.5 | Performance pass | complete (CI green in PR #19, merged and deployed; 2026-10-25: `check:bundle` and Lighthouse over 16 routes added to CI; the 100 KB budget cannot be met, F7; first load 102 to 113 KB) |
+| S4.1 | Service worker and manifest | complete (CI green in PR #19, merged and deployed; 2026-10-25: service worker rules, manifest, icons, install prompt for a returning visitor; Playwright passes, a real phone check is the owner's) |
+| S4.2 | IndexedDB queue and sync engine | complete (CI green in PR #19, merged and deployed; 2026-10-25: IndexedDB queue, backoff, Web Locks, 30-day flag, remove from phone) |
+| S4.3 | Apply form, quick form, send-first order | complete (CI green in PR #19, merged and deployed; 2026-10-25: quick and full forms, send first, 4 second wait) |
 | S4.4 | `POST /api/v1/leads` | complete (2026-10-25, owner decision F19 (a): accepted at a warm p95 up to the platform's 10 ms limit: 60 samples, warm p50 6 ms, p95 10 ms, first-of-instance worst 16 ms, none terminated; built, CI passed, migration 0005 applied on the live database by the deploy workflow, 20 of 20 probes passed in the first run; the CPU gate is NOT stably met: warm p95 6 ms in the first deploy, 22 ms in the second, see Session 19) |
 | S4.5 | WhatsApp tap events | complete (2026-10-25, run 40218262735: events POST warm p50 4 ms, p95 6 ms, gate 8 ms, PASS; built and CI passed; the CPU row for `POST /api/v1/events` has no scenario yet) |
-| S4.6 | Contact page, WhatsApp number from settings | in-progress (2026-10-25: contact page, the one WhatsApp helper, a test that fails on any other number or `wa.me` link) |
+| S4.6 | Contact page, WhatsApp number from settings | complete (CI green in PR #19, merged and deployed; 2026-10-25: contact page, the one WhatsApp helper, a test that fails on any other number or `wa.me` link) |
 | S5.1 | Leads list | complete (2026-10-25: list, filters, search, URL filters, keyset paging; merged in PR #21 with CI green; deployed; CPU row measured on 2026-10-25 (run 40201966892): warm p50 4 ms, p95 6 ms, gate 8 ms, PASS) |
 | S5.2 | Lead detail | complete (2026-10-25, owner decision F20 (a) accepts the detail screen under the F19 exception; run 40213920947: lead detail warm p50 6 ms, p95 10 ms, worst 11 ms after the one-trip change, gate 8 ms; accepted; lead detail, stage, assign, notes, log reply, WhatsApp drawer and chip; merged in PR #21 with CI green; deployed; the write path measured PASS (warm p95 4 ms); the lead detail CPU row has no data yet, a re-run is needed) |
 | S5.3 | Overdue, Unassigned, Overview | complete (2026-10-25: Overview with one COUNT(*) FILTER statement, Overdue and Unassigned views; merged and deployed; CPU row measured on 2026-10-25 (run 40201966892): warm p50 4 ms, p95 5 ms, gate 8 ms, PASS) |

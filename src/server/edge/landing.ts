@@ -1,8 +1,10 @@
+import { newRequestId } from "@/lib/http";
 import { INVITE_TOKEN_PATTERN, landingPathFor } from "@/modules/auth/service";
 import { hashInviteToken } from "@/modules/team/service";
 import type { Actor } from "@/server/auth/actor";
 import { readSessionToken } from "@/server/auth/cookie";
 import { contextOf } from "@/server/db/rls";
+import { logError } from "@/server/log";
 import type { EndpointEnv } from "./endpoint-env";
 import { acceptInvite, bootstrapOwner, scrubSessionPii } from "@/server/repositories/identity";
 import { writeAudit } from "@/server/repositories/audit";
@@ -37,7 +39,8 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
   let actor: Actor | null;
   try {
     actor = await checkSession(request.headers);
-  } catch {
+  } catch (error) {
+    logError(newRequestId(), "auth/landing", error);
     return redirect(request, "/sign-in?error=unavailable");
   }
   const token = readSessionToken(request.headers);
@@ -60,7 +63,8 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
       twoFactorEnrolled = (await createSecondFactorStore(env.db, contextOf({ userId: actor.userId, role: "student" })).getTotp(actor.userId))?.confirmed === true;
     }
     return redirect(request, landingPathFor({ storedRole, twoFactorVerified: actor.twoFactorVerifiedAt !== null, twoFactorEnrolled }));
-  } catch {
+  } catch (error) {
+    logError(newRequestId(), "auth/landing", error);
     return redirect(request, "/sign-in?error=unavailable");
   }
 }
