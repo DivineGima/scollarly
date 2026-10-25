@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead,media,media-miss,rls,storage").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,lead,media,media-miss,rls,storage").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, lead: 8, media: 8, "media-miss": 8, rls: null, storage: null };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -190,6 +190,86 @@ try {
       );
     } else if ([...only].some((k) => k === "lead-detail" || k === "lead-write")) {
       console.error("No probe lead found: the lead detail and write scenarios were skipped.");
+    }
+    // The remaining Stage 4 and 5 paths (S4.5, S5.4, S5.5). Each needs probe leads of its own (source.page = "/__probe", removed by the cleanup
+    // step): a merge uses up a pair and an erasure uses up a lead, so they are made first. The lead endpoint allows five a minute per caller.
+    const wantsSeeded = ["events", "lead-merge", "lead-erase"].some((k) => only.has(k));
+    if (wantsSeeded) {
+      const seedLead = async (overrides = {}) => {
+        const body = probeLead({ name: "Measure Probe", ...overrides });
+        try {
+          const created = await fetch(base + "/api/v1/leads", {
+            method: "POST",
+            headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          });
+          await sleep(leadIntervalMs);
+          if (created.status !== 201) return null;
+          const { ref } = await created.json();
+          const listed = await fetch(`${base}/api/v1/admin/leads?q=${encodeURIComponent(ref)}`, { headers: staff.headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+          const id = listed.ok ? ((await listed.json()).leads?.[0]?.id ?? "") : "";
+          return id ? { ref, id } : null;
+        } catch {
+          return null;
+        }
+      };
+      const staffWrite = (path, payload) => call(path, { method: "POST", headers: { ...staff.headers, origin: base, "content-type": "application/json" }, body: JSON.stringify(payload) });
+
+      // S4.5: a batch with a WhatsApp tap on a real lead reference (the heaviest case: one insert) and two counted events.
+      if (only.has("events")) {
+        const tapLead = await seedLead();
+        const sessionId = `measure-${Date.now()}`;
+        const events = [
+          ...(tapLead ? [{ type: "wa_tap", session_id: sessionId, lead_ref: tapLead.ref }] : []),
+          { type: "page_view", session_id: sessionId, page_group: "home" },
+          { type: "form_start", session_id: sessionId },
+        ];
+        // The events endpoint allows 30 a minute per caller, so the requests are spaced out.
+        rows.push(await scenario("Events POST (WhatsApp tap and counted events), edge handler", "events", (m) => call(`/api/v1/events?${m}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ events }) }), 50, 2200));
+      }
+
+      // S5.4: merge a duplicate pair (one transaction in the database, audited).
+      if (only.has("lead-merge")) {
+        const pairs = [];
+        for (let i = 0; i < 12; i++) {
+          const whatsapp = probeLead().whatsapp;
+          const a = await seedLead({ whatsapp });
+          const b = await seedLead({ whatsapp });
+          if (a && b) pairs.push([a.id, b.id]);
+        }
+        const mergePath = "/api/v1/admin/leads.resolveDuplicate";
+        rows.push(
+          await scenario(
+            "Staff write: merge a duplicate pair (one database function)",
+            "lead-merge",
+            (_m, i) => staffWrite(mergePath, { keepId: pairs[i][0], otherId: pairs[i][1], decision: "merged" }),
+            pairs.length,
+            600,
+            mergePath,
+          ),
+        );
+      }
+
+      // S5.5: erase a lead (all or nothing, in one database function).
+      if (only.has("lead-erase")) {
+        const victims = [];
+        for (let i = 0; i < 12; i++) {
+          const v = await seedLead();
+          if (v) victims.push(v.id);
+        }
+        const erasePath = "/api/v1/admin/leads.eraseLead";
+        rows.push(
+          await scenario(
+            "Staff write: erase a lead (one database function)",
+            "lead-erase",
+            (_m, i) => staffWrite(erasePath, { leadId: victims[i], identityConfirmed: true }),
+            victims.length,
+            600,
+            erasePath,
+          ),
+        );
+      }
     }
     rows.push(await scenario("Student screen, shell: session query, then the cached page", "student-shell", (m) => call(`/me/phase0?${m}`, as("student"))));
     rows.push(await scenario("Student screen, data: session query, then one query under row level security", "student-data", (m) => call(`/api/v1/me/phase0?${m}`, as("student"))));
