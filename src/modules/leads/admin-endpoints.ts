@@ -11,8 +11,7 @@ import {
   assignLead,
   changeStage,
   eraseLead,
-  findStageTemplate,
-  getLeadDetail,
+  getLeadScreen,
   getOverviewCounts,
   listDuplicatePairs,
   listLeadsAdmin,
@@ -49,10 +48,13 @@ import { leadListItem, slaView, timeline, watDayBounds, type StaffPerson } from 
 
 export const LEADS_PAGE_SIZE = 50;
 
-async function staffPeople(env: EndpointEnv, actor: Actor): Promise<{ list: StaffPerson[]; byId: Map<string, StaffPerson> }> {
-  const team = await listTeam(env.db, actor);
+function peopleOf(team: { userId: string; email: string; name: string }[]): { list: StaffPerson[]; byId: Map<string, StaffPerson> } {
   const list = team.map((m) => ({ userId: m.userId, email: m.email, name: m.name }));
   return { list, byId: new Map(list.map((p) => [p.userId, p])) };
+}
+
+async function staffPeople(env: EndpointEnv, actor: Actor): Promise<{ list: StaffPerson[]; byId: Map<string, StaffPerson> }> {
+  return peopleOf(await listTeam(env.db, actor));
 }
 
 const invalid = (requestId: string) => errorResponseFor("VALIDATION", "Check the filters.", requestId);
@@ -130,15 +132,12 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
     "admin/lead": async (actor, call) => {
       const parsed = leadIdQuery.safeParse(Object.fromEntries(call.url.searchParams));
       if (!parsed.success) return invalid(newRequestId());
-      const detail = await getLeadDetail(env.db, actor, parsed.data.id);
+      // One round trip for everything the screen shows (getLeadScreen): each separate read costs the Worker CPU time.
+      const detail = await getLeadScreen(env.db, actor, parsed.data.id);
       if (!detail) return errorResponseFor("NOT_FOUND", "That lead does not exist.", newRequestId());
       const now = env.now();
-      const [people, stages, template, duplicates] = await Promise.all([
-        staffPeople(env, actor),
-        listStageNames(env.db, actor),
-        findStageTemplate(env.db, actor, detail.lead.stageCode, detail.lead.locale),
-        detail.lead.anonymisedAt || detail.lead.mergedIntoId ? Promise.resolve([]) : listDuplicatePairs(env.db, actor, { leadId: detail.lead.id, limit: 5 }),
-      ]);
+      const { stages, template, duplicates } = detail;
+      const people = peopleOf(detail.team);
       const l = detail.lead;
       return {
         lead: {

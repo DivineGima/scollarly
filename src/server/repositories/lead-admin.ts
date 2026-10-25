@@ -5,6 +5,7 @@ import { rowsOf } from "@/server/db/rows";
 import { lead, leadActivity, leadClaim, leadNote, leadProgrammePref, messageTemplate, pipelineStage, programme, university } from "@/server/db/schema";
 import { uuidv7 } from "@/lib/uuid";
 import { runAs } from "./as-actor";
+import { teamMembersOf, teamQuery, type TeamMember } from "./team";
 
 /**
  * Admin lead management reads and writes (architecture 7.2, 8.3, S5.1 to S5.6). Every function takes an `Actor` and runs inside
@@ -220,11 +221,14 @@ function toPair(r: PairRow): DuplicatePair {
 
 /** Pairs of live leads with the same WhatsApp number that nobody has decided on, newest first. `leadId` limits it to one lead. */
 export async function listDuplicatePairs(db: Db, actor: Actor, options: { leadId?: string; limit?: number } = {}): Promise<DuplicatePair[]> {
+  const [result] = await runAs(db, actor, duplicatePairsQuery(db, options));
+  return rowsOf<PairRow>(result).map(toPair);
+}
+
+/** The statement behind `listDuplicatePairs`, for a screen that runs it together with its other reads in one round trip. */
+function duplicatePairsQuery(db: Db, options: { leadId?: string; limit?: number }) {
   const limit = Math.min(Math.max(Math.trunc(options.limit ?? 50), 1), 200);
-  const [result] = await runAs(
-    db,
-    actor,
-    db.execute(sql`
+  return db.execute(sql`
       select a.id as a_id, a.ref as a_ref, a.name as a_name, a.received_at as a_received, a.stage_code as a_stage,
              b.id as b_id, b.ref as b_ref, b.name as b_name, b.received_at as b_received, b.stage_code as b_stage
         from lead a
@@ -234,9 +238,7 @@ export async function listDuplicatePairs(db: Db, actor: Actor, options: { leadId
          and not exists (select 1 from lead_duplicate_decision d
                           where (d.lead_a_id = a.id and d.lead_b_id = b.id) or (d.lead_a_id = b.id and d.lead_b_id = a.id))
        order by greatest(a.received_at, b.received_at) desc, a.id
-       limit ${limit}`),
-  );
-  return rowsOf<PairRow>(result).map(toPair);
+       limit ${limit}`);
 }
 
 export type ResolveDuplicateOutcome = "merged" | "dismissed" | "not_found" | "not_a_pair" | "already_decided";
@@ -386,6 +388,72 @@ export async function getLeadDetail(db: Db, actor: Actor, id: string): Promise<L
     notes: notes.map((n) => ({ id: n.id, authorId: n.authorId, body: n.body, createdAt: n.createdAt, erased: n.erasedAt !== null })),
     sourceUniversityName: sourceUniversity[0]?.name ?? null,
     pendingClaims: claims[0]?.n ?? 0,
+  };
+}
+
+export interface LeadScreen extends LeadDetail {
+  stages: { code: string; position: number; name: Record<string, string> | string }[];
+  team: TeamMember[];
+  /** The published staff template for this lead's stage and language, or null. */
+  template: string | null;
+  duplicates: DuplicatePair[];
+}
+
+/**
+ * Everything the lead detail screen shows, in ONE round trip (Stage 5 CPU repair, tracker Session 23). Each separate read is an
+ * HTTP request to Neon, and each costs the Worker CPU time; the screen used to make seven of them and measured 13 ms warm against
+ * the 8 ms gate. The reads that depend on the lead row (its stage and language for the template, the lead it was merged into, the
+ * university it came from) take it through a sub-select instead of waiting for it.
+ */
+export async function getLeadScreen(db: Db, actor: Actor, id: string): Promise<LeadScreen | null> {
+  const [leads, prefs, activities, notes, claims, stages, team, template, mergedTo, sourceUniversity, duplicates] = await runAs(
+    db,
+    actor,
+    db.select(detailColumns).from(lead).where(eq(lead.id, id)).limit(1),
+    db
+      .select({ rank: leadProgrammePref.rank, programmeId: programme.id, programmeName: programme.name, universityName: university.name })
+      .from(leadProgrammePref)
+      .innerJoin(programme, eq(programme.id, leadProgrammePref.programmeId))
+      .innerJoin(university, eq(university.id, programme.universityId))
+      .where(eq(leadProgrammePref.leadId, id))
+      .orderBy(asc(leadProgrammePref.rank)),
+    db
+      .select({ id: leadActivity.id, type: leadActivity.type, actorId: leadActivity.actorId, data: leadActivity.data, createdAt: leadActivity.createdAt })
+      .from(leadActivity)
+      .where(eq(leadActivity.leadId, id))
+      .orderBy(desc(leadActivity.createdAt), desc(leadActivity.id))
+      .limit(TIMELINE_LIMIT),
+    db
+      .select({ id: leadNote.id, authorId: leadNote.authorId, body: leadNote.body, createdAt: leadNote.createdAt, erasedAt: leadNote.erasedAt })
+      .from(leadNote)
+      .where(eq(leadNote.leadId, id))
+      .orderBy(desc(leadNote.createdAt))
+      .limit(TIMELINE_LIMIT),
+    db.select({ n: sql<number>`count(*)::int` }).from(leadClaim).where(and(eq(leadClaim.leadId, id), eq(leadClaim.status, "pending"))),
+    db.select().from(pipelineStage).orderBy(asc(pipelineStage.position)),
+    teamQuery(db),
+    db.execute(sql`
+      select body from message_template
+       where stage_code = (select stage_code from lead where id = ${id}::uuid) and locale = (select locale from lead where id = ${id}::uuid) and status = 'published'
+       order by id limit 1`),
+    db.execute(sql`select ref from lead where id = (select merged_into_id from lead where id = ${id}::uuid)`),
+    db.execute(sql`select name from university where id::text = (select source->>'university_id' from lead where id = ${id}::uuid)`),
+    duplicatePairsQuery(db, { leadId: id, limit: 5 }),
+  );
+  const row = leads[0];
+  if (!row) return null;
+  return {
+    lead: row,
+    mergedIntoRef: rowsOf<{ ref: string }>(mergedTo)[0]?.ref ?? null,
+    prefs,
+    activities,
+    notes: notes.map((n) => ({ id: n.id, authorId: n.authorId, body: n.body, createdAt: n.createdAt, erased: n.erasedAt !== null })),
+    sourceUniversityName: rowsOf<{ name: string }>(sourceUniversity)[0]?.name ?? null,
+    pendingClaims: claims[0]?.n ?? 0,
+    stages: stages.map((r) => ({ code: r.code, position: r.position, name: r.name as Record<string, string> })),
+    team: teamMembersOf(team),
+    template: rowsOf<{ body: string }>(template)[0]?.body ?? null,
+    duplicates: rowsOf<PairRow>(duplicates).map(toPair),
   };
 }
 
