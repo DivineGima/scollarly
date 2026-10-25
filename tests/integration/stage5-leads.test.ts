@@ -486,7 +486,10 @@ describe("S5.5 erasure: all of it or none of it", () => {
     expect(await count(`select count(*) as n from event where lead_ref = 'SC-ZZZZZ-ZZZZZ'`)).toBe(1);
     expect(await count(`select count(*) as n from event where type = 'wa_tap'`)).toBe(3);
     // Payments: the row remains, its lead link is cleared.
-    expect(await rows(`select lead_id, amount_usd_cents from placement_payment where id = ${q(paymentId)}`)).toEqual([{ lead_id: null, amount_usd_cents: 50000 }]);
+    // A bigint comes back as a string from node-postgres and as a number from PGlite, so compare it as a number.
+    const [payment] = await rows(`select lead_id, amount_usd_cents from placement_payment where id = ${q(paymentId)}`);
+    expect(payment?.lead_id).toBeNull();
+    expect(Number(payment?.amount_usd_cents)).toBe(50000);
     // Activity: nothing existing was touched, one `anonymised` entry was added by the admin.
     expect(await count(`select count(*) as n from lead_activity where lead_id = ${q(target)}`)).toBe(activityBefore + 1);
     expect(await rows(`select actor_id from lead_activity where lead_id = ${q(target)} and type = 'anonymised'`)).toEqual([{ actor_id: admin.userId }]);
