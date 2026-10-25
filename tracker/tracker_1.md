@@ -580,6 +580,26 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Status:** S5.2 complete. S4.5, S5.4 and S5.5 wait for the three new rows. S5.6 (concurrency helper) has no screen of its own; it is exercised by every write and stays with S5.4 and S5.5.
 
+### 2026-10-25: Session 27 (events, merge and erase measured; hosting decision; slimmer process)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `chore/slim-process`.
+
+**Deploy run 40218262735** (`cpu_scenarios` = `events,lead-merge,lead-erase`). The three measurements all PASSED against the 8 ms gate; the run was marked failed by two other things, both handled below.
+- **Events POST (S4.5):** 50 requests, warm p50 4 ms, p95 6 ms, worst 9 ms, none terminated (all 202). PASS.
+- **Merge a duplicate pair (S5.4):** 12 requests, warm p50 5 ms, p95 6 ms, worst 6 ms, all 200. PASS.
+- **Erase a lead (S5.5):** 12 requests (10 tail events), warm p50 2 ms, p95 3 ms, worst 4 ms, all 200. PASS.
+- **Why the run failed:** (1) the cleanup step could not delete the probe leads, because the merge measurement leaves rows in `lead_duplicate_decision` (and other tables) that point at them. Fixed: the cleanup now clears every table with a foreign key to `lead` and the merged-into pointers first. The probe leads of this run are removed by the next run's cleanup. (2) The Neon cold start probe took 3383 ms (gate about 2 s; earlier 1592 and 2534 ms). Neon's wake-up from idle is outside our code and varies; it also adds a 330 s wait to every run.
+
+**Owner decisions (2026-10-25):**
+- **Hosting: stay on Cloudflare Workers Free.** Workers Paid (about $5 a month) stays the fallback if the 10 ms limit ever blocks a stage; moving to Vercel is not planned (Vercel's free Hobby plan is for non-commercial use only, so production would need Pro at about $20 a month, and the Durable Object rate limiter and event counter would need a redesign).
+- **Slimmer process**, to stop spending days on measurement:
+  1. A CPU row is required when a module adds a NEW kind of request (a new data shape or a new outside call). A module that reuses a measured shape (for example one more staff write that is one database function call) is covered by that row and by Cloudflare's own production logs, and gets no scenario of its own.
+  2. Production telemetry (Workers Logs, read through the Cloudflare API) is checked after each deploy for terminated requests; a termination reopens the module.
+  3. CI runs once per merge request (it ran twice, on the push and on the merge request), and a change that touches only `tracker/` or `docs/` skips it.
+  4. The deploy workflow's defaults are now `cold_wait` 0 (the Neon cold start probe is run only when asked, with 330) and `lead_samples` 30. A full measurement is run once per stage, not once per module.
+
+**Status:** S4.5 complete (events row). S5.4 and S5.5 complete (merge and erase rows). S5.6 complete (every write carries and checks the version; exercised by the measured writes and the integration tests). The claim decision (inside S5.5) has no scenario until Stage 8 makes link requests possible; its Worker-side cost is the same shape as the measured writes. Stage 4 and Stage 5 are complete except for the owner items: phone test H19, repository back to private H20, trust and legal text at the end (E1 to E8).
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -664,14 +684,14 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S4.2 | IndexedDB queue and sync engine | in-progress (2026-10-25: IndexedDB queue, backoff, Web Locks, 30-day flag, remove from phone; unit and Playwright pass) |
 | S4.3 | Apply form, quick form, send-first order | in-progress (2026-10-25: quick and full forms, send first, 4 second wait; unit and Playwright pass) |
 | S4.4 | `POST /api/v1/leads` | complete (2026-10-25, owner decision F19 (a): accepted at a warm p95 up to the platform's 10 ms limit: 60 samples, warm p50 6 ms, p95 10 ms, first-of-instance worst 16 ms, none terminated; built, CI passed, migration 0005 applied on the live database by the deploy workflow, 20 of 20 probes passed in the first run; the CPU gate is NOT stably met: warm p95 6 ms in the first deploy, 22 ms in the second, see Session 19) |
-| S4.5 | WhatsApp tap events | in-progress (2026-10-25: built and CI passed; the CPU row for `POST /api/v1/events` has no scenario yet) |
+| S4.5 | WhatsApp tap events | complete (2026-10-25, run 40218262735: events POST warm p50 4 ms, p95 6 ms, gate 8 ms, PASS; built and CI passed; the CPU row for `POST /api/v1/events` has no scenario yet) |
 | S4.6 | Contact page, WhatsApp number from settings | in-progress (2026-10-25: contact page, the one WhatsApp helper, a test that fails on any other number or `wa.me` link) |
 | S5.1 | Leads list | complete (2026-10-25: list, filters, search, URL filters, keyset paging; merged in PR #21 with CI green; deployed; CPU row measured on 2026-10-25 (run 40201966892): warm p50 4 ms, p95 6 ms, gate 8 ms, PASS) |
 | S5.2 | Lead detail | complete (2026-10-25, owner decision F20 (a) accepts the detail screen under the F19 exception; run 40213920947: lead detail warm p50 6 ms, p95 10 ms, worst 11 ms after the one-trip change, gate 8 ms; accepted; lead detail, stage, assign, notes, log reply, WhatsApp drawer and chip; merged in PR #21 with CI green; deployed; the write path measured PASS (warm p95 4 ms); the lead detail CPU row has no data yet, a re-run is needed) |
 | S5.3 | Overdue, Unassigned, Overview | complete (2026-10-25: Overview with one COUNT(*) FILTER statement, Overdue and Unassigned views; merged and deployed; CPU row measured on 2026-10-25 (run 40201966892): warm p50 4 ms, p95 5 ms, gate 8 ms, PASS) |
-| S5.4 | Duplicate detection | in-progress (2026-10-25: duplicate query, merge and not-a-duplicate in one transaction, never automatic; integration and Playwright pass) |
-| S5.5 | Link requests, data requests, erasure | in-progress (2026-10-25: link requests with a checked verification method, data requests, erasure in one transaction; integration and Playwright pass) |
-| S5.6 | Optimistic concurrency helper | in-progress (2026-10-25: lead.updated_at with a trigger, version carried by every save, conflict message; integration passes) |
+| S5.4 | Duplicate detection | complete (2026-10-25, run 40218262735: merge a pair warm p50 5 ms, p95 6 ms, gate 8 ms, PASS; duplicate query, merge and not-a-duplicate in one transaction, never automatic; integration and Playwright pass) |
+| S5.5 | Link requests, data requests, erasure | complete (2026-10-25, run 40218262735: erase a lead warm p50 2 ms, p95 3 ms, PASS; the claim decision is measured with Stage 8; link requests with a checked verification method, data requests, erasure in one transaction; integration and Playwright pass) |
+| S5.6 | Optimistic concurrency helper | complete (2026-10-25: lead.updated_at with a trigger, version carried by every save, conflict message; integration passes) |
 | S6.1 | Content flow framework | — |
 | S6.2 | Content types | — |
 | S6.3 | Media | — |

@@ -1,11 +1,13 @@
 name: CI
 
-# S0.1 minimal CI. Runs on every push and merge request. Deploys are NOT done here (architecture 13.3:
-# deploys run only from `main` after merge, and no deploy workflow exists in Stage 0).
+# S0.1 minimal CI. Runs on every merge request, and on `main` after a merge. A branch with an open merge request is checked once, by the
+# merge request (it used to run twice, on the push and on the merge request, which used up the free Actions minutes). A change that touches
+# only the tracker or docs/ skips it. Deploys are NOT done here (architecture 13.3: deploys run only from `main` after merge).
 on:
   push:
-    branches-ignore: [main]
+    branches: [main]
   pull_request:
+    paths-ignore: ["tracker/**", "docs/**"]
 
 concurrency:
   group: ci-${{ github.ref }}

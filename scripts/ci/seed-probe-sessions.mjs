@@ -37,9 +37,13 @@ async function cleanup() {
     }
     // Probe leads, children first. Only rows whose source page is the probe marker.
     const probeLeads = "select id from public.lead where source ->> 'page' = '/__probe'";
-    await client.query(`delete from public.event where lead_id in (${probeLeads})`);
-    await client.query(`delete from public.lead_activity where lead_id in (${probeLeads})`);
-    await client.query(`delete from public.lead_programme_pref where lead_id in (${probeLeads})`);
+    // Every table with a foreign key to lead (the merge and erase measurements leave duplicate decisions, notes and an `anonymised` activity).
+    await client.query(`delete from public.lead_duplicate_decision where lead_a_id in (${probeLeads}) or lead_b_id in (${probeLeads})`);
+    for (const table of ["event", "lead_activity", "lead_programme_pref", "lead_note", "lead_claim", "data_request", "placement_payment"]) {
+      await client.query(`delete from public.${table} where lead_id in (${probeLeads})`);
+    }
+    // A merged lead points at the lead it was merged into; both are probe leads, so the pointer is cleared first.
+    await client.query("update public.lead set merged_into_id = null where source ->> 'page' = '/__probe' and merged_into_id is not null");
     const removedLeads = await client.query("delete from public.lead where source ->> 'page' = '/__probe'");
     await client.query("commit");
     console.log(`Removed ${ids.length} throwaway user(s) and their sessions, and ${removedLeads.rowCount} probe lead(s).`);
