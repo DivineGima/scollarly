@@ -1,7 +1,7 @@
 import { errorResponse, isSameOrigin, jsonResponse, newRequestId, readJsonBody } from "@/lib/http";
 import { createLead, type CreateLeadOutcome } from "@/modules/leads/service";
 import { getDb } from "@/server/db/runtime";
-import { insertLead } from "@/server/repositories/leads";
+import { insertLead } from "@/server/repositories/lead-intake";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
 import { verifyTurnstile } from "@/server/security/turnstile";
 import { cachedSlaSettings } from "./settings-cache";

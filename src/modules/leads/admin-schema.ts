@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { uuidSchema, V } from "@/lib/schemas/common";
 import { VERSION_PATTERN } from "@/server/repositories/lead-admin";
 
