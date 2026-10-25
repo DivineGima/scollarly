@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { uuidSchema, V } from "@/lib/schemas/common";
 
 /** One email, lower case, as typed by the owner. Google reports the address in the form it holds, so the comparison is case-insensitive. */

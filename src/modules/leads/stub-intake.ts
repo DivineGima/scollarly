@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { canonicalJson, sha256Hex } from "@/lib/hash";
 import type { Db } from "@/server/db/client";
 import { insertStubLead } from "@/server/repositories/phase0-leads";

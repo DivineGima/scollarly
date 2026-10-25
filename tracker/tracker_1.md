@@ -487,6 +487,28 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Still open and not Claude Code's to do:** merge of the pull request and the deploy run (the owner, or on the owner's word); the Stage 4 owner items (H4 trust content and H5 legal text at the end of the build, H19 phone check). Stage 6 has not started.
 
+### 2026-10-25: Session 21 (Stage 4 lead CPU gate: cause found, measurement corrected)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `fix/stage-4-lead-cpu-tail`. Started on the owner's word ("lets repair stage 4 first").
+
+**What was found (evidence, not guesses)**
+- The deployed Worker's `Worker Startup Time` is 37 ms (run 40147199254) and 40 ms (run 40142776719), reported by Cloudflare at deploy. A fresh instance pays it inside its first request.
+- Workers Logs (read through the Cloudflare API, `cpuTimeMs` per request) hold about 2,700 requests of this Worker: every outcome is `ok` (none terminated, even the 66 ms lead), lead POSTs are p50 4 ms and p90 16 ms overall, and by data centre p90 8 ms (Washington) against 23 ms (Los Angeles). So the spread is partly where the request lands, and partly first-of-instance requests.
+- The measured "warm" p95 only skipped the first three requests of a run, so it mixed first-of-instance requests (a third of them, because one lead every 12.5 s often reaches a freshly started instance) with warm ones.
+- Local profile of the start-up (`wrangler check startup`): the application's own module loading was about 126 ms (local, inflated by the profiler), led by zod schema construction, the Drizzle schema file and the Neon driver. Evaluation time (not file size) is what matters: trimming zod's bundle by half changed evaluation time very little.
+
+**What was changed (safe reductions)**
+- `.open-next/worker.js` is loaded on first need, not at start-up; the queue Durable Object class is taken from its own small file.
+- The database handle is built without the schema object (no relational configuration on the first query of an instance); `createWsDb` likewise. No code uses the relational query API (a test says so).
+- `insertLead` moved to `repositories/lead-intake.ts` and `readSettings` to `repositories/settings-read.ts` (both re-exported from the old files), so the lead and event paths no longer load the schema file or any sign-in, admin or student code (a test walks the imports and fails if they do).
+- zod is imported as a namespace in every module: the lead handler's bundle went from 1130 KB to 577 KB and the whole Worker from 7.98 MB to 7.21 MB.
+- The measurement now splits first-of-instance requests from the rest (`X-Instance-Request` on the lead endpoint) and judges the rest against the gate; the first-of-instance requests are reported with their count and worst case. The deploy workflow gained two inputs, `cpu_scenarios` (for example `lead`) and `lead_samples`, so a lead-only run takes about 12 minutes instead of 23.
+- Considered and NOT done: loading the sign-in, admin and student handlers inside their requests. It would shorten start-up for lead requests, but it would move that work into the staff request's own CPU time, which Workers Free limits to 10 ms, and it cannot be proved safe without the live platform. Also not done (large, risky, gain uncertain): replacing zod with `zod/mini` and replacing the Neon driver for the lead path. Either is a possible next step if the owner wants the first-of-instance cost lower.
+
+**Verification (local):** typecheck and lint clean; unit 456 of 456 (9 new start-up guard tests); integration 312 passed, 20 todo. **Not yet measured on the platform:** the effect on `Worker Startup Time` and on the lead CPU rows. That needs the merge, then the deploy workflow (Run workflow, `cpu_scenarios` = `lead`, `lead_samples` = 30).
+
+**What stays true after this change:** a request that lands on a fresh instance costs the instance's start-up plus its own work, so on Workers Free it will not be under 8 ms. Whether that is acceptable is the owner's decision (flag F18). No request has been terminated by the platform so far.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -509,6 +531,7 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 | F14 | `@neondatabase/auth` is a **beta** (0.7.0-beta), pins `zod` 4.5.4 (an advisory exists for oversized collections) and Better Auth 1.7.6, and declares an optional peer of Next 16. `package.json` has an `overrides` entry so it installs on Next 15.5.28. We import only its framework-neutral server entry. | A beta dependency sits in the sign-in path. | **Owner accepts the beta (2026-10-24: "yes am okay with it being a beta version").** Re-check at each Stage review. If it becomes a problem the fallback is self-hosted Better Auth behind the same facade (ADR-037 fallback). |
 | F16 | **Two image budgets in the documents.** Architecture 7.3 (`media_budget_bytes (150 MB)`) and section 3 say 150 MB; PRD FR-18, architecture 10.5 and essentials S6.3 say about 3.5 GB of Neon Object Storage's free 5 GB. | A seed default had to be chosen, and the meter and the 70% banner (S6.3, S10.2) read it. | **Closed 2026-10-24: the owner confirmed 3.5 GB.** Seeded as 3.5 GiB (D16). The stale 150 MB lines in architecture sections 3, 7.3 and the risk table were corrected in place. Left as written: ADR-026's historical rationale and the PRD's open question Q on the budget. |
 | F17 | **`translations` shape.** Architecture 6.4 shows one text per row (`{ "en": "...", "fr": "..." }`), but `faq`, `university`, `fee_structure` and others have several translatable fields. | Stage 3 renders it and Stage 6 writes it. The database only checks it is a JSON object; `translationsSchema` requires `en`. | **Decided 2026-10-24 (owner accepted the recommendation, D19):** a row keeps its English text in plain columns; `translations` holds one object per extra locale, for example `{ "fr": { "question": "...", "answer": "..." } }`, with the fields it translates. `translationsSchema` (which requires `en`) is changed in Stage 3 to match, and the architecture 6.4 example is corrected then. |
+| F18 | **First request of a Worker instance costs more than the 8 ms gate.** The lead endpoint's warm requests cost 3 to 5 ms; a request that reaches a freshly started instance also pays the Worker's start-up (Cloudflare reports 37 to 40 ms). Over about 2,700 logged requests none was terminated. | Section 17's gate is "at most 8 ms warm p95" and was meant for warm requests, but the old measurement could not tell warm from first-of-instance. | **Open (owner decision).** Options: (a) accept: the gate judges warm requests, first-of-instance requests are reported, and a platform termination is the failure that matters; (b) shrink the start-up further (zod/mini, a lighter Neon client for the lead path, loading the signed-in handlers on demand), with no guarantee of reaching 8 ms; (c) a paid Workers plan (not allowed by CLAUDE.md without the owner's say). Claude Code recommends (a), then (b) only if telemetry later shows terminated requests. |
 
 ## Stage status
 

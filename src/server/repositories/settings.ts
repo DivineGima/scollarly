@@ -3,7 +3,7 @@ import type { SettingKey } from "@/lib/constants";
 import type { Actor } from "@/server/auth/actor";
 import type { Db } from "@/server/db/client";
 import { siteSetting } from "@/server/db/schema";
-import { runAs, runPublic } from "./as-actor";
+import { runAs } from "./as-actor";
 
 /**
  * `site_setting` (architecture 7.3). Anyone may read: pages need the WhatsApp number and the SLA hours. Only the owner
@@ -11,10 +11,8 @@ import { runAs, runPublic } from "./as-actor";
  */
 
 /** Every setting as `key -> value`. A JSON `null` means the owner has not set it yet. */
-export async function readSettings(db: Db): Promise<Record<string, unknown>> {
-  const [rows] = await runPublic(db, db.select({ key: siteSetting.key, value: siteSetting.value }).from(siteSetting));
-  return Object.fromEntries(rows.map((row) => [row.key, row.value]));
-}
+// Reading the settings lives in its own file (see settings-read.ts); re-exported so imports keep working.
+export { readSettings } from "./settings-read";
 
 /**
  * Sets one setting. Returns false when no row changed, which is what the policy does to anyone but the owner: row level

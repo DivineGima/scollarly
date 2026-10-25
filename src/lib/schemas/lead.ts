@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { QUALIFICATION_TYPES } from "../constants";
 import { normalisePhone } from "../phone";
 import { REF_PATTERN } from "../ref";

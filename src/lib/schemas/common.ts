@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { locales } from "@/i18n/config";
 import { CONTENT_STATUSES, STUDENT_COUNTRIES } from "../constants";
 

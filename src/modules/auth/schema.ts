@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { requiredText } from "@/lib/schemas/common";
 import { INVITE_TOKEN_PATTERN } from "./service";
 

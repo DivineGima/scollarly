@@ -23,6 +23,16 @@ on:
         required: false
         default: true
         type: boolean
+      cpu_scenarios:
+        description: "Only these CPU scenarios, comma separated (for example: lead). Empty runs all of them"
+        required: false
+        default: ""
+        type: string
+      lead_samples:
+        description: "Lead requests to measure, sent 12.5 seconds apart (50 takes about 10 minutes)"
+        required: false
+        default: "50"
+        type: string
 
 permissions:
   contents: read
@@ -191,9 +201,11 @@ jobs:
         continue-on-error: true
         env:
           PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
+          CPU_SCENARIOS: ${{ inputs.cpu_scenarios }}
+          LEAD_SAMPLES: ${{ inputs.lead_samples }}
         run: |
           sleep 70
-          node scripts/measure-cpu.mjs --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" --media-list scripts/.generated/phase0-images.json --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
+          node scripts/measure-cpu.mjs ${CPU_SCENARIOS:+--only "$CPU_SCENARIOS"} --lead-samples "${LEAD_SAMPLES:-50}" --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" --media-list scripts/.generated/phase0-images.json --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
           { echo; echo "### CPU measurement (milliseconds of Worker CPU, from wrangler tail)"; echo; echo '```'; cat /tmp/measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set the real Turnstile secret (the measurement above needed the always-pass test secret)
