@@ -5,7 +5,7 @@
  * The Content-Security-Policy is ENFORCED (Stage 11, S11.1). It was observed in report-only mode through Stages 1 to 10. Next.js inlines
  * small bootstrap scripts into prerendered pages, so `script-src` keeps `'unsafe-inline'`: a nonce would need a dynamic render of every
  * page, which the free plan's CPU limit does not allow (ADR-033). That is the one accepted gap; everything else is closed to the site's own
- * origin, Turnstile and the YouTube privacy domain. `frame-ancestors 'none'` and `X-Frame-Options` keep the site from being framed.
+ * origin, Turnstile, the YouTube privacy domain and, for the tapped 360 tour frame only, any https address. `frame-ancestors 'none'` and `X-Frame-Options` keep the site from being framed.
  */
 
 export const CSP = [
@@ -17,8 +17,10 @@ export const CSP = [
   "img-src 'self' data: blob:",
   "font-src 'self'",
   "connect-src 'self'",
-  // Tour videos (FR-3) and the Turnstile widget.
-  "frame-src https://www.youtube-nocookie.com https://challenges.cloudflare.com",
+  // Campus videos (FR-3), the Turnstile widget, and 360 tours. A tour is hosted by the university or a tour vendor and staff enter its
+  // address (any https address that passes the publish gate), so the host cannot be listed here; `https:` lets only that tapped,
+  // sandboxed iframe load. Without it every seeded 360 tour is blocked and the visitor sees an empty frame. Nothing else frames.
+  "frame-src https://www.youtube-nocookie.com https://challenges.cloudflare.com https:",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

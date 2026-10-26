@@ -29,3 +29,17 @@ const UUID_ANY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_ANY.test(value);
 }
+
+/**
+ * A random (version 4) UUID for the browser. `crypto.randomUUID` exists only from Chrome 92 and Safari 15.4, and a student's phone can be
+ * older than that; `getRandomValues` has been there far longer. The idempotency key of a lead comes from here, so a missing
+ * `randomUUID` must not stop an application from being sent.
+ */
+export function randomUuid(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = ((b[6] ?? 0) & 0x0f) | 0x40;
+  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80;
+  const h = (i: number) => HEX[b[i] ?? 0];
+  return `${h(0)}${h(1)}${h(2)}${h(3)}-${h(4)}${h(5)}-${h(6)}${h(7)}-${h(8)}${h(9)}-${h(10)}${h(11)}${h(12)}${h(13)}${h(14)}${h(15)}`;
+}

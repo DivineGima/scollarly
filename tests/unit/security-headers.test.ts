@@ -21,7 +21,10 @@ describe("security headers (architecture 13.1)", () => {
     const directives: Record<string, string[]> = Object.fromEntries(CSP.split("; ").map((d) => [d.split(" ")[0] ?? "", d.split(" ").slice(1)]));
     expect(directives["connect-src"]).toEqual(["'self'"]);
     expect(directives["img-src"]).toEqual(["'self'", "data:", "blob:"]);
-    expect(directives["frame-src"]).toEqual(expect.arrayContaining(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com"]));
+    // `https:` is for the tapped 360 tour frame: staff enter any https tour address (the seeded tours are on other hosts), and a list of hosts would block them.
+    expect(directives["frame-src"]).toEqual(expect.arrayContaining(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com", "https:"]));
+    expect(directives["frame-src"]).not.toContain("http:");
+    expect(directives["frame-src"]).not.toContain("*");
     expect(directives["frame-ancestors"]).toEqual(["'none'"]);
     expect(directives["default-src"]).toEqual(["'self'"]);
     expect(directives["base-uri"]).toEqual(["'self'"]);

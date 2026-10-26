@@ -36,7 +36,8 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler", "RateLimiter", "Collector"] }]
 
-  // Secrets are never in this file. Set them with `wrangler secret put` (see .dev.vars.example):
-  // DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-  // TURNSTILE_SECRET_KEY, RESEND_API_KEY, OWNER_EMAIL, PHASE0_PROBE_TOKEN (the CPU measurement secret).
+  // Secrets are never in this file. The deploy workflow sets them from repository secrets (see .dev.vars.example and cloudflare-env.d.ts):
+  // DATABASE_URL, NEON_AUTH_BASE_URL, NEON_AUTH_COOKIE_SECRET, TOTP_ENCRYPTION_KEY, RATE_LIMIT_SECRET, NEON_STORAGE_ENDPOINT,
+  // NEON_STORAGE_REGION, NEON_STORAGE_ACCESS_KEY_ID, NEON_STORAGE_SECRET_ACCESS_KEY, TURNSTILE_SECRET_KEY, OWNER_EMAIL,
+  // PHASE0_PROBE_TOKEN (the CPU measurement secret). Google credentials live in the Neon Auth console; no email service is used (ADR-036).
 }

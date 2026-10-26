@@ -81,7 +81,7 @@ Sections of `system_architecture_1.md` built by this file (referenced, not repea
 | S1.2 | Repository layer with the branded `Actor` type. Auth facade interface: `checkSession`, `requireRole`, `requireOwner`. |
 | S1.3 | Shared libraries: WAT time helpers, Result type, WhatsApp URL helper (FR-4), phone normaliser (ADR-025), reference generator (ADR-006), error envelope, shared Zod schemas |
 | S1.4 | SLA module as a pure function (10.7) with table tests |
-| S1.5 | Full CI: Postgres service container, boundary lint rules, Worker size gate (fail above 2.6 MiB compressed), authorisation matrix harness generated from the 9.5 table, Lighthouse CI, axe, CSP in report-only mode, security headers |
+| S1.5 | Full CI: Postgres service container, boundary lint rules, Worker size gate (fail above 2.6 MiB compressed), authorisation matrix harness generated from the 9.5 table, Lighthouse CI, axe, CSP (report-only in Stage 1, enforced in Stage 11), security headers |
 | S1.6 | i18n scaffolding: next-intl with namespaces, `messages/en.json` and `fr.json`, rewrites to `/en` (ADR-018), design tokens, system font stack |
 | S1.7 | One-off scripts: seed the 9 universities, programmes, fees, FAQs, process steps and copy from the old site data (owner supplies the old repo data files; stop and ask if they are missing), and migrate any existing `ContactSubmission` rows into `lead`. The same script imports the logos and campus images through the `MediaStore` path (WebP, size caps, hash dedupe) so Stage 3 renders real images; a second run changes nothing. |
 
@@ -416,3 +416,9 @@ Built to this file without a change of scope. Clarifications: (1) **S9.1** the d
 - **GitHub scheduled workflows:** in a public repository GitHub disables them after 60 days without a commit; `docs/recovery.md` section 2 tells the owner to check the Actions page monthly.
 - **B9 (payments export):** the CSV is fetched by the screen, not opened as a link, so a refusal (more than 5,000 rows, a lapsed sign-in) shows its message and no file is saved.
 - **C4 (settings):** a change is all or nothing. If any key has no row, nothing is written and the call answers 404.
+
+## Amendment (full review of Stages 0 to 11, mirrors the architecture, 2026-10-26)
+
+- **S11.1 (CSP):** `frame-src` also allows `https:` so the 360 tours (staff-entered https addresses on other hosts) can open; nothing else frames.
+- **S4.4, S4.5, S5, S6, S9, S10 (request bodies):** all request bodies are size-capped while they are read (`readCappedBytes`), not by the declared length alone.
+- **S4.2, S4.3 (older phones):** the send path has fallbacks for `AbortSignal.timeout` and `crypto.randomUUID`, and a failure while sending ends in the "couldn't save" state.

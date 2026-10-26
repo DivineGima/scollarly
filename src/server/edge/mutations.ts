@@ -1,4 +1,4 @@
-import { errorResponse, errorResponseFor, isSameOrigin, newRequestId } from "@/lib/http";
+import { errorResponse, errorResponseFor, isSameOrigin, newRequestId, readCappedBytes, readJsonBody } from "@/lib/http";
 import { logError } from "@/server/log";
 import { type Actor, AuthError, hasAtLeast, isStepUpFresh, type Role } from "@/server/auth/actor";
 import { readSessionToken } from "@/server/auth/cookie";
@@ -103,7 +103,7 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
   const requestId = newRequestId();
   if (!isSameOrigin(request)) return errorResponse(403, "FORBIDDEN", "Cross-origin requests are not allowed.", requestId);
 
-  const body = mutation.binary ? ({ ok: true, value: {} } as const) : await readBody(request);
+  const body = mutation.binary ? ({ ok: true, value: {} } as const) : await readJsonBody(request, MAX_BODY_BYTES, { emptyIs: {} });
   if (!body.ok) {
     return body.reason === "too_large"
       ? errorResponse(413, "PAYLOAD_TOO_LARGE", "Request is too large.", requestId)
@@ -127,7 +127,7 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
 
     let bytes: Uint8Array | null = null;
     if (mutation.binary) {
-      const read = await readBytes(request, mutation.binary.maxBytes);
+      const read = await readCappedBytes(request, mutation.binary.maxBytes);
       if (!read.ok) return errorResponse(413, "PAYLOAD_TOO_LARGE", "Request is too large.", requestId);
       bytes = read.value;
     }
@@ -140,27 +140,5 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
     // No stack trace, no message from the database: the client gets the request id and nothing else (architecture 13.4). The id is logged with the error class.
     logError(requestId, `${route.area}/${route.operation}`, error);
     return errorResponseFor("INTERNAL", "Something went wrong.", requestId);
-  }
-}
-
-/** The body as bytes, refused as soon as it is known to be over `maxBytes` (the declared length first, then the real length). */
-async function readBytes(request: Request, maxBytes: number): Promise<{ ok: true; value: Uint8Array } | { ok: false }> {
-  const declared = Number.parseInt(request.headers.get("content-length") ?? "", 10);
-  if (Number.isFinite(declared) && declared > maxBytes) return { ok: false };
-  const buffer = new Uint8Array(await request.arrayBuffer());
-  return buffer.byteLength > maxBytes ? { ok: false } : { ok: true, value: buffer };
-}
-
-/** An empty body counts as `{}`, so an operation with no input (sign out everywhere) needs no payload. */
-async function readBody(request: Request): Promise<{ ok: true; value: unknown } | { ok: false; reason: "too_large" | "invalid_json" }> {
-  const declared = Number.parseInt(request.headers.get("content-length") ?? "", 10);
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return { ok: false, reason: "too_large" };
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return { ok: false, reason: "too_large" };
-  if (text.trim() === "") return { ok: true, value: {} };
-  try {
-    return { ok: true, value: JSON.parse(text) as unknown };
-  } catch {
-    return { ok: false, reason: "invalid_json" };
   }
 }
