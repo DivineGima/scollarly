@@ -11,5 +11,11 @@ export const IMAGE_CAPS = {
 } as const;
 export type ImageKind = keyof typeof IMAGE_CAPS;
 
-/** The longest side of the picture the browser makes, by kind. A logo is small; a photo does not need more than a phone screen. */
-export const IMAGE_MAX_SIDE: Record<ImageKind, number> = { logo: 512, photo: 1280, blog: 1280, testimonial: 800, other: 1280 };
+/**
+ * The longest side of the picture the browser makes, by kind. A logo is small; a photo does not need more than a phone
+ * screen. `other` (page-level decorative photos, S12.1) is kept to 800: one of these can be the hero image, loaded
+ * eagerly and counted against the 200 KB first-load page-weight budget, where the baseline page was already at
+ * ~108 KB before any photo existed, leaving little room (tracker Session 3, finding 5). 800px at quality ~82 keeps a
+ * real photo under ~50 KB instead of ~95 KB at 1280, which is the difference between fitting the budget and not.
+ */
+export const IMAGE_MAX_SIDE: Record<ImageKind, number> = { logo: 512, photo: 1280, blog: 1280, testimonial: 800, other: 800 };

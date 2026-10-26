@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { campusExperience, contentBlock, faq, feeStructure, officialResource, processStep, programme, siteSetting, university } from "@/server/db/schema";
+import { campusExperience, contentBlock, faq, feeStructure, officialResource, pageImage, processStep, programme, siteSetting, university } from "@/server/db/schema";
 
 /**
  * Inserts the seed rows (S1.7). It is run by `scripts/seed.ts` with the OWNER database role, which is how migrations run
@@ -20,6 +20,7 @@ export interface SeedRows {
   faqs: (typeof faq.$inferInsert)[];
   processSteps: (typeof processStep.$inferInsert)[];
   contentBlocks: (typeof contentBlock.$inferInsert)[];
+  pageImages: (typeof pageImage.$inferInsert)[];
   siteSettings: { key: string; value: unknown }[];
 }
 
@@ -44,6 +45,7 @@ export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
     faqs: 0,
     processSteps: 0,
     contentBlocks: 0,
+    pageImages: 0,
     siteSettings: 0,
   };
 
@@ -56,6 +58,7 @@ export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
   for (const batch of chunks(rows.faqs)) report.faqs += (await db.insert(faq).values(batch).onConflictDoNothing().returning({ id: faq.id })).length;
   for (const batch of chunks(rows.processSteps)) report.processSteps += (await db.insert(processStep).values(batch).onConflictDoNothing().returning({ id: processStep.id })).length;
   for (const batch of chunks(rows.contentBlocks)) report.contentBlocks += (await db.insert(contentBlock).values(batch).onConflictDoNothing().returning({ id: contentBlock.id })).length;
+  for (const batch of chunks(rows.pageImages)) report.pageImages += (await db.insert(pageImage).values(batch).onConflictDoNothing().returning({ id: pageImage.id })).length;
 
   // A setting is filled only while it is still "not set" (JSON null); a value an admin has set is left alone.
   for (const s of rows.siteSettings) {

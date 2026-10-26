@@ -181,6 +181,30 @@ test.describe("A2: the universities list", () => {
   });
 });
 
+test.describe("S12.1: the owner's page photos render where the snapshot has them", () => {
+  const cases: [string, string, string][] = [
+    ["/", ".hero-photo", "African students talking together on an Indian university campus"],
+    ["/about", ".page-photo", "A student studying with a laptop and notes"],
+    ["/campus-tours", ".page-photo", "A university campus building in India"],
+    ["/universities", ".page-photo", "A world map illustrating Scollarly's network of partner universities"],
+  ];
+
+  for (const [path, selector, alt] of cases) {
+    test(`${path}: the photo has real alt text and a well-formed media src`, async ({ page }) => {
+      await page.goto(path);
+      const img = page.locator(selector);
+      await expect(img).toHaveCount(1);
+      await expect(img).toHaveAttribute("alt", alt);
+      // This build's fixture has no real object behind the hash (S3.5: a build-time snapshot, no storage attached),
+      // so this checks the markup is well-formed (architecture 6.5's own `<img>` shape), not that the byte decodes.
+      const src = await img.getAttribute("src");
+      expect(src).toMatch(/^\/media\/[a-f0-9]{64}\.webp$/);
+      expect(await img.getAttribute("width")).toMatch(/^\d+$/);
+      expect(await img.getAttribute("height")).toMatch(/^\d+$/);
+    });
+  }
+});
+
 test.describe("A7: a post cannot inject markup", () => {
   test("script text is shown as text, an unsafe link is not a link, and there is no image", async ({ page }) => {
     const errors: string[] = [];

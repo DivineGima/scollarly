@@ -123,7 +123,8 @@ beforeAll(async () => {
   await insertRow(t, "event", { id: uuidv7(), type: "wa_tap" });
   await t.run(`insert into event_daily_agg (date, type, count) values ('2026-10-01', 'page_view', 1)`);
   await paymentRow(t, universityPublished, { entered_by: "adm-1" });
-  await insertRow(t, "media_asset", { id: uuidv7(), kind: "logo", width: 1, height: 1, bytes: 1, mime: "image/webp", sha256: "b".repeat(64) });
+  const heroMediaId = await insertRow(t, "media_asset", { id: uuidv7(), kind: "logo", width: 1, height: 1, bytes: 1, mime: "image/webp", sha256: "b".repeat(64) });
+  await insertRow(t, "page_image", { id: uuidv7(), key: "home.hero", media_asset_id: heroMediaId });
 });
 
 afterAll(async () => {
@@ -151,6 +152,7 @@ const READS: [string, number, number, number, number][] = [
   ["pipeline_stage", 6, 6, 6, 6],
   ["site_setting", 10, 10, 10, 10],
   ["media_asset", 1, 1, 1, 1],
+  ["page_image", 1, 1, 1, 1],
   // Staff only.
   ["consent_record", 0, 0, 2, 2],
   ["message_template", 0, 0, 1, 1],

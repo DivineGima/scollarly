@@ -166,7 +166,11 @@ export interface BlogSnapshot {
   posts: PostView[];
 }
 
+/** Page-level decorative photos, by key (`home.hero`, `about.photo`, ...). A missing key means no photo for that slot. */
+export type PageImageSnapshot = Record<string, MediaRef>;
+
 export const EMPTY_CATALOGUE: CatalogueSnapshot = { universities: [] };
 export const EMPTY_SITE: SiteSnapshot = { faqs: [], processSteps: [], blocks: {}, contact: { whatsappE164: null, phoneDisplay: null } };
 export const EMPTY_TRUST: TrustSnapshot = { stats: [], testimonials: [], journeys: [], team: [] };
 export const EMPTY_BLOG: BlogSnapshot = { posts: [] };
+export const EMPTY_PAGE_IMAGES: PageImageSnapshot = {};

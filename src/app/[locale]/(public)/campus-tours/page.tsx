@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { MediaImage } from "@/components/public/media-image";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { CampusSection } from "@/components/public/university-parts";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
-import { readCatalogue } from "@/modules/content/read";
+import { readCatalogue, readPageImages } from "@/modules/content/read";
 
 // A4 /campus-tours. Every video and tour is a facade (FR-3). A university without one says "Available on request".
 export const revalidate = 3600;
@@ -15,12 +16,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function CampusToursPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, { universities }] = await Promise.all([getTranslations("tours"), readCatalogue()]);
+  const [t, { universities }, pageImages] = await Promise.all([getTranslations("tours"), readCatalogue(), readPageImages()]);
+  const photo = pageImages["tours.photo"];
 
   return (
     <>
       <h1>{t("title")}</h1>
       <p className="lead">{t("intro")}</p>
+      {photo ? <MediaImage media={photo} className="page-photo" /> : null}
       {universities.length === 0 ? <p>{t("empty")}</p> : null}
       {universities.map((university) => (
         <section key={university.id} aria-labelledby={`tour-${university.slug}`} className="section">

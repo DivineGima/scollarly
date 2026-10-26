@@ -10,6 +10,7 @@ import {
   journeyStep,
   mediaAsset,
   officialResource,
+  pageImage,
   post,
   processStep,
   programme,
@@ -199,8 +200,19 @@ export async function readPostRows(db: Db) {
   return { posts, media };
 }
 
+/** Page-level decorative photos (home hero, about, campus tours, universities), by their key. No draft/publish gate: a key either has a photo or it does not. */
+export async function readPageImageRows(db: Db) {
+  const [images, media] = await runPublic(
+    db,
+    db.select({ key: pageImage.key, mediaAssetId: pageImage.mediaAssetId }).from(pageImage),
+    readMediaQuery(db),
+  );
+  return { images, media };
+}
+
 export type CatalogueRows = Awaited<ReturnType<typeof readCatalogueRows>>;
 export type SiteRows = Awaited<ReturnType<typeof readSiteRows>>;
 export type TrustRows = Awaited<ReturnType<typeof readTrustRows>>;
 export type PostRows = Awaited<ReturnType<typeof readPostRows>>;
+export type PageImageRows = Awaited<ReturnType<typeof readPageImageRows>>;
 

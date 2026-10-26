@@ -128,6 +128,13 @@ export const contentBlockSeedSchema = z.strictObject({
   status,
 });
 
+/** A page-level decorative photo (home hero, about, campus tours, universities), by its own stable key. */
+export const pageImageSeedSchema = z.strictObject({
+  key: z.string().regex(/^[a-z0-9]+(\.[a-z0-9]+)*$/, "A key is lower-case words joined by dots, for example home.hero."),
+  file: text(200),
+  alt: optionalText(200),
+});
+
 /**
  * The two owner-confirmed contact settings (tracker H3). They are applied only while the setting is still "not set" (JSON
  * null), so a later edit in the admin screens is never overwritten; every other setting keeps its migration default.
@@ -143,6 +150,7 @@ export const seedBundleSchema = z
     faqs: z.array(faqSeedSchema).default([]),
     process_steps: z.array(processStepSeedSchema).default([]),
     content_blocks: z.array(contentBlockSeedSchema).default([]),
+    page_images: z.array(pageImageSeedSchema).default([]),
     site_settings: z.array(siteSettingSeedSchema).default([]),
   })
   .superRefine((bundle, ctx) => {
@@ -157,6 +165,7 @@ export const seedBundleSchema = z
     duplicates("faqs", bundle.faqs.map((f) => f.question));
     duplicates("process_steps", bundle.process_steps.map((s) => `${s.kind}/${s.position}`));
     duplicates("content_blocks", bundle.content_blocks.map((b) => b.key));
+    duplicates("page_images", bundle.page_images.map((p) => p.key));
     duplicates("site_settings", bundle.site_settings.map((s) => s.key));
     bundle.universities.forEach((u, i) => {
       const programmeNames = u.programmes.map((p) => p.name);
@@ -183,5 +192,6 @@ export const SEED_FILES = {
   faqs: "faqs.json",
   process_steps: "process-steps.json",
   content_blocks: "content-blocks.json",
+  page_images: "page-images.json",
   site_settings: "site-settings.json",
 } as const;

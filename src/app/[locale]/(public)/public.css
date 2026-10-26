@@ -186,6 +186,18 @@ body:has(.site) {
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* Short, token-driven feedback on press (150ms): the global prefers-reduced-motion rule above already forces every
+   transition-duration to near-zero, so this collapses to an instant state change for anyone who asked for that. */
+.btn,
+.card-link {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.card-link:hover {
+  transform: translateY(-2px);
+}
 .cta-row {
   display: flex;
   flex-wrap: wrap;
@@ -200,12 +212,42 @@ body:has(.site) {
 .hero h1 {
   font-size: 2rem;
   margin: 0 0 var(--space-3);
+  letter-spacing: -0.01em;
+}
+/* A hero with a real photo (S12.1): the photo sits below the text on a phone, so the message is never pushed
+   off-screen by a large image, and becomes a second column once there is room for both (architecture 6.5: still a
+   plain lazy/eager <img>, no JS). The aspect ratio is reserved up front so adding the photo causes no layout shift. */
+.hero-with-media {
+  display: grid;
+  gap: var(--space-6);
+  align-items: center;
+}
+.hero-media {
+  order: -1;
+}
+.hero-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
 }
 .section {
   margin-top: var(--space-8);
 }
 .section h2 {
   margin-top: 0;
+  letter-spacing: -0.01em;
+}
+/* A single reusable photo banner (S12.1), used the same way on About, Campus Tours and Universities: one layout
+   family, not three. Lazy by default (it is never the hero), aspect ratio reserved, no caption or overlay text so
+   there is no extra contrast check to make. */
+.page-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  margin: var(--space-4) 0 0;
 }
 .cta-band {
   background: var(--color-surface);
@@ -568,11 +610,27 @@ body:has(.site) {
   .hero h1 {
     font-size: 2.75rem;
   }
+  .hero-with-media {
+    grid-template-columns: 1fr 1fr;
+  }
+  .hero-media {
+    order: 0;
+  }
+  .page-photo {
+    aspect-ratio: 21 / 9;
+  }
+  /* More breathing room once there is width to spare; still a plain token, not a new one. */
+  .section {
+    margin-top: var(--space-12);
+  }
 }
 
 @media (min-width: 64rem) {
   .grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .hero h1 {
+    font-size: 3.25rem;
   }
 }
 

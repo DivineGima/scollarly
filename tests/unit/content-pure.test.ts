@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildBlog, buildCatalogue, buildSite, buildTrust, headlineFee } from "@/modules/content/builders";
+import { buildBlog, buildCatalogue, buildPageImages, buildSite, buildTrust, headlineFee } from "@/modules/content/builders";
 import { isYoutubeId, safeHttpsUrl, youtubeEmbedUrl } from "@/modules/content/embed";
 import { confirmedRange, formatAmount, formatRange } from "@/modules/content/fees";
 import { fixtureFileName, loadFixture } from "@/modules/content/fixture";
@@ -237,6 +237,18 @@ describe("builders apply the publish rules a second time", () => {
     expect(blog.posts[0]?.publishedAt).toBe("2026-10-20T08:00:00.000Z");
     expect(blog.posts[0]?.cover?.sha256).toBe("a".repeat(64));
   });
+
+  it("keys page images by their slot, and drops a slot whose image is missing or invalid", () => {
+    const images = buildPageImages({
+      images: [
+        { key: "home.hero", mediaAssetId: "m1" },
+        { key: "about.photo", mediaAssetId: "missing" },
+      ],
+      media,
+    });
+    expect(Object.keys(images)).toEqual(["home.hero"]);
+    expect(images["home.hero"]).toEqual({ sha256: "a".repeat(64), width: 100, height: 50, alt: "Logo" });
+  });
 });
 
 describe("the build-time content fixture seam (S3.5)", () => {
@@ -251,6 +263,11 @@ describe("the build-time content fixture seam (S3.5)", () => {
   it("reads one snapshot from the file during a build", async () => {
     const site = await loadFixture<{ contact: unknown }>("site", { CONTENT_FIXTURE_FILE: "tests/fixtures/content-snapshot.json", NEXT_PHASE: "phase-production-build" });
     expect(site?.contact).toEqual({ whatsappE164: "+14155550100", phoneDisplay: "+1 415 555 0100" });
+  });
+
+  it("reads the page-images snapshot too", async () => {
+    const images = await loadFixture<Record<string, { alt: string }>>("pageImages", { CONTENT_FIXTURE_FILE: "tests/fixtures/content-snapshot.json", NEXT_PHASE: "phase-production-build" });
+    expect(images?.["home.hero"]?.alt).toBe("African students talking together on an Indian university campus");
   });
 });
 

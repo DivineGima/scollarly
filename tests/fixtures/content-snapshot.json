@@ -110,5 +110,11 @@
         "body": "Gather your documents."
       }
     ]
+  },
+  "pageImages": {
+    "home.hero": { "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "width": 1280, "height": 960, "alt": "African students talking together on an Indian university campus" },
+    "about.photo": { "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "width": 1280, "height": 720, "alt": "A student studying with a laptop and notes" },
+    "tours.photo": { "sha256": "3333333333333333333333333333333333333333333333333333333333333333", "width": 1280, "height": 720, "alt": "A university campus building in India" },
+    "universities.photo": { "sha256": "4444444444444444444444444444444444444444444444444444444444444444", "width": 1280, "height": 720, "alt": "A world map illustrating Scollarly's network of partner universities" }
   }
 }

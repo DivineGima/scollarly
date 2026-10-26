@@ -9,9 +9,9 @@ import type { ImageRef, SeedBundle } from "./schema";
  */
 
 /** Every image file the bundle names, once each, with the kind the image will have in `media_asset`. */
-export function imageFiles(bundle: SeedBundle): Map<string, { kind: "logo" | "photo"; alt?: string }> {
-  const files = new Map<string, { kind: "logo" | "photo"; alt?: string }>();
-  const add = (ref: ImageRef | undefined, kind: "logo" | "photo") => {
+export function imageFiles(bundle: SeedBundle): Map<string, { kind: "logo" | "photo" | "other"; alt?: string }> {
+  const files = new Map<string, { kind: "logo" | "photo" | "other"; alt?: string }>();
+  const add = (ref: ImageRef | undefined, kind: "logo" | "photo" | "other") => {
     if (!ref || files.has(ref.file)) return;
     files.set(ref.file, ref.alt ? { kind, alt: ref.alt } : { kind });
   };
@@ -19,6 +19,9 @@ export function imageFiles(bundle: SeedBundle): Map<string, { kind: "logo" | "ph
     add(u.logo, "logo");
     for (const c of u.campus_experiences) add(c.thumbnail, "photo");
   }
+  // Page-level decorative photos (home hero, about, campus tours, universities) are kind "other" (architecture's
+  // generic photo bucket): they are not tied to a university or a claim, just a named page slot.
+  for (const p of bundle.page_images) add({ file: p.file, alt: p.alt }, "other");
   return files;
 }
 
@@ -35,6 +38,7 @@ export async function buildSeedRows(bundle: SeedBundle, mediaIds: ReadonlyMap<st
     faqs: [],
     processSteps: [],
     contentBlocks: [],
+    pageImages: [],
     siteSettings: bundle.site_settings.map(({ key, value }) => ({ key, value })),
   };
   const mediaId = (ref: ImageRef | undefined): string | null => {
@@ -163,6 +167,12 @@ export async function buildSeedRows(bundle: SeedBundle, mediaIds: ReadonlyMap<st
       status: b.status,
       publishedAt: publishedAt(b.status, now),
     });
+  }
+
+  for (const p of bundle.page_images) {
+    const id = mediaIds.get(p.file);
+    if (!id) throw new Error(`No media asset was imported for ${p.file}`);
+    rows.pageImages.push({ id: await seedId("page_image", p.key), key: p.key, mediaAssetId: id });
   }
 
   return rows;

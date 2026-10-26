@@ -8,6 +8,7 @@ export const EXPORT_TABLES = [
   "app_user",
   "audit_log",
   "media_asset",
+  "page_image",
   "pipeline_stage",
   "lead",
   "lead_programme_pref",
