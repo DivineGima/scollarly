@@ -421,7 +421,10 @@ describe("S8.3 profile, export and erasure", () => {
       expect((await rows(`select body, erased_at from lead_note where lead_id = ${q(first.id)}`))[0]).toMatchObject({ body: "[erased]" });
       expect((await rows(`select lead_ref, lead_id from event where type = 'wa_tap' and lead_ref is null`)).length).toBeGreaterThanOrEqual(1);
       // The payment stays, without the link.
-      expect((await rows(`select lead_id, amount_usd_cents from placement_payment where id = ${q(payment)}`))[0]).toMatchObject({ lead_id: null, amount_usd_cents: 150000 });
+      const paymentRow = (await rows(`select lead_id, amount_usd_cents from placement_payment where id = ${q(payment)}`))[0];
+      expect(paymentRow).toMatchObject({ lead_id: null });
+      // A bigint column: the Postgres driver hands it back as text, PGlite as a number.
+      expect(Number(paymentRow?.amount_usd_cents)).toBe(150000);
       // The account, its link requests and its Neon Auth rows are gone.
       expect(await count(`select count(*)::int as n from app_user where id = ${q(student.user.userId)}`)).toBe(0);
       expect(await count(`select count(*)::int as n from lead_claim where user_id = ${q(student.user.userId)}`)).toBe(0);
