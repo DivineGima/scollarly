@@ -44,6 +44,9 @@ jobs:
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y age postgresql-client-17
+          # The runner ships PostgreSQL 16 tools first on the path; a dump from a 17 server needs the 17 tools.
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
           pg_dump --version
           age --version
       - run: bash scripts/ops/backup-selftest.sh
