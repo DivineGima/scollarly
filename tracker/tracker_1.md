@@ -694,7 +694,9 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Done by Claude Code (not the owner):** `node scripts/smoke.mjs` against the workers.dev address, 33 of 33 PASS. The 2FA reset SQL tried on a throwaway Neon branch (copy of production, created and deleted the same hour): removed the authenticator secret, 10 recovery codes and 3 step-up checks, left the owner row, ended all sessions, wrote an audit row each run, safe to run twice. Production was not touched.
 
-**Still open for the owner:** signing in as student, admin and owner and opening each screen (checklist section E), H14 first image copy, H24, French review, the rest of `docs/pre-launch-checklist.md`, H11 sign-off.
+**Later 2026-10-26, owner confirmed:** the role-by-role sign-in check worked (checklist section E), and the 2FA reset SQL ran well on a Neon branch for them too. Claude Code ran H14 for the owner: `scripts/backup-images.mjs` with the owner's export, all 19 pictures downloaded and checked against their fingerprints, into a folder outside the repository (`C:/Users/ALL COMPUTERS/scollarly-images`; there is no D: drive on that computer). The script reads the site's own `/media` route, so no bucket address is needed. The owner should keep a second copy of that folder somewhere safe.
+
+**Still open for the owner:** H24, French review, the rest of `docs/pre-launch-checklist.md`, H11 sign-off.
 
 ## Flags (need the owner)
 

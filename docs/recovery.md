@@ -58,12 +58,12 @@ Pictures are **not** in the database or in the weekly backup. They are in Neon O
 **Keep your own copy (monthly, and after any bulk upload)**
 
 1. Settings, **Download full export**. Save the file.
-2. In a terminal in the repository:
+2. In a terminal in the repository, replace the file name and the folder with your own and run it as one line (no `<` or `>` characters: PowerShell reads them as redirection):
 
    ```
-   node scripts/backup-images.mjs --manifest scollarly-export-2026-10-26.json --base-url https://<your bucket address>/images --out D:/scollarly-images
+   node scripts/backup-images.mjs --manifest C:/Users/YourName/Downloads/scollarly-export-2026-10-26.json --base-url https://scollarly.gimafolabit.workers.dev/media --out C:/Users/YourName/scollarly-images
    ```
-   The bucket address is the public storage address in the Neon console (Object Storage, bucket `images`). No password is needed.
+   The base address is your site's own `/media` route, which serves every picture from the bucket, so no password and no bucket address is needed. Use another drive letter only if that drive exists. If the site moves to its own domain, use `https://<that domain>/media`.
 3. It adds what is missing, checks every file against its fingerprint, replaces a damaged local file, and ends with `RESULT: every picture is on disk and checked.` Anything else is listed with the reason. Exit code 0 means all good.
 
 **If the bucket loses or damages pictures**
