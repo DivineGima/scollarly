@@ -1,9 +1,10 @@
 import * as z from "zod";
 import { errorResponseFor, newRequestId } from "@/lib/http";
 import { countryCodeSchema, uuidSchema, V } from "@/lib/schemas/common";
+import { AuthError } from "@/server/auth/actor";
 import type { DataCall } from "@/server/edge/authed";
 import type { EndpointEnv } from "@/server/edge/endpoint-env";
-import { funnelData, performanceOf } from "@/server/repositories/analytics";
+import { funnelData, performanceOf, performanceOfAll } from "@/server/repositories/analytics";
 import { buildFunnel, resolveRange } from "./funnel";
 
 /**
@@ -57,6 +58,7 @@ export function analyticsDataCalls(env: EndpointEnv): Record<string, DataCall> {
         }),
         sources: { byCountry: data.byCountry, byUniversity: data.byUniversity, byPage: data.byPage },
         universities: data.universities,
+        payments: data.payments,
         totalLeads: [...data.leadsByStage.values()].reduce((sum, n) => sum + n, 0),
       };
     },
@@ -69,6 +71,17 @@ export function analyticsDataCalls(env: EndpointEnv): Record<string, DataCall> {
       const range = resolveRange(parsed.data, now);
       if ("problem" in range) return invalid({ [range.field]: range.problem });
       return { range: { from: range.from, to: range.to }, ...(await performanceOf(env.db, actor, range, now)) };
+    },
+
+    /** C3 (S9.4): every admin's numbers. The owner only; an admin gets a 403 here and can only ever read their own through `admin/performance`. */
+    "admin/performance-all": async (actor, call) => {
+      if (actor.role !== "owner") throw new AuthError("FORBIDDEN", "Not allowed.");
+      const parsed = performanceQuery.safeParse(Object.fromEntries(call.url.searchParams));
+      if (!parsed.success) return invalid(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0] ?? "query"), i.message])));
+      const now = env.now();
+      const range = resolveRange(parsed.data, now);
+      if ("problem" in range) return invalid({ [range.field]: range.problem });
+      return { range: { from: range.from, to: range.to }, admins: await performanceOfAll(env.db, actor, range, now) };
     },
   };
 }

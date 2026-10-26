@@ -25,7 +25,7 @@ export function useAdminSession(): AdminSession {
 
 interface NavItem {
   href: string;
-  label: "overview" | "leads" | "content" | "analytics" | "dataRequests" | "profile" | "team" | "audit" | "security";
+  label: "overview" | "leads" | "content" | "analytics" | "payments" | "dataRequests" | "profile" | "team" | "audit" | "security" | "settings" | "health";
   ownerOnly?: boolean;
 }
 
@@ -33,11 +33,16 @@ interface NavItem {
 const NAV: readonly NavItem[] = [
   { href: "/admin", label: "overview" },
   { href: "/admin/leads", label: "leads" },
+  { href: "/admin/content", label: "content" },
+  { href: "/admin/analytics", label: "analytics" },
+  { href: "/admin/payments", label: "payments" },
   { href: "/admin/data-requests", label: "dataRequests" },
   { href: "/admin/profile", label: "profile" },
   { href: "/admin/team", label: "team", ownerOnly: true },
   { href: "/admin/audit", label: "audit", ownerOnly: true },
   { href: "/admin/security", label: "security", ownerOnly: true },
+  { href: "/admin/settings", label: "settings", ownerOnly: true },
+  { href: "/admin/health", label: "health", ownerOnly: true },
 ];
 
 /** A screen inside a section (a lead, the link requests) keeps its section's menu item lit; the Overview is only itself. */

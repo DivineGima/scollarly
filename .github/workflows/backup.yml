@@ -1,0 +1,86 @@
+name: Weekly encrypted database backup
+
+# S10.3 (architecture 13.7). Once a week, a full copy of the `public` schema is encrypted to the owner's PUBLIC key and kept as a GitHub
+# artifact for 28 days. The private key is never on GitHub, so nobody who reads the artifact can read the data. Image bytes are not in the
+# database (they are in Neon Object Storage), so the copy of the pictures is the owner's own script, `scripts/backup-images.mjs` (D17).
+#
+# Secrets are REPOSITORY secrets (environment secrets are not available on GitHub Free private repositories):
+#   BACKUP_DATABASE_URL   a connection string that can read every table past row level security (the owner role's URL works)
+#   BACKUP_AGE_RECIPIENT  the age PUBLIC key, created once with `age-keygen` on the owner's computer (docs/recovery.md)
+#
+# A failed run is how the owner is told: GitHub emails the person who last changed this schedule when a scheduled workflow fails, and the
+# job fails on any error, on a missing secret, and when the artifact storage passes 70% of the free quota.
+on:
+  schedule:
+    - cron: "17 2 * * 0" # Sunday 02:17 UTC, 03:17 in Douala
+  workflow_dispatch:
+    inputs:
+      force_failure:
+        description: "Fail on purpose, to check that the owner is notified"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: weekly-backup
+  cancel-in-progress: false
+
+env:
+  # GitHub Free: 500 MB of Actions storage (GitHub Docs, "About billing for GitHub Actions"). Recorded in docs/quota-review.md.
+  ARTIFACT_QUOTA_BYTES: "524288000"
+
+jobs:
+  backup:
+    name: Dump and encrypt
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Forced failure (test of the notification)
+        if: ${{ inputs.force_failure }}
+        run: |
+          echo "::error::Forced failure requested. If you got an email or a notification about this run, the alert path works."
+          exit 1
+      - uses: actions/checkout@v4
+      - name: Check the secrets exist
+        env:
+          URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          KEY: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          [ -n "$URL" ] || { echo "::error::The repository secret BACKUP_DATABASE_URL is missing."; exit 1; }
+          [ -n "$KEY" ] || { echo "::error::The repository secret BACKUP_AGE_RECIPIENT is missing."; exit 1; }
+      - name: Install age and the PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y age postgresql-client-17
+          # The runner ships PostgreSQL 16 tools first on the path; a dump from a 17 server needs the 17 tools.
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: Dump and encrypt
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: bash scripts/ops/backup-db.sh "scollarly-$(date -u +%Y-%m-%d).dump.age"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scollarly-database-${{ github.run_id }}
+          path: scollarly-*.dump.age
+          retention-days: 28
+          if-no-files-found: error
+      - name: Check the artifact storage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          used="$(gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.expired == false) | .size_in_bytes] | add // 0' | awk '{ s += $1 } END { print s + 0 }')"
+          percent=$(( used * 100 / ARTIFACT_QUOTA_BYTES ))
+          echo "Artifact storage in use: $used bytes, $percent% of the free quota."
+          echo "Artifact storage in use: $percent% of the free quota ($used bytes)." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$percent" -ge 70 ]; then
+            echo "::error::Artifact storage is at $percent% of the free quota. Delete old artifacts or shorten the retention, or the next backups may fail to upload."
+            exit 1
+          fi

@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import type { SettingKey } from "@/lib/constants";
 import type { Actor } from "@/server/auth/actor";
 import type { Db } from "@/server/db/client";
+import { rowsOf } from "@/server/db/rows";
 import { siteSetting } from "@/server/db/schema";
 import { runAs } from "./as-actor";
 
@@ -24,4 +25,41 @@ export async function updateSetting(db: Db, actor: Actor, key: SettingKey, value
   const json = sql`${JSON.stringify(value ?? null)}::jsonb`;
   const [rows] = await runAs(db, actor, db.update(siteSetting).set({ value: json }).where(eq(siteSetting.key, key)).returning({ key: siteSetting.key }));
   return rows.length === 1;
+}
+
+/**
+ * S10.1 (architecture 16 C4 step 2): several settings in ONE statement, each with its audit row for the whole change, so both commit or
+ * neither does. A setting whose value is already what was asked for is left alone and not reported, so saving an untouched form writes
+ * nothing. The audit row names the keys only: a phone number is not needed there and the log is not the place for values.
+ * Returns the keys that really changed, and any key with no row. Row level security (policy `site_setting_update`) lets the owner through and nobody else, so a
+ * caller that is not the owner gets nothing changed, not an error: check the facade first, as the endpoint does.
+ */
+export async function updateSettings(db: Db, actor: Actor, changes: Readonly<Record<string, unknown>>): Promise<{ changed: string[]; missing: string[] }> {
+  const entries = Object.entries(changes).filter(([, value]) => value !== undefined);
+  if (entries.length === 0) return { changed: [], missing: [] };
+  const values = sql.join(
+    entries.map(([key, value]) => sql`(${key}::text, ${JSON.stringify(value ?? null)}::jsonb)`),
+    sql`, `,
+  );
+  const [result] = await runAs(
+    db,
+    actor,
+    db.execute(sql`
+      with v(key, value) as (values ${values}),
+      upd as (
+        update site_setting s set value = v.value from v
+         where s.key = v.key and s.value is distinct from v.value
+        returning s.key
+      ), aud as (
+        insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
+        select gen_random_uuid(), ${actor.userId}, 'settings.update', 'site_setting', null,
+               jsonb_build_object('keys', (select jsonb_agg(key order by key) from upd))
+         where exists (select 1 from upd)
+      )
+      select v.key, (s.key is not null) as present, (upd.key is not null) as changed
+        from v left join site_setting s on s.key = v.key left join upd on upd.key = v.key
+       order by v.key`),
+  );
+  const rows = rowsOf<{ key: string; present: boolean; changed: boolean }>(result);
+  return { changed: rows.filter((row) => row.changed).map((row) => row.key), missing: rows.filter((row) => !row.present).map((row) => row.key) };
 }

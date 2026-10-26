@@ -51,7 +51,7 @@ async function get(name: string, actor: Actor, query = ""): Promise<{ status: nu
 }
 
 const rows = (sql: string) => t.run(sql) as Promise<Record<string, unknown>[]>;
-const agg = (where = "true") => rows(`select date::text as date, type, country, page_group, count::int as count from event_daily_agg where ${where} order by date, type, country nulls first`);
+const agg = (where = "true") => rows(`select date::text as date, type, country, page_group, count::int as count from event_daily_agg where ${where} order by date, type, country nulls first, page_group nulls first`);
 
 beforeAll(async () => {
   t = await createTestDb();

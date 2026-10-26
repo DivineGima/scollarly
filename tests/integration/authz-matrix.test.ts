@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ACTION_PERMISSION, type ActionId, can, PERMISSIONS, type PermissionRole } from "@/server/auth/permissions";
 import { type Actor, AuthError, STEP_UP_WINDOW_MS } from "@/server/auth/actor";
@@ -16,7 +16,8 @@ import { eraseMyAccount, exportMyData, requestLink } from "@/server/repositories
 import { updateSetting } from "@/server/repositories/settings";
 import { createInvite, removeAdmin, revokeInvite } from "@/server/repositories/team";
 import { uuidv7 } from "@/lib/uuid";
-import { leadRow, q } from "./helpers/fixtures";
+import { recordPayment, voidPayment } from "@/server/repositories/payments";
+import { leadRow, q, uni } from "./helpers/fixtures";
 import { createTestDb, type TestDb } from "./helpers/db";
 
 /**
@@ -101,6 +102,7 @@ beforeAll(async () => {
   ids.lead2 = await leadRow(t);
   const [leadRef] = (await t.run(`select ref from lead where id = ${q(ids.lead)}`)) as { ref: string }[];
   ids.leadRef = leadRef?.ref ?? "";
+  ids.university = await uni(t, { status: "published" });
 });
 
 afterAll(async () => {
@@ -275,6 +277,19 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
   "media.archive": (subject) =>
     guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
       await archiveMedia(t.db, actor, uuidv7());
+      return true;
+    }),
+
+  // Stage 9 (S9.1). The facade is the first lock (an admin, or an owner after 2FA); the ledger policies, the column grants and the guard
+  // trigger are the second (tests/integration/stage9-payments.test.ts shows a student refused by them).
+  "payments.record": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      const outcome = await recordPayment(t.db, actor, { id: uuidv7(), submissionToken: randomUUID(), universityId: ids.university ?? "", leadId: null, amountUsdCents: 12345, receivedOn: "2026-01-01", note: null });
+      return outcome.kind === "created";
+    }),
+  "payments.void": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await voidPayment(t.db, actor, randomUUID(), "matrix");
       return true;
     }),
 

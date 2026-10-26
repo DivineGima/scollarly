@@ -1,0 +1,55 @@
+name: Hourly uptime check
+
+# S11.8 (architecture 13.2). Once an hour this asks the live Worker for /api/v1/health and FAILS when the answer is not a 200 with status "ok".
+# GitHub emails the person who last changed this schedule when a scheduled workflow fails, which is how the owner finds out the site is down.
+# It checks that the Worker is up, not Neon: the health route never touches the database (a keep-warm ping would use the free compute hours).
+#
+# The address comes from the repository variable UPTIME_URL (Settings, Secrets and variables, Variables), so moving to the real domain is a
+# setting, not a code change. Until it is set the check uses the workers.dev address.
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_failure:
+        description: "Fail on purpose, to check that the owner is notified"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Is the Worker answering?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      UPTIME_URL: ${{ vars.UPTIME_URL || 'https://scollarly.gimafolabit.workers.dev' }}
+    steps:
+      - name: Forced failure (test of the notification)
+        if: ${{ inputs.force_failure }}
+        run: |
+          echo "::error::Forced failure requested. If you got an email or a notification about this run, the alert path works."
+          exit 1
+      - name: Ask for /api/v1/health
+        run: |
+          set -euo pipefail
+          url="${UPTIME_URL%/}/api/v1/health"
+          body="$(mktemp)"
+          # Three tries a minute apart: one dropped request is not an outage. Only a failure of all three fails the job.
+          for attempt in 1 2 3; do
+            code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)"
+            if [ "$code" = "200" ] && grep -q '"status":"ok"' "$body"; then
+              echo "OK ($url): $(cat "$body")" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $attempt: HTTP ${code:-none}, body: $(head -c 200 "$body" 2>/dev/null || true)"
+            [ "$attempt" = "3" ] || sleep 60
+          done
+          echo "::error::$url did not answer 200 with status ok three times in a row."
+          exit 1

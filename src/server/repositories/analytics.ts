@@ -4,6 +4,7 @@ import type { Db } from "@/server/db/client";
 import { rowsOf } from "@/server/db/rows";
 import type { StageInfo } from "@/modules/analytics/funnel";
 import { runAs } from "./as-actor";
+import { teamMembersOf, teamQuery } from "./team";
 
 /**
  * What the analytics screens read (architecture 7.5, 10.3, 16 B10; S7.2, S7.3). Staff only: row level security allows `lead`,
@@ -36,6 +37,8 @@ export interface FunnelData {
   /** `collect_page_views` is on. When it is off the funnel has no "visit" step to show (ADR-003). */
   collectPageViews: boolean;
   universities: { id: string; name: string }[];
+  /** S9.3: payments received in the range (voided ones left out). The country filter does not apply: a payment has no country. */
+  payments: { totalCents: number; count: number; byUniversity: { universityId: string; name: string; totalCents: number; count: number }[] };
 }
 
 function leadConditions(f: AnalyticsFilter): SQL {
@@ -53,7 +56,7 @@ function aggConditions(f: AnalyticsFilter): SQL {
 }
 
 export async function funnelData(db: Db, actor: Actor, f: AnalyticsFilter): Promise<FunnelData> {
-  const [counts, byStage, byCountry, byUniversity, byPage, setting, stages, universities] = await runAs(
+  const [counts, byStage, byCountry, byUniversity, byPage, setting, stages, universities, paymentRows] = await runAs(
     db,
     actor,
     db.execute(sql`select a.type, coalesce(sum(a.count), 0)::bigint as n from event_daily_agg a where ${aggConditions(f)} and a.type in ('page_view', 'wa_tap') group by a.type`),
@@ -67,7 +70,14 @@ export async function funnelData(db: Db, actor: Actor, f: AnalyticsFilter): Prom
     db.execute(sql`select value from site_setting where key = 'collect_page_views'`),
     db.execute(sql`select code, position, name from pipeline_stage order by position`),
     db.execute(sql`select id, name from university order by name`),
+    db.execute(sql`
+      select p.university_id, u.name, sum(p.amount_usd_cents)::bigint as cents, count(*)::int as n
+        from placement_payment p join university u on u.id = p.university_id
+       where p.voided_at is null and p.received_on >= ${f.from}::date and p.received_on <= ${f.to}::date
+         ${f.universityId ? sql`and p.university_id = ${f.universityId}::uuid` : sql``}
+       group by p.university_id, u.name order by cents desc, u.name`),
   );
+  const paid = rowsOf<{ university_id: string; name: string; cents: string | number; n: number }>(paymentRows).map((r) => ({ universityId: r.university_id, name: r.name, totalCents: Number(r.cents), count: r.n }));
   const sumOf = (type: string) => Number(rowsOf<{ type: string; n: string | number }>(counts).find((r) => r.type === type)?.n ?? 0);
   return {
     pageViews: sumOf("page_view"),
@@ -79,6 +89,7 @@ export async function funnelData(db: Db, actor: Actor, f: AnalyticsFilter): Prom
     byPage: rowsOf<{ page: string | null; n: number }>(byPage).map((r) => ({ page: r.page, leads: r.n })),
     collectPageViews: rowsOf<{ value: unknown }>(setting)[0]?.value !== false,
     universities: rowsOf<{ id: string; name: string }>(universities),
+    payments: { totalCents: paid.reduce((sum, r) => sum + r.totalCents, 0), count: paid.reduce((sum, r) => sum + r.count, 0), byUniversity: paid },
   };
 }
 
@@ -117,4 +128,43 @@ export async function performanceOf(db: Db, actor: Actor, f: Pick<AnalyticsFilte
   const row = rowsOf<{ assigned: number; answered: number; median_minutes: string | number | null; mean_minutes: string | number | null; overdue: number }>(result)[0];
   const num = (v: string | number | null | undefined) => (v === null || v === undefined ? null : Math.round(Number(v)));
   return { assigned: row?.assigned ?? 0, answered: row?.answered ?? 0, medianMinutes: num(row?.median_minutes), meanMinutes: num(row?.mean_minutes), overdue: row?.overdue ?? 0 };
+}
+
+export interface AdminPerformance extends PerformanceData {
+  userId: string;
+  email: string;
+  name: string;
+  role: "admin" | "owner";
+}
+
+/**
+ * C3 (S9.4): every admin's numbers side by side. The owner only: the endpoint refuses anyone else, and `performanceOf` stays the only way an
+ * admin can read performance, always their own. Same definitions as `performanceOf`, grouped by the assigned person; an admin with no leads
+ * in the range still has a row (zeros), so a quiet admin is visible.
+ */
+export async function performanceOfAll(db: Db, actor: Actor, f: Pick<AnalyticsFilter, "start" | "end">, now: Date): Promise<AdminPerformance[]> {
+  const [stats, team] = await runAs(
+    db,
+    actor,
+    db.execute(sql`
+      select a.id as user_id,
+             count(l.id)::int as assigned,
+             count(l.id) filter (where l.first_response_at is not null)::int as answered,
+             percentile_cont(0.5) within group (order by extract(epoch from (l.first_response_at - l.received_at)) / 60.0) filter (where l.first_response_at is not null) as median_minutes,
+             avg(extract(epoch from (l.first_response_at - l.received_at)) / 60.0) filter (where l.first_response_at is not null) as mean_minutes,
+             (select count(*)::int from lead o where o.assigned_admin_id = a.id and o.merged_into_id is null and o.anonymised_at is null
+                 and o.first_response_at is null and o.sla_due_at < ${now.toISOString()}::timestamptz) as overdue
+        from app_user a
+        left join lead l on l.assigned_admin_id = a.id and l.merged_into_id is null
+                        and l.received_at >= ${f.start.toISOString()}::timestamptz and l.received_at < ${f.end.toISOString()}::timestamptz
+       where a.role in ('admin', 'owner')
+       group by a.id`),
+    teamQuery(db),
+  );
+  const byId = new Map(rowsOf<{ user_id: string; assigned: number; answered: number; median_minutes: string | number | null; mean_minutes: string | number | null; overdue: number }>(stats).map((r) => [r.user_id, r]));
+  const num = (v: string | number | null | undefined) => (v === null || v === undefined ? null : Math.round(Number(v)));
+  return teamMembersOf(team).map((m) => {
+    const r = byId.get(m.userId);
+    return { userId: m.userId, email: m.email, name: m.name, role: m.role, assigned: r?.assigned ?? 0, answered: r?.answered ?? 0, medianMinutes: num(r?.median_minutes), meanMinutes: num(r?.mean_minutes), overdue: r?.overdue ?? 0 };
+  });
 }

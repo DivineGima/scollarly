@@ -87,3 +87,43 @@ export async function apiUpload<T>(path: string, blob: Blob): Promise<ApiResult<
   const error = (json as { error?: { code?: string; fields?: Record<string, string> } } | null)?.error;
   return { ok: false, status: response.status, code: error?.code ?? "BAD_RESPONSE", fields: error?.fields ?? {}, retryAfter: null };
 }
+
+/**
+ * A POST whose answer is a file (the owner's full export). Like `api`, it never throws and an error answer comes back as a plain
+ * result; the file name is the one the server chose. The caller hands the blob to `saveBlob`.
+ */
+export async function apiFile(path: string, body?: unknown): Promise<ApiResult<{ blob: Blob; filename: string }>> {
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+    });
+  } catch {
+    return { ok: false, status: 0, code: "NETWORK", fields: {}, retryAfter: null };
+  }
+  if (response.ok) {
+    const named = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") ?? "");
+    return { ok: true, data: { blob: await response.blob(), filename: named?.[1] ?? "download" } };
+  }
+  let json: unknown = null;
+  try {
+    json = await response.json();
+  } catch {
+    // Not JSON: handled below.
+  }
+  const error = (json as { error?: { code?: string; fields?: Record<string, string> } } | null)?.error;
+  return { ok: false, status: response.status, code: error?.code ?? "BAD_RESPONSE", fields: error?.fields ?? {}, retryAfter: null };
+}
+
+/** Hands a file to the browser's download. Nothing is uploaded. */
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}

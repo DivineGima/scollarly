@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/db/runtime", () => ({ getDb: () => ({}) }));
+vi.mock("@/server/repositories/health", () => ({
+  recordJob: vi.fn(async () => undefined),
+  usageSnapshot: vi.fn(async () => ({ dbBytes: 10, imageBytes: 10, imageBudgetBytes: 100 })),
+}));
 vi.mock("@/server/repositories/rollup", () => ({
   saveAggregateRows: vi.fn(async () => undefined),
   rollRawEvents: vi.fn(async () => ({ counted: 0, purged: 0 })),
