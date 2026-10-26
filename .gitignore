@@ -33,3 +33,6 @@ scripts/.generated/
 .DS_Store
 Thumbs.db
 .neon
+
+# scratch files
+*.tmp

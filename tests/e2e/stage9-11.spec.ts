@@ -84,17 +84,40 @@ test.describe("B9 payments", () => {
     await axe(page);
   });
 
-  test("filters live in the address and the CSV link carries exactly the same filters", async ({ page }) => {
+  test("filters live in the address and the CSV export carries exactly the same filters", async ({ page }) => {
     await as(page, "admin");
     const seen: string[] = [];
+    let csvQuery = "";
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => {
       seen.push(new URL(route.request().url()).search);
       return json(route, ledger());
     });
+    await page.route(/\/api\/v1\/admin\/payments-csv/, (route) => {
+      csvQuery = new URL(route.request().url()).search;
+      return route.fulfill({ status: 200, contentType: "text/csv", headers: { "Content-Disposition": 'attachment; filename="payments-2026-10-26.csv"' }, body: "Date received\r\n" });
+    });
     await page.goto(`/admin/payments?university=${U1}&from=2026-10-01&to=2026-10-31&status=active`);
     await expect(page.getByTestId("grand-total")).toBeVisible();
     expect(seen[0]).toBe(`?university=${U1}&from=2026-10-01&to=2026-10-31&status=active`);
-    await expect(page.getByRole("link", { name: "Export CSV" })).toHaveAttribute("href", `/api/v1/admin/payments-csv?university=${U1}&from=2026-10-01&to=2026-10-31&status=active`);
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export CSV" }).click();
+    expect((await download).suggestedFilename()).toBe("payments-2026-10-26.csv");
+    expect(csvQuery).toBe(`?university=${U1}&from=2026-10-01&to=2026-10-31&status=active`);
+  });
+
+  test("an export the server refuses shows its message and saves no file", async ({ page }) => {
+    await as(page, "admin");
+    await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
+    await page.route(/\/api\/v1\/admin\/payments-csv/, (route) => route.fulfill({ status: 413, contentType: "application/json", body: JSON.stringify({ error: { code: "PAYLOAD_TOO_LARGE", message: "Too many payments for one file. Narrow the dates.", requestId: "r1" } }) }));
+    await page.goto("/admin/payments");
+    await expect(page.getByTestId("grand-total")).toBeVisible();
+    let downloaded = false;
+    page.on("download", () => {
+      downloaded = true;
+    });
+    await page.getByRole("button", { name: "Export CSV" }).click();
+    await expect(page.getByText("Too many payments for one file. Narrow the dates and try again.")).toBeVisible();
+    expect(downloaded).toBe(false);
   });
 
   test("says so when nothing matches, and offers a retry when the ledger cannot be read", async ({ page }) => {

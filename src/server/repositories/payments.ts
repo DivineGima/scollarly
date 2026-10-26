@@ -202,6 +202,13 @@ export type RecordOutcome = { kind: "created"; id: string } | { kind: "replayed"
  * facts is `token_reused`, because a token is made when the form opens and a new payment needs a new one.
  * A university or lead that does not exist raises a foreign key error (23503), which the endpoint turns into a field error.
  */
+type ExistingPayment = { id: string; university_id: string; lead_id: string | null; amount_usd_cents: string | number; received_on: string; note: string | null };
+
+/** The columns that decide whether a repeated submission carries the same facts as the stored payment. */
+const existingByToken = (token: string) => sql`
+  select id, university_id, lead_id, amount_usd_cents, received_on::text as received_on, note
+    from placement_payment where submission_token = ${token}::uuid`;
+
 export async function recordPayment(db: Db, actor: Actor, p: NewPayment): Promise<RecordOutcome> {
   const [result] = await runAs(
     db,
@@ -219,13 +226,17 @@ export async function recordPayment(db: Db, actor: Actor, p: NewPayment): Promis
           from ins
       )
       select (select id from ins) as inserted,
-             (select to_jsonb(e) from (
-                select id, university_id, lead_id, amount_usd_cents, received_on::text as received_on, note
-                  from placement_payment where submission_token = ${p.submissionToken}::uuid) e) as existing`),
+             (select to_jsonb(e) from (${existingByToken(p.submissionToken)}) e) as existing`),
   );
-  const row = rowsOf<{ inserted: string | null; existing: { id: string; university_id: string; lead_id: string | null; amount_usd_cents: string | number; received_on: string; note: string | null } | null }>(result)[0];
+  const row = rowsOf<{ inserted: string | null; existing: ExistingPayment | null }>(result)[0];
   if (row?.inserted) return { kind: "created", id: row.inserted };
-  const e = row?.existing;
+  let e = row?.existing ?? null;
+  if (!e) {
+    // The same token can be in flight twice (a double tap, a retry): the other request's row was committed after this statement took its
+    // snapshot, so the lookup above could not see it although `on conflict` did. A new statement has a new snapshot and does.
+    const [again] = await runAs(db, actor, db.execute(sql`select to_jsonb(e) as existing from (${existingByToken(p.submissionToken)}) e`));
+    e = rowsOf<{ existing: ExistingPayment | null }>(again)[0]?.existing ?? null;
+  }
   if (!e) return { kind: "token_reused" };
   const same = e.university_id === p.universityId && (e.lead_id ?? null) === p.leadId && Number(e.amount_usd_cents) === p.amountUsdCents && e.received_on === p.receivedOn && (e.note ?? null) === p.note;
   return same ? { kind: "replayed", id: e.id } : { kind: "token_reused" };

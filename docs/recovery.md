@@ -32,6 +32,7 @@ The backup is a GitHub Actions artifact called `scollarly-database-<run>`, kept 
    - `BACKUP_DATABASE_URL` = a connection string that can read every table past row level security. The owner role's URL works (it bypasses row level security); a narrower read-only role must also have `BYPASSRLS`, or the dump comes out empty.
 4. Actions, **Weekly encrypted database backup**, Run workflow, once. Check it goes green and an artifact appears.
 5. Run it once more with **force_failure** ticked. It must fail and you must be told (an email from GitHub, or the red cross in the Actions list). If you hear nothing, your GitHub notification settings need fixing. Do this test, then you know the alarm works.
+6. **Once a month, look at the Actions page.** GitHub switches off scheduled workflows in a public repository after 60 days with no commit. The backup and the hourly uptime check would then stop without any failure email. If a workflow shows as disabled, open it and click **Enable workflow**, then run it once. Do this at the same time as the monthly picture copy (section 3). A private repository does not have this rule.
 
 **Restoring**
 

@@ -31,6 +31,7 @@ export async function updateSetting(db: Db, actor: Actor, key: SettingKey, value
  * S10.1 (architecture 16 C4 step 2): several settings in ONE statement, each with its audit row for the whole change, so both commit or
  * neither does. A setting whose value is already what was asked for is left alone and not reported, so saving an untouched form writes
  * nothing. The audit row names the keys only: a phone number is not needed there and the log is not the place for values.
+ * If any key has no row nothing at all is written (the caller gets it back in `missing`), so a refused request never half-applies.
  * Returns the keys that really changed, and any key with no row. Row level security (policy `site_setting_update`) lets the owner through and nobody else, so a
  * caller that is not the owner gets nothing changed, not an error: check the facade first, as the endpoint does.
  */
@@ -49,6 +50,7 @@ export async function updateSettings(db: Db, actor: Actor, changes: Readonly<Rec
       upd as (
         update site_setting s set value = v.value from v
          where s.key = v.key and s.value is distinct from v.value
+           and not exists (select 1 from v v2 where not exists (select 1 from site_setting k where k.key = v2.key))
         returning s.key
       ), aud as (
         insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)

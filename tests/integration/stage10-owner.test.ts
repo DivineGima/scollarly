@@ -12,6 +12,7 @@ import { denyAccess, type MutationCall } from "@/server/edge/mutations";
 import { runUsageCheck } from "@/server/edge/usage-job";
 import { readSiteRows } from "@/server/repositories/content";
 import { recordJob } from "@/server/repositories/health";
+import { updateSettings } from "@/server/repositories/settings";
 import { readSettings } from "@/server/repositories/settings-read";
 import { createTestDb, type TestDb } from "./helpers/db";
 import { insertRow, leadRow, paymentRow, q, uni } from "./helpers/fixtures";
@@ -129,6 +130,15 @@ describe("S10.1 Settings: values", () => {
     expect(answer.json.values.pipeline_freshness_days).toBeNull();
     expect(answer.json.timezone).toBe("Africa/Douala");
     expect(answer.json.limits.mediaBudgetMinBytes).toBeLessThan(answer.json.limits.mediaBudgetMaxBytes);
+  });
+
+  it("writes nothing at all when one key has no row, so a refused change never half-applies", async () => {
+    const auditBefore = Number((await rows(`select count(*) as n from audit_log where action = 'settings.update'`))[0]?.n);
+    const before = await setting("stale_tour_days");
+    const outcome = await asRuntime(() => updateSettings(t.db, owner, { stale_tour_days: before === 45 ? 46 : 45, no_such_setting: 1 }));
+    expect(outcome).toEqual({ changed: [], missing: ["no_such_setting"] });
+    expect(await setting("stale_tour_days")).toBe(before);
+    expect(Number((await rows(`select count(*) as n from audit_log where action = 'settings.update'`))[0]?.n)).toBe(auditBefore);
   });
 
   it("saves several values in one change and writes one audit row that names the keys, not the values", async () => {

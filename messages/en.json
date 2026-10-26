@@ -1039,6 +1039,8 @@
       "title": "Payments received",
       "intro": "Money that universities paid to Scollarly, in US dollars. A payment is never edited: if one is wrong, void it with a reason and enter the correct one.",
       "exportCsv": "Export CSV",
+      "exportTooMany": "Too many payments for one file. Narrow the dates and try again.",
+      "exportFailed": "The file could not be downloaded. Check your connection and the filters, then try again.",
       "record": "Record payment",
       "filterUniversity": "University",
       "filterFrom": "Received from",

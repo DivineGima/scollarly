@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { api, type ApiFail } from "@/lib/client/api";
+import { api, apiFile, saveBlob, type ApiFail } from "@/lib/client/api";
 import { formatWat } from "@/lib/time";
 import { formatUsd, parseUsdToCents } from "@/modules/payments/service";
 import { Badge } from "./ui/badge";
@@ -238,22 +238,36 @@ export function PaymentsPanel() {
     } else setVoidError(result.status === 0 ? t("errorNetwork") : t("errorGeneric"));
   }
 
-  const exportHref = `/api/v1/admin/payments-csv${applied ? queryOf(applied) : ""}`;
+  // ---- CSV export ---------------------------------------------------------------------------------------------
+  // Fetched, not a plain download link: a link would save an error answer (too many rows, a lapsed sign-in) as if it were the file.
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function exportCsv() {
+    if (exporting) return;
+    setExporting(true);
+    setExportError(null);
+    const result = await apiFile(`/api/v1/admin/payments-csv${applied ? queryOf(applied) : ""}`, undefined, "GET");
+    setExporting(false);
+    if (result.ok) saveBlob(result.data.blob, result.data.filename);
+    else setExportError(result.status === 413 ? t("exportTooMany") : t("exportFailed"));
+  }
 
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <div className="flex flex-wrap gap-3">
-          <a href={exportHref} download className="inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-bg px-4 font-semibold text-fg hover:bg-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          <Button variant="outline" onClick={() => void exportCsv()} disabled={exporting || status !== "ready"}>
             {t("exportCsv")}
-          </a>
+          </Button>
           <Button onClick={openRecord} disabled={status !== "ready"}>
             {t("record")}
           </Button>
         </div>
       </div>
       <p className="mt-2 text-fg-muted">{t("intro")}</p>
+      {exportError ? <FieldError>{exportError}</FieldError> : null}
 
       <form
         className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5"

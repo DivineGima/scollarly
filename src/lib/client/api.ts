@@ -89,14 +89,14 @@ export async function apiUpload<T>(path: string, blob: Blob): Promise<ApiResult<
 }
 
 /**
- * A POST whose answer is a file (the owner's full export). Like `api`, it never throws and an error answer comes back as a plain
+ * A request whose answer is a file (the owner's full export is a POST, the payments CSV a GET). Like `api`, it never throws and an error answer comes back as a plain
  * result; the file name is the one the server chose. The caller hands the blob to `saveBlob`.
  */
-export async function apiFile(path: string, body?: unknown): Promise<ApiResult<{ blob: Blob; filename: string }>> {
+export async function apiFile(path: string, body?: unknown, method: "GET" | "POST" = "POST"): Promise<ApiResult<{ blob: Blob; filename: string }>> {
   let response: Response;
   try {
     response = await fetch(path, {
-      method: "POST",
+      method,
       credentials: "same-origin",
       cache: "no-store",
       ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
@@ -118,12 +118,15 @@ export async function apiFile(path: string, body?: unknown): Promise<ApiResult<{
   return { ok: false, status: response.status, code: error?.code ?? "BAD_RESPONSE", fields: error?.fields ?? {}, retryAfter: null };
 }
 
-/** Hands a file to the browser's download. Nothing is uploaded. */
+/**
+ * Hands a file to the browser's download. Nothing is uploaded. The address is released after a delay, not at once: some browsers start the
+ * download after `click()` returns, and an address revoked before then gives an empty or failed file.
+ */
 export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
