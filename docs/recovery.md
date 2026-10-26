@@ -37,7 +37,7 @@ The backup is a GitHub Actions artifact called `scollarly-database-<run>`, kept 
 
 1. Download the newest artifact from the Actions run page and unzip it.
 2. Make a **new Neon branch** of the project (never restore over production by hand). The branch already has the `neon_auth` schema and the `app_runtime` role; if you restore into a fresh project, create the role first (`scripts/ci/ensure-runtime-role.mjs`).
-3. With age and the PostgreSQL 17 client tools installed:
+3. With age and the PostgreSQL 18 client tools installed:
 
    ```
    RESTORE_DATABASE_URL="<connection string of the NEW branch, owner role>" \
