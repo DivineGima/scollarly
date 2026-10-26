@@ -9,7 +9,7 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. **Stages 6, 7 and 8 were built together on 2026-10-26 (Sessions 29 and 30), reviewed, and merged in PR #31 with CI green (all five checks). They are not deployed yet: the owner items below stay open (erasure test on a Neon branch, fresh sign-in check, deploy with `cpu_scenarios=content-list,analytics,student-progress`, French text).** The documents are edited in place and are still version 1 (D13). |
+| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. **Stages 6, 7 and 8 were built together on 2026-10-26 (Sessions 29 and 30), reviewed, and merged in PR #31 with CI green (all five checks). They were deployed to `workers.dev` the same day (workflow run 40251230315) and the owner confirmed the four follow-up checks (Session 31). Next: Stage 9.** The documents are edited in place and are still version 1 (D13). |
 | Next stage | **Merge request for Stages 6 to 8**, then one deploy run (`cpu_scenarios` = `content-list,analytics,student-progress`), then Stage 9 (payments). The owner decides. |
 | Blocked by | Nothing blocks the code. Open and not blocking: the real Turnstile secret is kept on the Worker from now on (the repository secret `TURNSTILE_SECRET_KEY` exists, Session 19; the deploy workflow warns on every run if it ever goes missing); H4, H5, H9 (F7), H12, H19, H20, the `ContactSubmission` import, and the domain (F10, launch only). |
 | Gate before Stage 3 and 4 | Met and passed. **The owner waived the one-stage-at-a-time wait on 2026-10-25** and said the Google sign-in and 2FA enrolment worked, so Stages 3 and 4 were built together and Stage 5 followed. |
@@ -652,6 +652,26 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Module status:** `complete` once PR #31 passed CI (set after the merge). Owner items from Session 29 are still open (Neon erasure test, fresh sign-in check, deploy with `cpu_scenarios`, French text).
 
+### 2026-10-26: Session 31 (Stages 6 to 8 deployed and confirmed by the owner)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (N = 1). No code change in this session.
+
+**Deploy:** workflow "Stage 0 deploy and measure", run 40251230315 on `main`, success. It applied migrations 0009 and 0010 to the production database and deployed the Worker. CI on PR #31 was green on all five checks (lint, typecheck and unit; integration on Postgres 16; Playwright; build and Worker size gate; Lighthouse).
+
+**CPU rows (from the workflow log, Cloudflare `wrangler tail`, 50 requests each, limit 8 ms, 0 exceeded):**
+
+| Row | Warm p50 | Warm p95 | All p95 | Worst |
+|---|---|---|---|---|
+| Staff content list (S6.1) | 2 ms | 3 ms | 4 ms | 9 ms |
+| Staff analytics (S7.2) | 2 ms | 4 ms | 5 ms | 6 ms |
+| Student `/me` progress (S8.1) | 2 ms | 3 ms | 3 ms | 4 ms |
+
+The one 9 ms request is a single worst case; the gate is the p95. The content and media writes and `admin/revalidate` were not given a row (same shape as measured writes); they stay watched in Workers Logs.
+
+**Owner confirmations (reported by the owner on 2026-10-26, no numbers or screenshots supplied):** `app_erase_my_account` tested on a throwaway Neon branch (`erase-test`) and worked as expected; "Sign in again" gave a fresh session and erasure then succeeded; a published change reached the public site without a deploy; the French text of the new screens was reviewed. These four items are closed.
+
+**New open item for the owner:** H21 (a Google account that was not on the Google test-user list could sign up as a student).
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -690,9 +710,9 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 3 | Public site | S3.1 to S3.5 | **complete** (2026-10-25: PR #19 CI green, merged, deployed, content published; the 100 KB first-load budget cannot be met, flag F7; trust content H4 and legal text H5 are the owner's) |
 | 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | **complete** (2026-10-26: PR #19 CI green, deployed; lead POST accepted at the platform limit by F19 (a); events POST measured PASS; the phone check H19 is the owner's) |
 | 5 | Admin lead management | S5.1 to S5.6 | **complete** (2026-10-26: PR #21 CI green, deployed; lead detail accepted by F20 (a); list, overview, write, merge and erase measured PASS; see Sessions 23 to 27) |
-| 6 | Content management and images | S6.1 to S6.5 | complete (2026-10-26: merged in PR #31, CI green; owner items open, not yet deployed) |
-| 7 | Analytics (funnel and sources) | S7.1 to S7.3 | complete (2026-10-26: merged in PR #31, CI green; owner items open, not yet deployed) |
-| 8 | Student portal | S8.1 to S8.3 | complete (2026-10-26: merged in PR #31, CI green; owner items open, not yet deployed) |
+| 6 | Content management and images | S6.1 to S6.5 | complete (2026-10-26: merged in PR #31, CI green, deployed, owner checks confirmed, Session 31) |
+| 7 | Analytics (funnel and sources) | S7.1 to S7.3 | complete (2026-10-26: merged in PR #31, CI green, deployed, owner checks confirmed, Session 31) |
+| 8 | Student portal | S8.1 to S8.3 | complete (2026-10-26: merged in PR #31, CI green, deployed, owner checks confirmed, Session 31) |
 | 9 | Payments received and admin performance | S9.1 to S9.4 | — |
 | 10 | Owner pages and operations | S10.1 to S10.4 | — |
 | 11 | Hardening and launch readiness | S11.1 to S11.8 | — |
@@ -856,6 +876,7 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H18 | Publish the seeded content: `node scripts/publish-content.mjs --dry-run`, then without the flag (or ask Claude Code to). Then run the deploy workflow once so the build prerenders it | Before the public pages show content | Open **Done 2026-10-25 on the owner's instruction ("DO 2 AND 3"): Claude Code ran `scripts/publish-content.mjs` on the live database (dry run first): 159 rows published (9 universities, 77 programmes, 9 fee records, 5 campus experiences, 12 FAQs, 11 process steps, 36 copy blocks). The deploy workflow then built the pages from them (run 40142776719).** |
 | H19 | Check on a real phone on mobile data: tap a WhatsApp button, fill the quick form, confirm the chat opens with the reference and the lead is in the database; repeat in airplane mode and turn it off | Before launch | Open **Owner has not done it yet (2026-10-25).** |
 | H20 | **Make the GitHub repository private again** once the Stage 4 and 5 deploy measurements are done (or after the monthly Actions allowance resets). | The repository is public since 2026-10-25 so that Actions run for free; the private repository had used up its free minutes. | Open (owner). Settings, Danger Zone, Change repository visibility, Change to private. Copies made while it is public stay with whoever cloned it. |
+| H21 | Find out why a Google account that is not on the Google Console test-user list could sign up (as a student). Check the OAuth consent screen (Testing or In production) and whether Neon Auth uses its own shared Google login or your client ID (Neon console, Better Auth). Students can only see `/me`, so this is open signups, not an access hole; decide whether sign-ups should be restricted. | Stage 11 (S11.6) | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
 | H11 | Owner sign-off on the pre-launch checklist | S11.6 | Open |
 | H12 | Read Neon's plans page for Object Storage and confirm the free-plan request and transfer limits (the pages read state 5 GB per project but no request or transfer limit). No card is needed. R2 is dropped (D16) | Before S0.10 measures images | **Carried to Stage 3 (image upload, S3.3) and before launch; does not block Stage 1** (owner, 2026-10-24). Open **Owner 2026-10-25 (sent a screenshot of neon.com/pricing, Free plan): Object Storage is 5 GB.** The page shows no request or transfer limit, so none is recorded; the 3.5 GB image budget (F16) stays inside the 5 GB. |
