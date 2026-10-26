@@ -10,7 +10,7 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
 | Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. **Stages 6, 7 and 8 were built together on 2026-10-26 (Sessions 29 and 30), reviewed, and merged in PR #31 with CI green (all five checks). They were deployed to `workers.dev` the same day (workflow run 40251230315) and the owner confirmed the four follow-up checks (Session 31). Next: Stage 9.** The documents are edited in place and are still version 1 (D13). |
-| Next stage | **Stages 9 to 11 are built on branch `feat/stages-9-11` (Session 32); committed and merge request opened 2026-10-26 (see Session 33 once merged).** Next: the owner reviews, the merge request is opened, CI runs once, then one deploy run with `cpu_scenarios` = `payments`. Older note: **Merge request for Stages 6 to 8**, then one deploy run (`cpu_scenarios` = `content-list,analytics,student-progress`), then Stage 9 (payments). The owner decides. |
+| Next stage | **Stages 9 to 11 are merged and deployed (Session 33).** Remaining: the owner role-by-role smoke test, H14, H24, French review, the pre-launch checklist and H11 sign-off. Next: the owner reviews, the merge request is opened, CI runs once, then one deploy run with `cpu_scenarios` = `payments`. Older note: **Merge request for Stages 6 to 8**, then one deploy run (`cpu_scenarios` = `content-list,analytics,student-progress`), then Stage 9 (payments). The owner decides. |
 | Blocked by | Nothing blocks the code. Open and not blocking: the real Turnstile secret is kept on the Worker from now on (the repository secret `TURNSTILE_SECRET_KEY` exists, Session 19; the deploy workflow warns on every run if it ever goes missing); H4, H5, H9 (F7), H12, H19, H20, the `ContactSubmission` import, and the domain (F10, launch only). |
 | Gate before Stage 3 and 4 | Met and passed. **The owner waived the one-stage-at-a-time wait on 2026-10-25** and said the Google sign-in and 2FA enrolment worked, so Stages 3 and 4 were built together and Stage 5 followed. |
 
@@ -682,6 +682,20 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Open for the owner:** H22 (backup secrets and the alarm test), H23 (uptime run and alarm test), H14 (first image copy), try the 2FA reset SQL on a throwaway Neon branch, the deploy run for the `payments` CPU row, and the whole `docs/pre-launch-checklist.md`. Stage 11 stays `in-progress` until the owner signs off (H11). No human item was marked done.
 
+### 2026-10-26: Session 33 (Stages 9 to 11 merged, deployed, first production checks)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1.
+
+**Merged:** PR #34 (Stages 9 to 11; CI green: lint, typecheck, unit, integration on Postgres 16, Playwright, Lighthouse, Worker size gate, backup self-test) and PR #35 (backup tools moved to PostgreSQL 18). CI found and I fixed: a second test database wiping the first on the shared CI Postgres, a top-level await in the self-test seed script, a rollup test whose row order had a tie, and `pg_dump` version mismatches (runner default 16, then Neon production runs 18). Deploy run 40308139427 (commit 47f230b) applied migration 0011.
+
+**CPU row (S9):** `admin/payments`, 50 samples, warm p50 2 ms, p95 3 ms, limit 8 ms. Passes. Settings, Health and export have no scenario (owner session needed); watch Workers Logs.
+
+**Owner stated (2026-10-26): H22 and H23 done.** Checked in the run history: Weekly backup run 40314085473 succeeded and left artifact `scollarly-database-40314085473` (215 KB, expires 2026-11-23); the force_failure run 40314208042 failed as intended. Hourly uptime run 40314445837 succeeded and the force_failure run 40314508715 failed as intended.
+
+**Done by Claude Code (not the owner):** `node scripts/smoke.mjs` against the workers.dev address, 33 of 33 PASS. The 2FA reset SQL tried on a throwaway Neon branch (copy of production, created and deleted the same hour): removed the authenticator secret, 10 recovery codes and 3 step-up checks, left the owner row, ended all sessions, wrote an audit row each run, safe to run twice. Production was not touched.
+
+**Still open for the owner:** signing in as student, admin and owner and opening each screen (checklist section E), H14 first image copy, H24, French review, the rest of `docs/pre-launch-checklist.md`, H11 sign-off.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -791,8 +805,8 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S9.4 | All-admin performance page | in-progress (Session 32: owner only; tests pass locally) |
 | S10.1 | Settings page | in-progress (Session 32: owner, 2FA check, limits, public site refresh; tests pass locally) |
 | S10.2 | Health page and usage checks | in-progress (Session 32: Health page, daily usage job, deep health check; the GitHub artifact check lives in the backup workflow; Neon compute hours are not read by code) |
-| S10.3 | Owner export and backups | in-progress (Session 32: export, weekly encrypted dump workflow, restore self-test workflow, image copy script; workflows not yet run in GitHub. GitHub Free artifact quota confirmed as 500 MB from GitHub Docs on 2026-10-26) |
-| S10.4 | Recovery procedures | in-progress (Session 32: docs/recovery.md, 2FA reset SQL tested on Postgres; not yet tried on a Neon branch) |
+| S10.3 | Owner export and backups | in-progress (Session 32: export, weekly encrypted dump workflow, restore self-test workflow, image copy script; workflows run in GitHub 2026-10-26: backup and alarm test passed (owner), self-test green in CI; first image copy H14 still open. GitHub Free artifact quota confirmed as 500 MB from GitHub Docs on 2026-10-26) |
+| S10.4 | Recovery procedures | in-progress (Session 33: docs/recovery.md; 2FA reset SQL tested on Postgres and on a throwaway Neon branch, 2026-10-26) |
 | S11.1 | CSP and security headers | in-progress (Session 32: policy enforced; no violation on 15 public routes in Playwright; script-src keeps unsafe-inline, ADR-033) |
 | S11.2 | Complete Playwright suite | in-progress (Session 32: tests/unit/flow-coverage.test.ts maps every flow of architecture section 16 to a spec; full suite 209 passed locally) |
 | S11.3 | Accessibility and Lighthouse | in-progress (Session 32: axe, 375 px and reduced motion tests exist for public and new admin screens; Lighthouse runs in CI) |
@@ -886,8 +900,8 @@ Recorded only when the owner says so. Source: PRD section 12.2 and essentials St
 | H18 | Publish the seeded content: `node scripts/publish-content.mjs --dry-run`, then without the flag (or ask Claude Code to). Then run the deploy workflow once so the build prerenders it | Before the public pages show content | Open **Done 2026-10-25 on the owner's instruction ("DO 2 AND 3"): Claude Code ran `scripts/publish-content.mjs` on the live database (dry run first): 159 rows published (9 universities, 77 programmes, 9 fee records, 5 campus experiences, 12 FAQs, 11 process steps, 36 copy blocks). The deploy workflow then built the pages from them (run 40142776719).** |
 | H19 | Check on a real phone on mobile data: tap a WhatsApp button, fill the quick form, confirm the chat opens with the reference and the lead is in the database; repeat in airplane mode and turn it off | Before launch | Open **Owner has not done it yet (2026-10-25).** |
 | H20 | **Make the GitHub repository private again** once the Stage 4 and 5 deploy measurements are done (or after the monthly Actions allowance resets). | The repository is public since 2026-10-25 so that Actions run for free; the private repository had used up its free minutes. | Open (owner). Settings, Danger Zone, Change repository visibility, Change to private. Copies made while it is public stay with whoever cloned it. |
-| H22 | Create the repository secrets `BACKUP_DATABASE_URL` and `BACKUP_AGE_RECIPIENT`, make the age key pair, keep the private key off GitHub, run the weekly backup once and once with `force_failure` | Before launch | Open |
-| H23 | Run the Hourly uptime check once against production and once with `force_failure`; optionally set the variable `UPTIME_URL` | Before launch | Open |
+| H22 | Create the repository secrets `BACKUP_DATABASE_URL` and `BACKUP_AGE_RECIPIENT`, make the age key pair, keep the private key off GitHub, run the weekly backup once and once with `force_failure` | Before launch | Done (owner said so, 2026-10-26; runs checked by Claude Code) |
+| H23 | Run the Hourly uptime check once against production and once with `force_failure`; optionally set the variable `UPTIME_URL` | Before launch | Done (owner said so, 2026-10-26; runs checked by Claude Code) |
 | H24 | TODO (owner decision pending): Neon compute hours are not measured by any code (the Stage 0 probe was never measured). The Health page links to the Neon console instead. Decide whether to keep that, or have Claude Code add a measurement (for example read usage through the Neon API with a read-only key kept as a Worker secret). Until then check the console monthly (docs/quota-review.md). | Before launch (S10.2, S11.4) | Open |
 | H21 | Find out why a Google account that is not on the Google Console test-user list could sign up (as a student). Check the OAuth consent screen (Testing or In production) and whether Neon Auth uses its own shared Google login or your client ID (Neon console, Better Auth). Students can only see `/me`, so this is open signups, not an access hole; decide whether sign-ups should be restricted. | Stage 11 (S11.6) | Open |
 | H10 | Set metric targets and the pipeline freshness "N days" | After 4 weeks of data | Open |
