@@ -25,7 +25,7 @@ export function useAdminSession(): AdminSession {
 
 interface NavItem {
   href: string;
-  label: "overview" | "leads" | "dataRequests" | "profile" | "team" | "audit" | "security";
+  label: "overview" | "leads" | "content" | "analytics" | "dataRequests" | "profile" | "team" | "audit" | "security";
   ownerOnly?: boolean;
 }
 

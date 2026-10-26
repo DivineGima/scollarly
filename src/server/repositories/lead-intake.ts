@@ -50,7 +50,7 @@ export type InsertLeadOutcome =
  * so an anonymous visitor needs no right to read or write leads. The caller compares `storedHash` with its own payload hash
  * to tell a safe replay (same key, same payload) from a reused key (409).
  */
-export async function insertLead(db: Db, row: NewLead): Promise<InsertLeadOutcome> {
+export async function insertLead(db: Db, row: NewLead, sessionToken?: string | null): Promise<InsertLeadOutcome> {
   const iso = (date: Date | null) => (date ? date.toISOString() : null);
   const [result] = rowsOf<{ out_outcome: string; out_lead_id: string | null; out_lead_ref: string | null; out_stored_hash: string | null }>(
     await db.execute(sql`select * from public.app_create_lead(
@@ -64,6 +64,16 @@ export async function insertLead(db: Db, row: NewLead): Promise<InsertLeadOutcom
   );
   if (!result) throw new Error("app_create_lead returned no row");
   if ((result.out_outcome === "created" || result.out_outcome === "existing") && result.out_lead_id && result.out_lead_ref && result.out_stored_hash) {
+    // S8.2: a lead made in the session of a signed-in student is linked to that account at once. It is a second, separate call and
+    // only for a signed-in student, so an anonymous visitor (almost every lead) pays nothing for it; if it fails the lead is stored
+    // anyway and the student can ask for the link on /me/link-application.
+    if (result.out_outcome === "created" && sessionToken) {
+      try {
+        await db.execute(sql`select public.app_link_new_lead(${result.out_lead_id}::uuid, ${sessionToken})`);
+      } catch {
+        // Deliberately silent: the lead is safe, and nothing about the link is worth failing the application for.
+      }
+    }
     return { kind: result.out_outcome, id: result.out_lead_id, ref: result.out_lead_ref, storedHash: result.out_stored_hash };
   }
   if (result.out_outcome === "number_limited" || result.out_outcome === "unknown_programme" || result.out_outcome === "ref_exhausted") {

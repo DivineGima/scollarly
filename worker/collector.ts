@@ -52,6 +52,27 @@ export class Collector extends DurableObject<CloudflareEnv> {
     return Object.fromEntries(entries);
   }
 
+  /**
+   * S7.1: hands every anonymous count out ONCE, for the daily rollup. The `agg:` keys and their key counter are removed in the same
+   * call, so the next day starts empty and the 10,000 key cap (`AGG_KEY_CAP`) starts again. A Durable Object runs one call at a
+   * time, so a count that arrives meanwhile waits and lands in the next day's keys. If the rollup then fails to save, it calls
+   * `restoreAggregates` with what it was given, so nothing is lost.
+   */
+  async drainAggregates(): Promise<Record<string, number>> {
+    const entries = await this.ctx.storage.list<number>({ prefix: "agg:" });
+    const keys = [...entries.keys()];
+    // `delete` takes at most 128 keys at a time.
+    for (let i = 0; i < keys.length; i += 128) await this.ctx.storage.delete(keys.slice(i, i + 128));
+    await this.ctx.storage.delete(AGG_KEY_COUNT);
+    return Object.fromEntries(entries);
+  }
+
+  /** Puts counts back (additively) after a failed rollup. Goes through `addCounts`, so the key cap still applies. */
+  async restoreAggregates(counts: Record<string, number>): Promise<void> {
+    const entries = Object.entries(counts);
+    for (let i = 0; i < entries.length; i += 128) await this.addCounts(Object.fromEntries(entries.slice(i, i + 128)));
+  }
+
   async snapshot(): Promise<Record<string, number>> {
     const entries = await this.ctx.storage.list<number>({ prefix: "count:" });
     return Object.fromEntries(Array.from(entries, ([key, value]) => [key.slice("count:".length), value]));

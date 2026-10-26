@@ -1,0 +1,250 @@
+/*
+ * The student portal (/me). Plain CSS on the design tokens of globals.css: no framework and no admin library, so these screens stay
+ * light for a student on a limited data plan (architecture 6.3, 12). Thumb-sized targets, readable at 320 px.
+ */
+.me-shell {
+  min-height: 100dvh;
+  color: var(--color-fg);
+  background: var(--color-bg);
+}
+
+.me-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.me-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.me-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.me-nav a:hover,
+.me-nav a[aria-current="page"] {
+  background: var(--color-surface);
+}
+
+.me-main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.me-main h1 {
+  margin-top: 0;
+  font-size: var(--text-2xl);
+}
+
+.me-offline {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-warning);
+  text-align: center;
+}
+
+.me-card {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.me-card h2 {
+  margin-top: 0;
+  font-size: var(--text-xl);
+}
+
+.me-muted {
+  color: var(--color-fg-muted);
+}
+
+.me-notice {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.me-notice-error,
+.me-error {
+  color: var(--color-danger);
+}
+
+.me-notice-error {
+  border-left: 4px solid var(--color-danger);
+}
+
+.me-error {
+  margin: var(--space-2) 0;
+}
+
+.me-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-6);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.me-button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.me-button-quiet {
+  background: transparent;
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.me-button-danger {
+  background: var(--color-danger);
+}
+
+.me-field {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.me-field label {
+  font-weight: 600;
+}
+
+.me-field input,
+.me-field select {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font: inherit;
+}
+
+.me-field input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.me-field input[readonly] {
+  background: var(--color-surface);
+}
+
+.me-field p {
+  margin: 0;
+}
+
+.me-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+/* The six stages. A vertical list on a phone; each step says where it is in words as well as colour. */
+.me-steps {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.me-steps li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  counter-increment: step;
+}
+
+.me-steps li::before {
+  content: counter(step);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-right: var(--space-3);
+  border-radius: 50%;
+  background: var(--color-surface);
+  font-weight: 700;
+}
+
+.me-step-name {
+  flex: 1;
+}
+
+.me-step-mark {
+  color: var(--color-fg-muted);
+  font-size: var(--text-sm);
+}
+
+.me-steps li[data-state="done"] {
+  background: var(--color-surface);
+}
+
+.me-steps li[data-state="current"] {
+  border: 2px solid var(--color-accent);
+  font-weight: 700;
+}
+
+.me-steps li[data-state="current"]::before {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+.me-steps li[data-state="current"] .me-step-mark {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.me-dialog {
+  width: min(32rem, calc(100vw - 2rem));
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-fg);
+  background: var(--color-bg);
+}
+
+.me-dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.me-dialog h2 {
+  margin-top: 0;
+}

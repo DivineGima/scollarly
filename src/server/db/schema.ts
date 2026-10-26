@@ -349,7 +349,9 @@ export const leadClaim = pgTable(
     check("lead_claim_method_check", sql`${t.method} in ${list(CLAIM_METHODS)}`),
     check("lead_claim_status_check", sql`${t.status} in ${list(CLAIM_STATUSES)}`),
     check("lead_claim_verification_check", sql`${t.verificationMethod} is null or ${t.verificationMethod} in ${list(VERIFICATION_METHODS)}`),
-    check("lead_claim_approval_needs_method", sql`${t.status} <> 'approved' or ${t.verificationMethod} is not null`),
+    // An admin's approval names how the student was verified (9.6). An `auto` link is made by the system in the very session of the
+    // account that sent the application, so it has no admin and no verification method (S8.2, migration 0009).
+    check("lead_claim_approval_needs_method", sql`${t.status} <> 'approved' or ${t.verificationMethod} is not null or ${t.method} = 'auto'`),
     index("lead_claim_lead_idx").on(t.leadId),
     index("lead_claim_user_idx").on(t.userId),
   ],
@@ -780,6 +782,8 @@ export const event = pgTable(
     /** Client time, advisory only. */
     occurredAt: tz("occurred_at"),
     receivedAt: tz("received_at").notNull().defaultNow(),
+    /** Set once the row is counted into `event_daily_agg` (S7.1). Raw rows are purged 30 days after this. */
+    rolledUpAt: tz("rolled_up_at"),
   },
   (t) => [
     check("event_type_check", sql`${t.type} in ${list(EVENT_TYPES)}`),

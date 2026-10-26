@@ -64,6 +64,20 @@
       "when": 1792956660058,
       "tag": "0008_cap_unlinked_wa_taps",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792962207628,
+      "tag": "0009_stage6_8_content_analytics_student",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792973468120,
+      "tag": "0010_stage6_8_review_limits",
+      "breakpoints": true
     }
   ]
 }

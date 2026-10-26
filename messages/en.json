@@ -94,7 +94,9 @@
       "roleOwner": "Owner",
       "roleAdmin": "Admin",
       "leads": "Leads",
-      "dataRequests": "Data requests"
+      "dataRequests": "Data requests",
+      "content": "Content",
+      "analytics": "Analytics"
     },
     "offline": "You are offline. Admin pages need a connection.",
     "common": {
@@ -511,6 +513,507 @@
         "MISMATCH": "That request is not an open erasure request for this lead. Reload the page.",
         "REQUIRED": "Confirm the student's identity first."
       }
+    },
+    "content": {
+      "hub": {
+        "title": "Content",
+        "intro": "Everything the public site shows is edited here. Nothing goes live until you publish it.",
+        "mediaBanner": "The image storage is {percent}% full. Archive images nobody uses, or ask the owner about the budget.",
+        "warnings": "{count} to check",
+        "counts": "{published} live · {draft} drafts · {archived} archived",
+        "images": "Images",
+        "imagesAbout": "Upload pictures, write their descriptions and see where they are used.",
+        "meter": "{used} of {budget} used",
+        "stale": "Stale content",
+        "staleAbout": "Fees and links that have not been checked for a long time."
+      },
+      "types": {
+        "universities": {
+          "name": "Universities",
+          "one": "university",
+          "about": "Name, address, logo and overview of each university."
+        },
+        "programmes": {
+          "name": "Programmes",
+          "one": "programme",
+          "about": "The courses each university offers."
+        },
+        "fees": {
+          "name": "Fees",
+          "one": "fee",
+          "about": "Fee ranges. Only confirmed fees are shown to visitors."
+        },
+        "campus": {
+          "name": "Campus experiences",
+          "one": "campus experience",
+          "about": "Videos, 360 tours and galleries for each university."
+        },
+        "resources": {
+          "name": "Resources",
+          "one": "resource",
+          "about": "Official links for students."
+        },
+        "testimonials": {
+          "name": "Testimonials",
+          "one": "testimonial",
+          "about": "Student quotes. Shown only with a consent record."
+        },
+        "journeys": {
+          "name": "Journeys",
+          "one": "journey",
+          "about": "A student's story, step by step. Shown only with a consent record."
+        },
+        "team": {
+          "name": "Team",
+          "one": "team member",
+          "about": "People on the About page. Shown only once confirmed."
+        },
+        "faqs": {
+          "name": "FAQs",
+          "one": "question",
+          "about": "Questions students ask, with the answers."
+        },
+        "stats": {
+          "name": "Trust figures",
+          "one": "figure",
+          "about": "Numbers such as students helped. Shown only once confirmed."
+        },
+        "steps": {
+          "name": "Process steps",
+          "one": "step",
+          "about": "The application and visa steps."
+        },
+        "copy": {
+          "name": "Page copy",
+          "one": "text block",
+          "about": "The wording of the home page, About, services and legal pages."
+        },
+        "blog": {
+          "name": "Blog",
+          "one": "post",
+          "about": "Articles written in Markdown."
+        },
+        "templates": {
+          "name": "Message templates",
+          "one": "template",
+          "about": "WhatsApp messages for each stage. Use '{name}', '{ref}' and '{university}'."
+        }
+      },
+      "back": "All content",
+      "backTo": "Back to {name}",
+      "new": "New",
+      "newTitle": "New {name}",
+      "editTitle": "Edit {name}",
+      "unknownType": "That kind of content does not exist.",
+      "search": "Search",
+      "searchButton": "Search",
+      "statusFilter": "Show",
+      "status": {
+        "all": "All",
+        "draft": "Draft",
+        "published": "Live",
+        "archived": "Archived"
+      },
+      "empty": "Nothing here yet. Choose New to add the first one.",
+      "emptyFiltered": "Nothing matches. Try another search or filter.",
+      "truncated": "Only the first 300 are shown. Use the search to find the others.",
+      "untitled": "(no title)",
+      "flags": {
+        "stale": "Needs a check",
+        "needs_consent": "Needs consent"
+      },
+      "actions": {
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "archive": "Archive",
+        "restore": "Restore"
+      },
+      "confirm": {
+        "unpublish": {
+          "title": "Take this off the site?",
+          "body": "Visitors will stop seeing it. It stays here as a draft."
+        },
+        "archive": {
+          "title": "Archive this?",
+          "body": "It moves out of the way and, if it was live, comes off the site. Nothing is deleted, and you can restore it."
+        },
+        "restore": {
+          "title": "Restore this?",
+          "body": "It comes back as a draft. It is not live until you publish it."
+        }
+      },
+      "done": {
+        "publish": "It is live.",
+        "unpublish": "It is off the site.",
+        "archive": "Archived.",
+        "restore": "Restored as a draft.",
+        "siteSlow": "The public page may take about a minute to catch up."
+      },
+      "errors": {
+        "network": "You're offline. Your changes are kept. Try again when you are back online.",
+        "stale": "Someone else changed this first. Reload to see their version.",
+        "archived": "This item is archived. Restore it first.",
+        "forbidden": "You are not allowed to do that.",
+        "notFound": "That item does not exist any more.",
+        "storage": "The image storage is not reachable right now. Try again in a moment.",
+        "tooBig": "That is too large.",
+        "generic": "Something went wrong. Try again."
+      },
+      "saved": "Saved.",
+      "savedLive": "Saved. The change is live.",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "saveDraft": "Save draft",
+      "saveFirst": "Save your changes first.",
+      "unsaved": "You have unsaved changes.",
+      "reload": "Reload",
+      "viewOnSite": "View on site",
+      "fixErrors": "Check the highlighted fields.",
+      "archivedNotice": "This item is archived and cannot be edited. Restore it to work on it again.",
+      "choose": "Choose…",
+      "gate": {
+        "title": "Publish this?",
+        "missing": "It cannot go live yet:",
+        "ready": "It will be visible to everyone on the public site.",
+        "refused": "It cannot be published yet. Check the highlighted fields."
+      },
+      "fields": {
+        "name": "Name",
+        "slug": "Web address name",
+        "city": "City",
+        "state": "State",
+        "type": "Type",
+        "naacGrade": "NAAC grade",
+        "websiteUrl": "Website",
+        "logoMediaId": "Logo",
+        "overview": "Overview",
+        "sortOrder": "Order",
+        "universityId": "University",
+        "level": "Level",
+        "field": "Field of study",
+        "durationMonths": "Duration (months)",
+        "programmeId": "Programme (optional)",
+        "currency": "Currency",
+        "amountMin": "Lowest amount",
+        "amountMax": "Highest amount",
+        "period": "Period",
+        "dataConfirmed": "Data confirmed",
+        "sourceUrl": "Where the figure comes from",
+        "kind": "Kind",
+        "title": "Title",
+        "youtubeId": "YouTube video code",
+        "url": "Link",
+        "thumbnailMediaId": "Picture",
+        "studentName": "Student's name",
+        "country": "Country",
+        "quote": "Quote",
+        "photoMediaId": "Photo",
+        "verified": "Verified as a real student",
+        "consentId": "Consent record",
+        "summary": "Summary",
+        "roleTitle": "Role",
+        "bio": "Short bio",
+        "confirmed": "Confirmed",
+        "category": "Category",
+        "question": "Question",
+        "answer": "Answer",
+        "key": "Key",
+        "label": "Label",
+        "value": "Value",
+        "asOf": "As of",
+        "position": "Position",
+        "body": "Text",
+        "text": "Text",
+        "coverMediaId": "Cover picture",
+        "stageCode": "Stage",
+        "locale": "Language",
+        "steps": "Steps",
+        "form": "This form"
+      },
+      "help": {
+        "slug": "Part of the page address. Letters, numbers and hyphens. It cannot be changed after you save.",
+        "key": "Names the place the text appears. It cannot be changed after you save.",
+        "sortOrder": "A smaller number comes first.",
+        "dataConfirmed": "Tick only when you have checked the amounts with the university. Visitors see only confirmed fees.",
+        "amountMin": "Must be more than 0 to confirm.",
+        "youtubeId": "The 11 characters after v= in a YouTube address.",
+        "verified": "Tick when you have checked this person is a real student of ours.",
+        "confirmed": "Tick only when you have checked this is true. Unconfirmed items are never shown.",
+        "consentId": "Needed before this can go live. It records that the person agreed to be shown.",
+        "photoMediaId": "A photo of a document must have its private details hidden before you upload it.",
+        "body": "Markdown works: # headings, **bold**, - lists and [links](https://example.com). Raw HTML is shown as plain text."
+      },
+      "options": {
+        "kind": {
+          "video": "Video",
+          "tour360": "360 tour",
+          "gallery": "Gallery",
+          "application": "Application",
+          "visa": "Visa"
+        },
+        "currency": {
+          "USD": "US dollars",
+          "INR": "Indian rupees"
+        },
+        "country": {
+          "CM": "Cameroon",
+          "NG": "Nigeria",
+          "GH": "Ghana",
+          "CI": "Ivory Coast",
+          "SN": "Senegal",
+          "GN": "Guinea",
+          "ZA": "South Africa"
+        },
+        "locale": {
+          "en": "English"
+        }
+      },
+      "tokens": {
+        "REQUIRED": "This is required.",
+        "TOO_LONG": "This is too long.",
+        "INVALID": "This is not valid.",
+        "UNKNOWN_VALUE": "Choose one of the options.",
+        "DUPLICATE": "Another item already uses this.",
+        "IMMUTABLE": "This cannot be changed after the first save.",
+        "NEEDS_CONFIRMED": "Tick Confirmed first.",
+        "NEEDS_VERIFIED": "Tick Verified first.",
+        "NEEDS_CONSENT": "Attach a consent record.",
+        "CONSENT_REVOKED": "This consent was withdrawn.",
+        "FEE_RANGE": "A confirmed fee needs a lowest amount above 0 and a highest amount at least as large.",
+        "NEEDS_YOUTUBE_ID": "A video needs its 11 character YouTube code.",
+        "NEEDS_HTTPS_URL": "A tour or gallery needs a link that starts with https://.",
+        "STEPS_CANNOT_SHRINK": "Saved steps cannot be removed.",
+        "REFERENCE_NOT_FOUND": "One of the chosen items no longer exists. Reload.",
+        "NETWORK": "You're offline.",
+        "GENERIC": "Something went wrong."
+      },
+      "markdown": {
+        "preview": "Preview",
+        "edit": "Edit",
+        "empty": "Nothing to preview yet."
+      },
+      "consent": {
+        "add": "Add consent record",
+        "revoke": "Withdraw consent",
+        "revokeTitle": "Withdraw this consent?",
+        "revokeBody": "Everything that relies on it comes off the site at once. You can add a new consent record later.",
+        "revoked": "{count, plural, =0 {Consent withdrawn.} one {Consent withdrawn. # item came off the site.} other {Consent withdrawn. # items came off the site.}}",
+        "revokedMark": "withdrawn",
+        "title": "Add consent record",
+        "who": "Who agreed",
+        "how": "How consent was given",
+        "howHelp": "For example: WhatsApp message of 1 October, or a signed form. Do not paste private details.",
+        "when": "Date",
+        "save": "Save record",
+        "errors": {
+          "REQUIRED": "Fill in who agreed and how.",
+          "NETWORK": "You're offline.",
+          "GENERIC": "Something went wrong."
+        }
+      },
+      "steps": {
+        "title": "Steps of the journey",
+        "help": "Add the steps in order. A step you have saved can be edited but not removed.",
+        "step": "Step {number}",
+        "stepTitle": "Step title",
+        "stepBody": "What happened",
+        "stepDate": "When (optional, for example March 2026)",
+        "removeNew": "Remove this step",
+        "add": "Add a step",
+        "errors": {
+          "REQUIRED": "Every step needs a title and a text.",
+          "STEPS_CANNOT_SHRINK": "Saved steps cannot be removed."
+        }
+      },
+      "upload": {
+        "title": "Upload an image",
+        "file": "Picture",
+        "fileHelp": "JPEG, PNG or WebP. It is made smaller and converted here, to at most {cap}.",
+        "kind": "What is it",
+        "kinds": {
+          "photo": "Photo",
+          "logo": "Logo",
+          "blog": "Blog picture",
+          "testimonial": "Student photo",
+          "other": "Other"
+        },
+        "alt": "Description (alt text)",
+        "altHelp": "Says what the picture shows, for people who cannot see it.",
+        "isDocument": "This is a photo of a document, such as an offer letter",
+        "working": "Preparing the picture…",
+        "previewLabel": "Preview of the picture that will be uploaded",
+        "size": "{size} of {cap} allowed · {width}×{height}",
+        "blurHelp": "Drag across anything private (names, numbers, signatures) to cover it with blocks. You can cover several areas.",
+        "blurUndo": "Undo last area",
+        "blurClear": "Clear all",
+        "blurCount": "{count, plural, =0 {No areas covered} one {# area covered} other {# areas covered}}",
+        "blurConfirm": "I have covered all private details on this document.",
+        "sending": "Uploading…",
+        "upload": "Upload",
+        "problems": {
+          "NOT_IMAGE": "That file is not a picture.",
+          "SVG": "SVG files are not accepted. Use a JPEG, PNG or WebP picture.",
+          "SOURCE_TOO_BIG": "That picture is too large to open. Try a smaller one.",
+          "DECODE_FAILED": "That picture could not be opened.",
+          "WEBP_UNSUPPORTED": "This browser cannot make WebP pictures. Try another browser.",
+          "TOO_LARGE": "Too large, try a smaller photo.",
+          "NOT_WEBP": "The picture could not be checked. Try again.",
+          "EMPTY": "Choose a picture first.",
+          "BUDGET_FULL": "The image storage is full. Archive images nobody uses first.",
+          "NETWORK": "You're offline. Try again when you are back online.",
+          "STORAGE": "The image storage is not reachable right now. Try again in a moment.",
+          "SERVER": "Something went wrong. Try again."
+        }
+      },
+      "picker": {
+        "title": "Choose an image",
+        "upload": "Upload a new image",
+        "empty": "No images yet. Upload the first one.",
+        "close": "Close",
+        "choose": "Choose image",
+        "change": "Change image",
+        "remove": "Remove",
+        "none": "No image",
+        "missing": "Image not found",
+        "reused": "That picture was already in the library, so it was reused.",
+        "added": "Image added.",
+        "kinds": {
+          "photo": "Photo",
+          "logo": "Logo",
+          "blog": "Blog picture",
+          "testimonial": "Student photo",
+          "other": "Other"
+        }
+      },
+      "media": {
+        "back": "All content",
+        "title": "Images",
+        "upload": "Upload an image",
+        "intro": "Every picture on the site is stored once and reused. A picture that is in use cannot be archived.",
+        "meter": "{used} of {budget} used ({percent}%)",
+        "banner": "The image storage is {percent}% full. Archive images nobody uses.",
+        "empty": "No images yet.",
+        "kinds": {
+          "photo": "Photo",
+          "logo": "Logo",
+          "blog": "Blog picture",
+          "testimonial": "Student photo",
+          "other": "Other"
+        },
+        "archived": "Archived",
+        "used": "{count, plural, one {Used in # place} other {Used in # places}}",
+        "unused": "Not used",
+        "reused": "That picture was already in the library, so it was reused.",
+        "added": "Image added.",
+        "detailTitle": "Image",
+        "alt": "Description (alt text)",
+        "saveAlt": "Save description",
+        "altSaved": "Description saved.",
+        "usedIn": "Used in",
+        "loadingUses": "Loading…",
+        "noUses": "Not used anywhere yet.",
+        "inUseHelp": "Take it out of these items first, or archive them, then archive the image.",
+        "archive": "Archive image",
+        "archivedDone": "Image archived. The file is kept.",
+        "errors": {
+          "generic": "Something went wrong. Try again.",
+          "inUse": "This image is still used, so it cannot be archived.",
+          "network": "You're offline. Try again when you are back online.",
+          "stale": "This changed. Reload.",
+          "archived": "Already archived.",
+          "forbidden": "You are not allowed to do that.",
+          "notFound": "That image does not exist any more.",
+          "storage": "The image storage is not reachable right now.",
+          "tooBig": "That is too large."
+        }
+      },
+      "stale": {
+        "back": "All content",
+        "title": "Stale content",
+        "intro": "Fees not updated for a long time and links not checked for a long time. Open an item to fix it, or choose Mark checked if it is still right.",
+        "allFresh": "Everything has been checked recently.",
+        "kind": {
+          "fees": "Fee",
+          "campus": "Campus experience link",
+          "resources": "Resource link"
+        },
+        "lastChecked": "last checked {date}",
+        "neverChecked": "never checked",
+        "mark": "Mark checked",
+        "marked": "Marked as checked.",
+        "errors": {
+          "generic": "Something went wrong. Try again.",
+          "network": "You're offline. Try again when you are back online.",
+          "stale": "This changed. The list was reloaded.",
+          "archived": "That item is archived.",
+          "forbidden": "You are not allowed to do that.",
+          "notFound": "That item does not exist any more.",
+          "storage": "Try again in a moment.",
+          "tooBig": "That is too large."
+        }
+      }
+    },
+    "analytics": {
+      "title": "Analytics",
+      "intro": "How visitors become leads, and where leads come from. All dates are in West Africa Time (Douala).",
+      "tabs": {
+        "label": "Analytics views",
+        "funnel": "Funnel",
+        "sources": "Sources",
+        "performance": "My performance"
+      },
+      "filters": {
+        "from": "From",
+        "to": "To",
+        "country": "Country",
+        "university": "University",
+        "any": "All",
+        "apply": "Show",
+        "lastDays": "Last {days} days"
+      },
+      "problems": {
+        "INVALID": "That date is not valid.",
+        "FUTURE": "The last day cannot be in the future.",
+        "ORDER": "The first day must not be after the last day.",
+        "TOO_LONG": "Choose a range of at most one year.",
+        "UNKNOWN_VALUE": "Choose one of the countries in the list."
+      },
+      "limits": "Counts can be lower than real traffic because of ad blockers and offline visits.",
+      "funnel": {
+        "range": "From {from} to {to}.",
+        "visitsOff": "Page views are not being counted at the moment (the owner switched them off to save database use), so the funnel starts at WhatsApp taps.",
+        "empty": "No visits, taps or leads in this range yet.",
+        "steps": {
+          "visit": "Visits",
+          "wa_tap": "WhatsApp taps",
+          "lead": "Leads"
+        },
+        "ofPrevious": "{percent} of the step before"
+      },
+      "sources": {
+        "country": "By country",
+        "university": "By university",
+        "page": "By page",
+        "none": "No leads in this range.",
+        "noUniversity": "Not from a university page",
+        "noPage": "Page not recorded"
+      },
+      "performance": {
+        "range": "Your leads received from {from} to {to}.",
+        "noData": "No answered leads yet",
+        "minutes": "{count, plural, one {# minute} other {# minutes}}",
+        "hours": "{count, plural, one {# hour} other {# hours}}",
+        "hoursMinutes": "{hours} h {minutes} min",
+        "tiles": {
+          "assigned": "Leads assigned to you",
+          "answered": "Answered",
+          "median": "Typical first reply",
+          "mean": "Average first reply",
+          "overdue": "Overdue now"
+        },
+        "basis": "Reply times are based on the replies you logged, not on when a message was sent on WhatsApp. Overdue means unanswered and past its target time, whatever the dates above.",
+        "seeOverdue": "See your overdue leads"
+      }
     }
   },
   "site": {
@@ -818,5 +1321,152 @@
     "installPrompt": "Install Scollarly on your phone for quick access.",
     "install": "Install app",
     "dismiss": "Not now"
+  },
+  "me": {
+    "skip": "Skip to the main content",
+    "offline": "You're offline. You can still see the last progress saved on this phone.",
+    "nav": {
+      "label": "Student menu",
+      "progress": "My progress",
+      "link": "Link my application",
+      "profile": "My profile",
+      "data": "My data",
+      "signOut": "Sign out"
+    },
+    "common": {
+      "loading": "Loading…",
+      "error": "We could not load this page.",
+      "offline": "You're offline, so we could not load this page.",
+      "retry": "Try again"
+    },
+    "stages": {
+      "share_results": "Share results",
+      "choose_course": "Choose course",
+      "offer_letter": "Offer letter",
+      "confirm_admission": "Confirm admission",
+      "visa": "Visa",
+      "arrived": "Arrived"
+    },
+    "next": {
+      "share_results": "Send your school results to us on WhatsApp. We read them and tell you which courses fit.",
+      "choose_course": "Talk to us about the courses and choose the ones you want to apply for.",
+      "offer_letter": "We are working on your offer letter with the university. We will message you as soon as it is ready.",
+      "confirm_admission": "Confirm your place with the university. Message us if you need help with the fees or the papers.",
+      "visa": "Get your student visa ready. We will tell you which papers you need and help you check them.",
+      "arrived": "You have arrived. Message us any time if you need help settling in."
+    },
+    "progress": {
+      "title": "My application",
+      "reference": "Your reference",
+      "stepsLabel": "The six steps of your application",
+      "done": "Done",
+      "here": "You are here",
+      "nextTitle": "What happens next",
+      "nextFallback": "Message your admin on WhatsApp to ask what comes next.",
+      "lastUpdated": "Last updated {date}",
+      "whatsapp": "Message your admin on WhatsApp",
+      "whatsappText": "Hello, my Scollarly reference is {ref}. My application is at the step \"{stage}\".",
+      "whatsappMissing": "The WhatsApp number is not available right now. Please try again later.",
+      "others": "{count, plural, one {You have # other application linked to this account.} other {You have # other applications linked to this account.}}",
+      "matching": {
+        "title": "We are matching your application",
+        "body": "We have not linked an application to your account yet. If you already applied, ask us to link it. If you have not applied, you can start from the Apply page.",
+        "pending": "{count, plural, one {Your request is waiting for an admin to confirm it.} other {Your # requests are waiting for an admin to confirm them.}}",
+        "link": "Link my application"
+      },
+      "offline": {
+        "body": "You're offline. This is the last progress saved on this phone, and it may be out of date.",
+        "stage": "Step",
+        "retry": "Check again"
+      }
+    },
+    "link": {
+      "title": "Link my application",
+      "intro": "If you already applied, tell us how to find your application and an admin will confirm that it is yours. Nothing is linked until an admin confirms it.",
+      "reference": "Your reference or the WhatsApp number you applied with",
+      "help": "The reference looks like SC-ABCDE-12345. A number can start with + and the country code, for example +237…",
+      "country": "Country of the number (only if it does not start with +)",
+      "noCountry": "Not needed",
+      "countryHelp": "Choose it when you type a number the way you dial it at home, without the country code.",
+      "countries": {
+        "CM": "Cameroon",
+        "NG": "Nigeria",
+        "GH": "Ghana",
+        "CI": "Ivory Coast",
+        "SN": "Senegal",
+        "GN": "Guinea",
+        "ZA": "South Africa",
+        "IN": "India"
+      },
+      "send": "Send request",
+      "sending": "Sending…",
+      "sent": "Request sent. An admin will confirm. You will see your progress here once they do.",
+      "back": "Back to my progress",
+      "errors": {
+        "REQUIRED": "Enter your reference or your number.",
+        "INVALID": "That does not look like a reference or a phone number.",
+        "NEEDS_COUNTRY": "Choose the country of the number, or start it with + and the country code.",
+        "TOO_LONG": "That is too long.",
+        "UNKNOWN_VALUE": "Choose one of the countries in the list.",
+        "NETWORK": "You're offline. Try again when you are back online.",
+        "RATE_LIMITED": "You have sent several requests today. Please try again tomorrow, or message us on WhatsApp.",
+        "GENERIC": "Something went wrong. Try again."
+      }
+    },
+    "profile": {
+      "title": "My profile",
+      "name": "Name",
+      "email": "Email",
+      "emailHelp": "This is the email of your Google account. It cannot be changed here.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "errors": {
+        "REQUIRED": "Enter your name.",
+        "INVALID": "That name is not valid.",
+        "NETWORK": "You're offline. Try again when you are back online.",
+        "GENERIC": "Something went wrong. Try again."
+      }
+    },
+    "data": {
+      "title": "My data",
+      "intro": "You decide what we keep. You can download everything we hold about you, or ask us to delete it.",
+      "export": {
+        "title": "Download my data",
+        "body": "A file with your account details and your applications, as you gave them to us. It is made when you ask for it and is not stored anywhere.",
+        "button": "Download my data",
+        "working": "Preparing…",
+        "done": "Your file was downloaded.",
+        "errors": {
+          "NETWORK": "You're offline. Try again when you are back online.",
+          "GENERIC": "Something went wrong. Try again."
+        }
+      },
+      "erase": {
+        "title": "Delete my data",
+        "body": "We remove your name, number and email from your applications, and we delete your account. You will be signed out and cannot sign in with it again. This cannot be undone.",
+        "kept": {
+          "payments": "Payments that universities made to Scollarly stay on record, without any link to you.",
+          "counts": "Anonymous counts, such as how many applications we had in a month, stay."
+        },
+        "button": "Delete my data",
+        "dialogTitle": "Delete all my data?",
+        "warning": "This removes your details from every application and deletes your account. It cannot be undone.",
+        "typeDelete": "Type DELETE to confirm",
+        "confirm": "Delete my data",
+        "working": "Deleting…",
+        "cancel": "Cancel",
+        "reauth": "For your safety, sign in again first. Deleting needs a sign-in from the last 10 minutes. After you sign in, come back to this page.",
+        "signInAgain": "Sign in again",
+        "doneTitle": "Your data was deleted",
+        "done": "Your details were removed and your account was deleted. You are signed out.",
+        "home": "Go to the home page",
+        "errors": {
+          "NETWORK": "You're offline. Try again when you are back online.",
+          "STAFF": "A team account cannot delete itself. Ask the owner to remove your team access first.",
+          "GENERIC": "Something went wrong. Try again."
+        }
+      }
+    }
   }
 }

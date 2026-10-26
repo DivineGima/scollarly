@@ -9,6 +9,8 @@ export const ROLES = ["student", "admin", "owner"] as const;
 /** The seven student countries (PRD section 3), as ISO 3166-1 alpha-2 codes. */
 export const STUDENT_COUNTRIES = ["CM", "NG", "GH", "CI", "SN", "GN", "ZA"] as const;
 export type StudentCountry = (typeof STUDENT_COUNTRIES)[number];
+/** The countries a student may type a WhatsApp number from when linking an application: the student countries plus India (ADR-025). */
+export const NUMBER_COUNTRIES = [...STUDENT_COUNTRIES, "IN"] as const;
 
 /** Architecture 7.2: `pipeline_stage` is seeded with these six, in this order. */
 export const PIPELINE_STAGE_CODES = ["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"] as const;

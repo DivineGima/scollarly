@@ -65,3 +65,25 @@ export function downloadTextFile(name: string, text: string): void {
   link.click();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Sends a file as the request body (the image upload, `admin/media.upload`). The details of the file go in the query string. Like
+ * `api`, it never throws: a lost connection and an error answer both come back as a plain result.
+ */
+export async function apiUpload<T>(path: string, blob: Blob): Promise<ApiResult<T>> {
+  let response: Response;
+  try {
+    response = await fetch(path, { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+  } catch {
+    return { ok: false, status: 0, code: "NETWORK", fields: {}, retryAfter: null };
+  }
+  let json: unknown = null;
+  try {
+    json = await response.json();
+  } catch {
+    // Not JSON: handled below.
+  }
+  if (response.ok) return json === null ? { ok: false, status: response.status, code: "BAD_RESPONSE", fields: {}, retryAfter: null } : { ok: true, data: json as T };
+  const error = (json as { error?: { code?: string; fields?: Record<string, string> } } | null)?.error;
+  return { ok: false, status: response.status, code: error?.code ?? "BAD_RESPONSE", fields: error?.fields ?? {}, retryAfter: null };
+}

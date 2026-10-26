@@ -42,6 +42,13 @@ const NEON_AUTH_STUB = `
     "userAgent" text,
     "userId" uuid not null references neon_auth."user"(id) on delete cascade
   );
+  create table neon_auth.account (
+    id uuid primary key default gen_random_uuid(),
+    "accountId" text not null,
+    "providerId" text not null,
+    "userId" uuid not null references neon_auth."user"(id) on delete cascade,
+    "createdAt" timestamptz not null default now()
+  );
 `;
 
 export interface SignedInUser {
