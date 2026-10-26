@@ -7,7 +7,7 @@
  * does: the Worker has no such variable. A test proves that without the variable, and in the server phase, the loader returns null.
  */
 
-type FixtureKey = "catalogue" | "site" | "trust" | "blog";
+type FixtureKey = "catalogue" | "site" | "trust" | "blog" | "pageImages";
 
 export function fixtureFileName(env: Record<string, string | undefined> = process.env): string | null {
   const file = env.CONTENT_FIXTURE_FILE;

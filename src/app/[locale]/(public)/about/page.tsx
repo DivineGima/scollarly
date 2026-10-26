@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { MediaImage } from "@/components/public/media-image";
 import { Paragraphs } from "@/components/public/copy";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { Journeys, Team } from "@/components/public/trust";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
-import { readSite, readTrust } from "@/modules/content/read";
+import { readPageImages, readSite, readTrust } from "@/modules/content/read";
 
 // A4 /about: mission, values, and only confirmed team members (CLAUDE.md: no unconfirmed bios).
 export const revalidate = 3600;
@@ -18,13 +19,15 @@ const VALUES = ["commitment", "inclusivity", "honesty"] as const;
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, { blocks }, trust] = await Promise.all([getTranslations("about"), readSite(), readTrust()]);
+  const [t, { blocks }, trust, pageImages] = await Promise.all([getTranslations("about"), readSite(), readTrust(), readPageImages()]);
   const values = VALUES.filter((key) => blocks[`about.value.${key}.title`]);
+  const photo = pageImages["about.photo"];
 
   return (
     <>
       <h1>{t("title")}</h1>
       {blocks["about.summary"] ? <Paragraphs text={blocks["about.summary"]} className="lead" /> : <p className="lead">{t("fallback")}</p>}
+      {photo ? <MediaImage media={photo} className="page-photo" /> : null}
 
       {blocks["about.mission"] ? (
         <section aria-labelledby="mission-heading" className="section">

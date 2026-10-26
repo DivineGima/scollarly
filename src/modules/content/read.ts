@@ -1,11 +1,22 @@
 import { unstable_cache } from "next/cache";
 import { getDb } from "@/server/db/runtime";
 import { getEnv } from "@/server/env";
-import { readCatalogueRows, readPostRows, readSiteRows, readTrustRows } from "@/server/repositories/content";
-import { buildBlog, buildCatalogue, buildSite, buildTrust } from "./builders";
+import { readCatalogueRows, readPageImageRows, readPostRows, readSiteRows, readTrustRows } from "@/server/repositories/content";
+import { buildBlog, buildCatalogue, buildPageImages, buildSite, buildTrust } from "./builders";
 import { loadFixture } from "./fixture";
 import { CONTENT_REVALIDATE_SECONDS, CONTENT_TAGS } from "./tags";
-import { EMPTY_BLOG, EMPTY_CATALOGUE, EMPTY_SITE, EMPTY_TRUST, type BlogSnapshot, type CatalogueSnapshot, type SiteSnapshot, type TrustSnapshot } from "./types";
+import {
+  EMPTY_BLOG,
+  EMPTY_CATALOGUE,
+  EMPTY_PAGE_IMAGES,
+  EMPTY_SITE,
+  EMPTY_TRUST,
+  type BlogSnapshot,
+  type CatalogueSnapshot,
+  type PageImageSnapshot,
+  type SiteSnapshot,
+  type TrustSnapshot,
+} from "./types";
 
 /**
  * The content read layer (S3.1, architecture 6.1): public pages read content here, at build or revalidate time, and
@@ -29,7 +40,7 @@ function databaseHandle() {
 }
 
 async function read<Snapshot, Rows>(
-  fixtureKey: "catalogue" | "site" | "trust" | "blog",
+  fixtureKey: "catalogue" | "site" | "trust" | "blog" | "pageImages",
   empty: Snapshot,
   fetchRows: (db: NonNullable<ReturnType<typeof databaseHandle>>) => Promise<Rows>,
   build: (rows: Rows) => Snapshot,
@@ -67,4 +78,10 @@ export const readBlog = unstable_cache(
   (): Promise<BlogSnapshot> => read("blog", EMPTY_BLOG, readPostRows, (rows) => buildBlog(rows)),
   ["content-blog-v1", source],
   options(CONTENT_TAGS.blog),
+);
+
+export const readPageImages = unstable_cache(
+  (): Promise<PageImageSnapshot> => read("pageImages", EMPTY_PAGE_IMAGES, readPageImageRows, (rows) => buildPageImages(rows)),
+  ["content-page-images-v1", source],
+  options(CONTENT_TAGS.pageImages),
 );

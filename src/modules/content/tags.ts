@@ -8,6 +8,7 @@ export const CONTENT_TAGS = {
   site: "content:site",
   trust: "content:trust",
   blog: "content:blog",
+  pageImages: "content:page-images",
 } as const;
 
 export type ContentArea = keyof typeof CONTENT_TAGS;

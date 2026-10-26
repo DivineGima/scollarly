@@ -719,6 +719,26 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Noted, not changed:** (a) `confirmEnrolment` marks the authenticator confirmed and then stores the recovery codes in a second request; if that second request fails the owner has a confirmed authenticator and no recovery codes (the SQL reset in `docs/recovery.md` is the way out). Making it one transaction needs a new store method, so it is left for the owner to decide. (b) The Stage 0 stub screens `admin/phase0` and `me/phase0` remain on purpose (architecture, Session 28 amendment).
 
+### 2026-10-26: Session 36 (public-site visual redesign and the owner's page photos, Module S12.1)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (start-of-task sequence passed; N = 1 everywhere; C1 is paused by the owner until about 2026-11-24, so it was not asked). Branch `design/public-photos-and-visual-refresh`.
+
+**Asked by the owner:** a UI/UX redesign of the public site (`ui-ux-pro-max` and `design-taste-frontend` skills), and specifically why the four photos uploaded earlier (`hero-students.jpg`, `india-campus.jpg`, `global-network.jpg`, `student-study.jpg`, in `data/seed/site-images/`) were never used.
+
+**Finding:** the photos were logged in `docs/stage-1-runbook.md` and tracker Session 14 as "not imported"; Stage 3 shipped text placeholders "until Stage 6"; Stage 6 built the admin image-upload pipeline but nothing ever built a page-level photo slot to connect the two. Not a deliberate data-budget decision, an unfinished thread. All four already fit the 300 KB WebP cap.
+
+**Owner decided (preserve and elevate, not overhaul):** use all four photos (Home hero, About, Campus Tours, Universities); ignore three unrelated stock photos found in the owner's Downloads folder; keep the current IA, nav, copy voice and the locked light-only blue/black/white brand (no dark mode, no new palette).
+
+**The one architecture addition, flagged per CLAUDE.md:** there was no way to attach an image to a page (only to a university, a campus experience, a testimonial, a team member or a post, each its own `*_media_id` column). A new table, `page_image` (`key` text unique, `media_asset_id` references `media_asset`), follows the exact shape already used five times in the schema; `media_asset.kind = 'other'` (already a valid value, no enum change) is used for these photos. Migration `0012_stage12_page_image.sql`, with the same `ENABLE`/`FORCE ROW LEVEL SECURITY` and public-read/staff-write policy shape as `media_asset`'s own. Added to `EXPORT_TABLES` (it is public content, not a secret) and to every table-coverage test (`tests/unit/boundaries.test.ts`, `tests/integration/rls-policies.test.ts`).
+
+**Built:** the seed format (`page_images.json`, a `pageImageSeedSchema`), the content read layer (`readPageImages`, `buildPageImages`, its own cache tag and build-time fixture key), and the four pages wired to it (`/`, `/about`, `/campus-tours`, `/universities`) through the existing `MediaImage` component (no new component, no new client JavaScript). CSS-only visual refresh in `globals.css`/`public.css`: a responsive hero split (text and photo, text first on a phone, side by side from `40rem`), one reusable `.page-photo` banner class reused across About/Tours/Universities (one layout family, not three), tightened heading letter-spacing, a wider hero scale at `64rem+`, more section breathing room from `40rem+`, and short token-driven press/hover feedback on buttons and cards (the existing global `prefers-reduced-motion` rule already collapses it to instant).
+
+**Performance finding, acted on:** the home page's baseline first-load weight was already measured at 108 KiB against the 200 KB Lighthouse budget (Session 3, finding 5), leaving little room. The hero photo is loaded eagerly (it is the LCP element), so its real byte weight counts against that budget. At the existing `other`-kind max side (1280 px) the real `hero-students.jpg` converted to about 95 KB WebP, which would likely have failed the budget. `IMAGE_MAX_SIDE.other` (and the seed script's own copy in `scripts/lib/image.ts`) was lowered from 1280 to 800 for this reason; the real photo now converts to about 50 KB, confirmed with `scripts/seed.ts --dry-run` against the real seed directory. This also shrinks the other three (lazy, so less urgent) photos, in keeping with the project's own low-data principle. Lighthouse CI itself (`lighthouserc.json`, all 16 routes) still needs a run against a real deployed build with the real seeded images before this is signed off; that is a CI/deploy step, not something this session could run without a live Neon Object Storage bucket.
+
+**Tests:** unit (seed schema, `imageFiles`, `buildSeedRows`, `buildPageImages`, the fixture seam) and integration (`readPageImageRows`/`buildPageImages` against a real migrated database, the seed script's import-twice idempotency, the full RLS read matrix) extended; a new Playwright block (`S12.1`) checks each photo's alt text and `<img>` markup on its page. Locally: `tsc --noEmit` clean; `eslint` clean on every changed file; unit + integration suites green (1300 of 1300, after fixing the two coverage-list regressions this change caused); the new and FR-1 Playwright specs passed against a real `next build`.
+
+**Not done, left to the owner or to CI:** merging the PR; a real Lighthouse run against a deployed build with the real images (CI does this on the next deploy); the owner has not yet reviewed the visual result; `/` was the only page whose performance was re-measured this session.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -763,6 +783,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 9 | Payments received and admin performance | S9.1 to S9.4 | complete (2026-10-26: CI green on PR #34, deployed, payments CPU row p50 2 ms and p95 3 ms, owner checked the screens by role) |
 | 10 | Owner pages and operations | S10.1 to S10.4 | in-progress (2026-10-26: CI green and deployed; backup, alarm and recovery tested; S10.2 stays open until the owner decides H24, Neon compute hours) |
 | 11 | Hardening and launch readiness | S11.1 to S11.8 | in-progress (2026-10-26: CI green and deployed; S11.4 waits on H24 and S11.6 on the owner's checklist and sign-off H11) |
+| 12 | Public-site visual redesign and the owner's page photos (not one of F1 to F18; polish on already-shipped pages, Session 36) | S12.1 | **in-progress** (2026-10-26: branch `design/public-photos-and-visual-refresh`; `page_image` table, seed, read layer and four pages wired; CSS-only visual refresh; local tests green; not yet merged, not yet Lighthouse-checked against a deployed build with real images, not yet reviewed by the owner) |
 
 ## Module registry (68 modules, status per module ID)
 

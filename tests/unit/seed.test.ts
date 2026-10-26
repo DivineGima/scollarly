@@ -22,7 +22,7 @@ describe("seed files: the format (S1.7)", () => {
     expect(bundle.universities[0]?.programmes[1]?.status).toBe("draft");
     expect(bundle.faqs[1]?.status).toBe("draft");
     expect(parse({}).success).toBe(true);
-    expect(parse({}).data).toEqual({ universities: [], faqs: [], process_steps: [], content_blocks: [], site_settings: [] });
+    expect(parse({}).data).toEqual({ universities: [], faqs: [], process_steps: [], content_blocks: [], page_images: [], site_settings: [] });
   });
 
   it("rejects unknown fields and bad values", () => {
@@ -51,11 +51,18 @@ describe("seed files: the format (S1.7)", () => {
   });
 
   it("rejects duplicates, so every row has an unambiguous key", () => {
-    const input = fixtureInput() as { universities: Record<string, unknown>[]; faqs: Record<string, unknown>[] };
+    const input = fixtureInput() as { universities: Record<string, unknown>[]; faqs: Record<string, unknown>[]; page_images: Record<string, unknown>[] };
     expect(issuesOf({ ...input, universities: [input.universities[0], input.universities[0]] }).join()).toMatch(/Duplicate universities/);
     expect(issuesOf({ ...input, faqs: [input.faqs[0], input.faqs[0]] }).join()).toMatch(/Duplicate faqs/);
     expect(issuesOf(withUniversity({ programmes: [{ name: "A" }, { name: "A" }] })).join()).toMatch(/Duplicate programme/);
     expect(issuesOf(withUniversity({ fees: [{ currency: "USD", period: "p" }, { currency: "USD", period: "p" }] })).join()).toMatch(/Duplicate fee/);
+    expect(issuesOf({ ...input, page_images: [input.page_images[0], input.page_images[0]] }).join()).toMatch(/Duplicate page_images/);
+  });
+
+  it("page images need a dotted lower-case key and a file", () => {
+    expect(issuesOf({ page_images: [{ key: "home.hero", file: "photos/hero.jpg" }] })).toEqual([]);
+    expect(issuesOf({ page_images: [{ key: "Home Hero", file: "photos/hero.jpg" }] })).not.toEqual([]);
+    expect(issuesOf({ page_images: [{ key: "home.hero" }] })).not.toEqual([]);
   });
 
   it("a fee can only name a programme the university lists", () => {
@@ -93,9 +100,11 @@ describe("buildSeedRows", () => {
 
   it("finds every image once, with its kind", () => {
     const files = imageFiles(fixtureBundle());
-    expect([...files.keys()].sort()).toEqual(["logos/university-1.png", "logos/university-2.png", "logos/university-3.png", "photos/shared-thumb.jpg"]);
+    expect([...files.keys()].sort()).toEqual(["logos/university-1.png", "logos/university-2.png", "logos/university-3.png", "photos/hero.jpg", "photos/shared-thumb.jpg"]);
     expect(files.get("logos/university-1.png")).toEqual({ kind: "logo", alt: "Test University 1 logo" });
     expect(files.get("photos/shared-thumb.jpg")?.kind).toBe("photo");
+    // A page-level decorative photo (home hero, about, ...) is kind "other": not tied to a university or a claim.
+    expect(files.get("photos/hero.jpg")).toEqual({ kind: "other", alt: "Test hero photo" });
   });
 
   it("builds the same rows, with the same ids, every time", async () => {
@@ -115,6 +124,7 @@ describe("buildSeedRows", () => {
     expect(rows.faqs).toHaveLength(2);
     expect(rows.processSteps).toHaveLength(3);
     expect(rows.contentBlocks).toHaveLength(1);
+    expect(rows.pageImages).toHaveLength(1);
     const university1 = rows.universities[0];
     expect(rows.programmes.filter((p) => p.universityId === university1?.id)).toHaveLength(2);
     const programmeA = rows.programmes.find((p) => p.universityId === university1?.id && p.name === "Test Programme A");
@@ -153,6 +163,7 @@ describe("buildSeedRows", () => {
     const rows = await buildSeedRows(fixtureBundle(), ids);
     expect(rows.universities[0]?.logoMediaId).toBe(ids.get("logos/university-1.png"));
     expect(rows.campusExperiences.find((c) => c.title === "Campus tour")?.thumbnailMediaId).toBe(ids.get("photos/shared-thumb.jpg"));
+    expect(rows.pageImages.find((p) => p.key === "home.hero")?.mediaAssetId).toBe(ids.get("photos/hero.jpg"));
     await expect(buildSeedRows(fixtureBundle(), new Map())).rejects.toThrow(/No media asset was imported/);
   });
 });

@@ -1,0 +1,6 @@
+[
+  { "key": "home.hero", "file": "site-images/hero-students.jpg", "alt": "African students talking together on an Indian university campus" },
+  { "key": "about.photo", "file": "site-images/student-study.jpg", "alt": "A student studying with a laptop and notes" },
+  { "key": "tours.photo", "file": "site-images/india-campus.jpg", "alt": "A university campus building in India" },
+  { "key": "universities.photo", "file": "site-images/global-network.jpg", "alt": "A world map illustrating Scollarly's network of partner universities" }
+]

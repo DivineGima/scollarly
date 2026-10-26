@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { MediaImage } from "@/components/public/media-image";
 import { Paragraphs } from "@/components/public/copy";
 import { PageLink } from "@/components/public/page-link";
 import { FaqList } from "@/components/public/steps";
 import { Testimonials, TrustStats } from "@/components/public/trust";
 import { UniversityCard } from "@/components/public/university-card";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
-import { readCatalogue, readSite, readTrust } from "@/modules/content/read";
+import { readCatalogue, readPageImages, readSite, readTrust } from "@/modules/content/read";
 import { pageMetadata } from "@/components/public/page-metadata";
 
 // A1. Prerendered; the content is read at build or revalidate time and a publish refreshes it (architecture 6.1, 10.4).
@@ -22,23 +23,31 @@ const WHY = ["free", "real", "support", "risk"] as const;
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, { universities }, site, trust] = await Promise.all([getTranslations("home"), readCatalogue(), readSite(), readTrust()]);
+  const [t, { universities }, site, trust, pageImages] = await Promise.all([getTranslations("home"), readCatalogue(), readSite(), readTrust(), readPageImages()]);
   const { blocks } = site;
   const steps = site.processSteps.filter((s) => s.kind === "application");
   const featured = universities.slice(0, 6);
+  const heroPhoto = pageImages["home.hero"];
 
   return (
     <>
-      <section className="hero" aria-labelledby="hero-title">
-        <h1 id="hero-title">{blocks["hero.title"] ?? t("hero.title")}</h1>
-        <p className="lead">{blocks["hero.subtitle"] ?? t("hero.subtitle")}</p>
-        <p className="cta-row">
-          <PageLink href="/apply" className="btn btn-primary">
-            {t("startApplication")}
-          </PageLink>
-          <WhatsAppButton context={{ page: "/" }} />
-        </p>
-        <p className="muted">{t("freeForStudents")}</p>
+      <section className={heroPhoto ? "hero hero-with-media" : "hero"} aria-labelledby="hero-title">
+        <div>
+          <h1 id="hero-title">{blocks["hero.title"] ?? t("hero.title")}</h1>
+          <p className="lead">{blocks["hero.subtitle"] ?? t("hero.subtitle")}</p>
+          <p className="cta-row">
+            <PageLink href="/apply" className="btn btn-primary">
+              {t("startApplication")}
+            </PageLink>
+            <WhatsAppButton context={{ page: "/" }} />
+          </p>
+          <p className="muted">{t("freeForStudents")}</p>
+        </div>
+        {heroPhoto ? (
+          <div className="hero-media">
+            <MediaImage media={heroPhoto} eager className="hero-photo" />
+          </div>
+        ) : null}
       </section>
 
       <TrustStats stats={trust.stats} />

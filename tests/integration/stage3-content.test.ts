@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildBlog, buildCatalogue, buildSite, buildTrust } from "@/modules/content/builders";
+import { buildBlog, buildCatalogue, buildPageImages, buildSite, buildTrust } from "@/modules/content/builders";
 import { uuidv7 } from "@/lib/uuid";
-import { readCatalogueRows, readPostRows, readSiteRows, readTrustRows } from "@/server/repositories/content";
+import { readCatalogueRows, readPageImageRows, readPostRows, readSiteRows, readTrustRows } from "@/server/repositories/content";
 import { createTestDb, type TestDb } from "./helpers/db";
 import { consent, insertRow, programmeRow, uni } from "./helpers/fixtures";
 
@@ -50,6 +50,10 @@ beforeAll(async () => {
   await insertRow(t, "post", { id: uuidv7(), slug: "new", title: "New post", body: "Body", status: "published", published_at: NOW });
   await insertRow(t, "post", { id: uuidv7(), slug: "old", title: "Old post", body: "Body", status: "published", published_at: "2026-01-01T00:00:00Z" });
   await insertRow(t, "post", { id: uuidv7(), slug: "unpublished", title: "Draft post", body: "Body", status: "draft" });
+
+  // Page-level decorative photos (home hero, about, ...): no draft/publish gate, just a key pointing at a media_asset.
+  ids.heroMedia = await insertRow(t, "media_asset", { id: uuidv7(), kind: "other", width: 1280, height: 720, bytes: 12345, mime: "image/webp", sha256: "b".repeat(64) });
+  await insertRow(t, "page_image", { id: uuidv7(), key: "home.hero", media_asset_id: ids.heroMedia });
 
   await t.asRuntime();
 });
@@ -101,6 +105,12 @@ describe("S3.1: public reads return published content only, as the runtime role"
   it("returns published posts, newest first", async () => {
     const blog = buildBlog(await readPostRows(t.db));
     expect(blog.posts.map((p) => p.slug)).toEqual(["new", "old"]);
+  });
+
+  it("returns page images keyed by their slot", async () => {
+    const images = buildPageImages(await readPageImageRows(t.db));
+    expect(Object.keys(images)).toEqual(["home.hero"]);
+    expect(images["home.hero"]).toMatchObject({ sha256: "b".repeat(64), width: 1280, height: 720 });
   });
 
   it("each read is one round trip's worth of queries and none touches a table the public may not read", async () => {

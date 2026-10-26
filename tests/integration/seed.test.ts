@@ -30,7 +30,7 @@ afterAll(async () => {
   await t.close();
 });
 
-const TABLES = ["university", "programme", "fee_structure", "campus_experience", "official_resource", "faq", "process_step", "content_block", "media_asset"] as const;
+const TABLES = ["university", "programme", "fee_structure", "campus_experience", "official_resource", "faq", "process_step", "content_block", "page_image", "media_asset"] as const;
 
 /** A fingerprint of every seeded table, so "unchanged" means every column of every row, not just the counts. */
 async function snapshot(): Promise<Record<string, string>> {
@@ -83,20 +83,21 @@ const makeImages = async () =>
     ["logos/university-2.png", await noisePng(120, 120)],
     ["logos/university-3.png", await flatJpeg(180, 90)],
     ["photos/shared-thumb.jpg", await flatJpeg(640, 360)],
+    ["photos/hero.jpg", await flatJpeg(640, 480)],
   ]);
 
 describe("S1.7: the seed", () => {
   it("inserts every row on the first run", async () => {
     const { report, statuses } = await runSeed(images);
-    expect(report).toEqual({ universities: 3, programmes: 6, feeStructures: 6, campusExperiences: 6, officialResources: 3, faqs: 2, processSteps: 3, contentBlocks: 1, siteSettings: 2 });
-    expect(statuses).toEqual(["created", "created", "created", "created"]);
+    expect(report).toEqual({ universities: 3, programmes: 6, feeStructures: 6, campusExperiences: 6, officialResources: 3, faqs: 2, processSteps: 3, contentBlocks: 1, pageImages: 1, siteSettings: 2 });
+    expect(statuses).toEqual(["created", "created", "created", "created", "created"]);
   });
 
   it("leaves the database unchanged when run a second time", async () => {
     const before = await snapshot();
     const { report, statuses } = await runSeed(images);
-    expect(report).toEqual({ universities: 0, programmes: 0, feeStructures: 0, campusExperiences: 0, officialResources: 0, faqs: 0, processSteps: 0, contentBlocks: 0, siteSettings: 0 });
-    expect(statuses).toEqual(["existing", "existing", "existing", "existing"]);
+    expect(report).toEqual({ universities: 0, programmes: 0, feeStructures: 0, campusExperiences: 0, officialResources: 0, faqs: 0, processSteps: 0, contentBlocks: 0, pageImages: 0, siteSettings: 0 });
+    expect(statuses).toEqual(["existing", "existing", "existing", "existing", "existing"]);
     expect(await snapshot()).toEqual(before);
     expect(await settings()).toEqual({ whatsapp_number_e164: "+237612345678", contact_phone_display: "+237 612 345 678" });
   });
@@ -118,8 +119,8 @@ describe("S1.7: the seed", () => {
 
   it("stores one object and one media row per image, even when several tours share a thumbnail", async () => {
     const [count] = (await t.run("select count(*)::int as n from media_asset")) as { n: number }[];
-    expect(count?.n).toBe(4);
-    expect(objects.size).toBe(4);
+    expect(count?.n).toBe(5);
+    expect(objects.size).toBe(5);
   });
 
   it("links programmes, fees and tours to the right university and nothing is orphaned", async () => {

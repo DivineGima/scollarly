@@ -42,6 +42,7 @@ export function fixtureInput(): Record<string, unknown> {
       { kind: "visa", position: 1, title: "Visa step", body: "Apply." },
     ],
     content_blocks: [{ key: "why.test", translations: { en: "Test copy." }, status: "published" }],
+    page_images: [{ key: "home.hero", file: "photos/hero.jpg", alt: "Test hero photo" }],
     site_settings: [
       { key: "whatsapp_number_e164", value: "+237612345678" },
       { key: "contact_phone_display", value: "+237 612 345 678" },

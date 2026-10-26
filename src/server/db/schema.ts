@@ -178,6 +178,27 @@ export const mediaAsset = pgTable(
   ],
 );
 
+/**
+ * A named slot for a page-level photo (hero, about, campus tours, universities), by its own stable `key`
+ * (`home.hero`, `about.photo`, ...). Decorative imagery, not a claim or a personal record, so there is no
+ * draft/publish workflow: a key either has a photo or it does not, and the page falls back to its text-only
+ * layout either way (architecture 6.5). The image itself is still a normal `media_asset` row (kind `other`).
+ */
+export const pageImage = pgTable(
+  "page_image",
+  {
+    id: uuid("id").primaryKey(),
+    key: text("key").notNull().unique(),
+    mediaAssetId: uuid("media_asset_id")
+      .notNull()
+      .references(() => mediaAsset.id),
+    updatedBy: text("updated_by"),
+    createdAt: tz("created_at").notNull().defaultNow(),
+    updatedAt: tz("updated_at").notNull().defaultNow(),
+  },
+  (t) => [check("page_image_key_format", sql`${t.key} ~ '^[a-z0-9]+(\.[a-z0-9]+)*$'`)],
+);
+
 // ---------------------------------------------------------------------------------------------
 // 3. Leads (architecture 7.2)
 // ---------------------------------------------------------------------------------------------
@@ -854,6 +875,7 @@ export const schema = {
   adminInvite,
   auditLog,
   mediaAsset,
+  pageImage,
   pipelineStage,
   lead,
   leadProgrammePref,

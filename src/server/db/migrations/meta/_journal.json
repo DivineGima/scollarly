@@ -85,6 +85,13 @@
       "when": 1792982632188,
       "tag": "0011_stage9_10_payments_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793034765487,
+      "tag": "0012_stage12_page_image",
+      "breakpoints": true
     }
   ]
 }

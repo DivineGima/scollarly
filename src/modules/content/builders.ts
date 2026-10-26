@@ -1,4 +1,4 @@
-import type { CatalogueRows, PostRows, SiteRows, TrustRows } from "@/server/repositories/content";
+import type { CatalogueRows, PageImageRows, PostRows, SiteRows, TrustRows } from "@/server/repositories/content";
 import { isE164 } from "@/lib/phone";
 import { isYoutubeId, safeHttpsUrl } from "./embed";
 import { confirmedRange } from "./fees";
@@ -10,6 +10,7 @@ import type {
   CatalogueSnapshot,
   FeeLine,
   MediaRef,
+  PageImageSnapshot,
   SiteSnapshot,
   TrustSnapshot,
   UniversityView,
@@ -176,6 +177,16 @@ export function buildBlog(rows: PostRows, locale = "en"): BlogSnapshot {
       ];
     }),
   };
+}
+
+export function buildPageImages(rows: PageImageRows, locale = "en"): PageImageSnapshot {
+  const media = mediaIndex(rows.media, locale);
+  const snapshot: PageImageSnapshot = {};
+  for (const row of rows.images) {
+    const ref = media(row.mediaAssetId);
+    if (ref) snapshot[row.key] = ref;
+  }
+  return snapshot;
 }
 
 /**

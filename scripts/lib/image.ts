@@ -7,9 +7,11 @@ import { IMAGE_CAPS, type ImageKind } from "../../src/server/media/ingest";
  * uploads in Stage 6 (S6.3).
  *
  * Longest side limits are this script's choice, not the architecture's: 512 px for a logo, 1600 px for a photo.
+ * `other` is kept to 800, matching the browser-side cap (`src/lib/image-caps.ts`): a page-level decorative photo
+ * (S12.1) can be loaded eagerly as the home hero, which counts against the 200 KB first-load page-weight budget.
  */
 
-const MAX_SIDE: Record<ImageKind, number> = { logo: 512, photo: 1600, blog: 1600, testimonial: 1600, other: 1600 };
+const MAX_SIDE: Record<ImageKind, number> = { logo: 512, photo: 1600, blog: 1600, testimonial: 1600, other: 800 };
 const QUALITIES = [85, 78, 70, 62, 54, 46, 38, 30];
 const SHRINK = [1, 0.8, 0.64, 0.5];
 
