@@ -19,6 +19,8 @@ esac
 
 umask 077
 rm -f "$out"
+# A failed dump still leaves age having written its header, so any failure from here on removes the file: a leftover must never be taken for a backup.
+trap 'status=$?; [ "$status" -eq 0 ] || rm -f "$out"' EXIT
 # Only our own schema: Neon manages `neon_auth`, and its tables hold sessions and tokens that a backup file must not carry.
 pg_dump --format=custom --no-owner --schema=public "$BACKUP_DATABASE_URL" | age --recipient "$BACKUP_AGE_RECIPIENT" --output "$out"
 
