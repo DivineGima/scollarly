@@ -24,7 +24,7 @@ jobs:
     services:
       postgres:
         # The same major version the dump tools below are installed at, so the restore reads exactly what the dump wrote.
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: ci
         ports: ["5432:5432"]
@@ -37,16 +37,16 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22", cache: npm }
       - run: npm ci
-      - name: Install age and the PostgreSQL 17 client
+      - name: Install age and the PostgreSQL 18 client
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
-          sudo apt-get install -y age postgresql-client-17
-          # The runner ships PostgreSQL 16 tools first on the path; a dump from a 17 server needs the 17 tools.
-          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
-          /usr/lib/postgresql/17/bin/pg_dump --version
+          sudo apt-get install -y age postgresql-client-18
+          # The runner ships PostgreSQL 16 tools first on the path; Neon runs PostgreSQL 18 and pg_dump refuses a newer server, so the dump needs the 18 tools.
+          echo /usr/lib/postgresql/18/bin >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version
           pg_dump --version
           age --version
       - run: bash scripts/ops/backup-selftest.sh
