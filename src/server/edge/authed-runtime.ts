@@ -1,11 +1,15 @@
 import { loadAdminStub, loadStudentStub } from "@/modules/phase0/auth-stubs";
+import { analyticsDataCalls } from "@/modules/analytics/endpoints";
 import { auditDataCalls } from "@/modules/audit/endpoints";
+import { contentDataCalls, contentMutations } from "@/modules/content-admin/endpoints";
 import { leadDataCalls, leadMutations } from "@/modules/leads/admin-endpoints";
 import { authDataCalls, authMutations } from "@/modules/auth/endpoints";
 import { profileDataCalls, profileMutations } from "@/modules/profile/endpoints";
+import { studentDataCalls, studentMutations } from "@/modules/student/endpoints";
 import { teamDataCalls, teamMutations } from "@/modules/team/endpoints";
 import { createAuthFacade } from "@/server/auth/facade";
 import { getDb } from "@/server/db/runtime";
+import { getMediaStore } from "@/server/media/runtime";
 import { resolveSession } from "@/server/repositories/identity";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
 import type { AuthedDeps } from "./authed";
@@ -20,7 +24,7 @@ import type { MutationDeps } from "./mutations";
  */
 
 export function endpointEnv(env: CloudflareEnv): EndpointEnv {
-  return { db: getDb(env), ownerEmail: env.OWNER_EMAIL ?? "", totpKey: env.TOTP_ENCRYPTION_KEY, now: () => new Date() };
+  return { db: getDb(env), ownerEmail: env.OWNER_EMAIL ?? "", totpKey: env.TOTP_ENCRYPTION_KEY, now: () => new Date(), media: () => getMediaStore(env) };
 }
 
 function facadeFor(endpoint: EndpointEnv) {
@@ -40,6 +44,9 @@ export function authedDeps(env: CloudflareEnv, rest: Pick<AuthedDeps, "cache" | 
       ...teamDataCalls(endpoint),
       ...auditDataCalls(endpoint),
       ...leadDataCalls(endpoint),
+      ...contentDataCalls(endpoint),
+      ...analyticsDataCalls(endpoint),
+      ...studentDataCalls(endpoint),
     },
   };
 }
@@ -50,7 +57,7 @@ export function mutationDeps(env: CloudflareEnv): MutationDeps {
   return {
     checkSession: facadeFor(endpoint).checkSession,
     env: endpoint,
-    mutations: { ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations },
+    mutations: { ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations },
     // The caller is hashed with a daily salt at once; the raw address is never stored or logged (ADR-027).
     limit: async (operation, request, max, windowMs) =>
       limiter(await limiterKey({ route: operation, ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET), max, windowMs),

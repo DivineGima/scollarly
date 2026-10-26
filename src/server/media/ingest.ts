@@ -1,4 +1,5 @@
 import { sha256Hex } from "@/lib/hash";
+import { IMAGE_CAPS, type ImageKind } from "@/lib/image-caps";
 import type { MediaStore } from "./store";
 
 /**
@@ -12,15 +13,8 @@ import type { MediaStore } from "./store";
  *    (decision D17); there is no delete path.
  */
 
-/** Size caps in bytes by `media_asset.kind`. */
-export const IMAGE_CAPS = {
-  logo: 50 * 1024,
-  photo: 300 * 1024,
-  blog: 300 * 1024,
-  testimonial: 300 * 1024,
-  other: 300 * 1024,
-} as const;
-export type ImageKind = keyof typeof IMAGE_CAPS;
+/** Size caps in bytes by `media_asset.kind` (shared with the browser, which shrinks pictures to fit them). */
+export { IMAGE_CAPS, type ImageKind };
 
 export type IngestErrorCode = "EMPTY" | "NOT_WEBP" | "TOO_LARGE";
 
@@ -85,6 +79,8 @@ export interface IngestDeps {
   /** Inserts the row; returns its id, or null when a row with the same hash already exists. */
   insert: (row: NewMediaRow) => Promise<string | null>;
   newId: () => string;
+  /** Called for a NEW image only (not a duplicate), before anything is stored. It may throw to refuse it, for example when the storage budget is full. */
+  guard?: (info: { bytes: number }) => Promise<void>;
 }
 
 export interface IngestResult {
@@ -110,6 +106,8 @@ export async function ingestImage(deps: IngestDeps, input: { bytes: Uint8Array; 
 
   const existing = await deps.findIdBySha256(sha256);
   if (existing) return { status: "existing", id: existing, ...result };
+
+  await deps.guard?.({ bytes: bytes.byteLength });
 
   // Store the object first, then the row, so a row never points at a missing object. If the object is already there
   // (a previous run stored it and stopped before inserting the row) it is left alone: it is immutable.

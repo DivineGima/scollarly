@@ -2,11 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { clearProgressSnapshot } from "@/offline/progress-snapshot";
 
 /**
  * A10: ends the session on the server (Neon Auth, through our `/api/auth` proxy), then goes to the home page. It runs once the
  * page has loaded; if it fails the person sees why and a button to try again. The offline snapshot of the student's progress
- * (Stage 8, S8.1) is deleted from this same place when that module exists.
+ * (S8.1) is deleted first, so signing out of a shared phone never leaves the last student's stage behind.
  */
 export function SignOutRunner() {
   const t = useTranslations("auth.signOut");
@@ -15,6 +16,7 @@ export function SignOutRunner() {
 
   async function signOut() {
     setFailed(false);
+    await clearProgressSnapshot();
     try {
       const response = await fetch("/api/auth/sign-out", {
         method: "POST",

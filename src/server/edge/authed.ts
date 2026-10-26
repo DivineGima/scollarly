@@ -38,8 +38,11 @@ const SHELL_AREA: Record<string, Area> = { admin: "admin", me: "me", "two-factor
 const RECORD_SHELL = /^(\/(?:en\/)?admin\/leads)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/?$/i;
 export const RECORD_SHELL_PLACEHOLDER = "_";
 
+/** The edit screen of a content item (`/admin/content/<type>/<id>`, or `/new` for a new one): one shell per type, prerendered under the placeholder. */
+const CONTENT_SHELL = /^(\/(?:en\/)?admin\/content\/[a-z]+)\/(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|new)\/?$/i;
+
 export function canonicalShellPath(pathname: string): string {
-  const match = RECORD_SHELL.exec(pathname);
+  const match = RECORD_SHELL.exec(pathname) ?? CONTENT_SHELL.exec(pathname);
   return match ? `${match[1]}/${RECORD_SHELL_PLACEHOLDER}` : pathname;
 }
 

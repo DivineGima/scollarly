@@ -9,8 +9,8 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. Stage 6 has not started. The documents are edited in place and are still version 1 (D13). |
-| Next stage | **Stage 6 (content management and images)** once the review branch is merged and its deploy run is checked (Session 28). The owner decides when to start it. |
+| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. **Stages 6, 7 and 8 were built together on 2026-10-26 (Session 29) on branch `feat/stages-6-8`, not yet committed or merged; their modules are `in-progress` until CI passes.** The documents are edited in place and are still version 1 (D13). |
+| Next stage | **Merge request for Stages 6 to 8**, then one deploy run (`cpu_scenarios` = `content-list,analytics,student-progress`), then Stage 9 (payments). The owner decides. |
 | Blocked by | Nothing blocks the code. Open and not blocking: the real Turnstile secret is kept on the Worker from now on (the repository secret `TURNSTILE_SECRET_KEY` exists, Session 19; the deploy workflow warns on every run if it ever goes missing); H4, H5, H9 (F7), H12, H19, H20, the `ContactSubmission` import, and the domain (F10, launch only). |
 | Gate before Stage 3 and 4 | Met and passed. **The owner waived the one-stage-at-a-time wait on 2026-10-25** and said the Google sign-in and 2FA enrolment worked, so Stages 3 and 4 were built together and Stage 5 followed. |
 
@@ -630,6 +630,28 @@ Notes: the passwordless probe builds a new Better Auth instance on every request
 
 **Open for the owner:** run the deploy workflow again with `cpu_scenarios` = `admin-shell,admin-data,overview,leads-list,lead-detail,lead-write` and `lead_samples` 0 or the default (the lead scenario is not in that list, so it does not run). H19 (phone test), H20 (repository back to private) and the trust and legal text stay as before.
 
+### 2026-10-26: Session 29 (Stages 6, 7 and 8 built together)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (start-of-task sequence passed; N = 1 everywhere). Branch `feat/stages-6-8`, nothing committed or pushed. The owner asked for the three stages in one go (as on 2026-10-25) and for the slim process (Session 27) to apply: one merge request, CI once, CPU rows only for new request shapes.
+
+**Built:** see `docs/stage-6-8-runbook.md` for the screens, operations, decisions made without asking, and the items only the owner can confirm. Migration 0009 is additive. No new dependency (Recharts deliberately not added).
+
+**Verified locally:** typecheck and lint clean; unit tests 542 plus the new Stage 8 and Stage 6 to 7 files; integration tests on PGlite (Stage 6: 21, Stage 7: 18, Stage 8: 22, authorisation matrix now covers content, media and student operations); `next build` and the public bundle check (the `/offline` page stayed at 104 KB after its island was made label-driven; a first version cost 116 KB). **Not run:** CI on Postgres 16, the Worker size gate, the deploy workflow, any CPU measurement, anything against real Neon Auth.
+
+**Open (owner):** try `app_erase_my_account` on a throwaway Neon branch; confirm "Sign in again" gives a fresh session; run the deploy workflow once with `cpu_scenarios` = `content-list,analytics,student-progress`; watch Workers Logs for `admin/revalidate`; French text unreviewed.
+
+### 2026-10-26: Session 30 (code review of Stages 6 to 8)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1 (N = 1 everywhere). Branch `feat/stages-6-8`. Ten findings from a code review were each checked against the code and the source-of-truth files; eight were real and are fixed, two were not and nothing was changed for them.
+
+**Fixed:** (1) this file's first line had been overwritten by eleven table rows with an `undefined` column; the heading is line 1 again. (2) Saving a new content item no longer opens the browser's "Leave site?" prompt. (3) Uploading the same picture as an archived image restores it (audit row `media.restore`) instead of attaching an archived image to a live item. (4) `app_request_link` limits requests (10 a day, one audit row each, whatever matched), caps waiting claims at 5 without changing the answer, and `Retry-After` is 24 hours (migration 0010). (5) `app_log_my_export` logs once an hour per account (migration 0010). (6) The daily job still rolls up when its Stage 0 marker write fails, and `scheduled` awaits the run. (7) `media.setAlt` asks the public site to refresh. (8) The country lists are one definition (`STUDENT_COUNTRIES`, `NUMBER_COUNTRIES` in `src/lib/constants.ts`).
+
+**Not changed, on purpose:** self-service erasure deletes account rows. That is the erasure carve-out already in architecture 7.9, section 14 and ADR-029 (flag F5 holds the wording difference with `CLAUDE.md`, which is the owner's file). The funnel's "leads behind this bar" link has no date range because the leads list has none; the code comment says so.
+
+**Documents:** architecture and essentials amendments for Stages 6 to 8 carry the two new limits. No scope, PRD or ADR change.
+
+**Module status:** unchanged, `in-progress`, until CI passes on the merge request. Owner items from Session 29 are still open (Neon erasure test, fresh sign-in check, deploy with `cpu_scenarios`, French text).
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
@@ -668,9 +690,9 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 3 | Public site | S3.1 to S3.5 | **complete** (2026-10-25: PR #19 CI green, merged, deployed, content published; the 100 KB first-load budget cannot be met, flag F7; trust content H4 and legal text H5 are the owner's) |
 | 4 | Offline, PWA, lead intake, WhatsApp | S4.1 to S4.6 | **complete** (2026-10-26: PR #19 CI green, deployed; lead POST accepted at the platform limit by F19 (a); events POST measured PASS; the phone check H19 is the owner's) |
 | 5 | Admin lead management | S5.1 to S5.6 | **complete** (2026-10-26: PR #21 CI green, deployed; lead detail accepted by F20 (a); list, overview, write, merge and erase measured PASS; see Sessions 23 to 27) |
-| 6 | Content management and images | S6.1 to S6.5 | — |
-| 7 | Analytics (funnel and sources) | S7.1 to S7.3 | — |
-| 8 | Student portal | S8.1 to S8.3 | — |
+| 6 | Content management and images | S6.1 to S6.5 | in-progress (2026-10-26: built; local tests green, CI not yet run) |
+| 7 | Analytics (funnel and sources) | S7.1 to S7.3 | in-progress (2026-10-26: built; local tests green, CI not yet run) |
+| 8 | Student portal | S8.1 to S8.3 | in-progress (2026-10-26: built; local tests green, CI not yet run) |
 | 9 | Payments received and admin performance | S9.1 to S9.4 | — |
 | 10 | Owner pages and operations | S10.1 to S10.4 | — |
 | 11 | Hardening and launch readiness | S11.1 to S11.8 | — |
@@ -722,17 +744,17 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S5.4 | Duplicate detection | complete (2026-10-25, run 40218262735: merge a pair warm p50 5 ms, p95 6 ms, gate 8 ms, PASS; duplicate query, merge and not-a-duplicate in one transaction, never automatic; integration and Playwright pass) |
 | S5.5 | Link requests, data requests, erasure | complete (2026-10-25, run 40218262735: erase a lead warm p50 2 ms, p95 3 ms, PASS; the claim decision is measured with Stage 8; link requests with a checked verification method, data requests, erasure in one transaction; integration and Playwright pass) |
 | S5.6 | Optimistic concurrency helper | complete (2026-10-25: lead.updated_at with a trigger, version carried by every save, conflict message; integration passes) |
-| S6.1 | Content flow framework | — |
-| S6.2 | Content types | — |
-| S6.3 | Media | — |
-| S6.4 | Revalidation wiring | — |
-| S6.5 | Stale content report | — |
-| S7.1 | Collector, rollup, kill switch | — |
-| S7.2 | Funnel and Sources pages | — |
-| S7.3 | My performance tab | — |
-| S8.1 | `/me` progress and offline snapshot | — |
-| S8.2 | Automatic link and claim flow | — |
-| S8.3 | Profile, export, erasure | — |
+| S6.1 | Content flow framework | in-progress (2026-10-26: generic framework from one definition per type; optimistic versions; list, form, drafts, gates, archive, restore, conflict, offline retry; CI not yet run) |
+| S6.2 | Content types | in-progress (2026-10-26: 14 content types, consent records, revoke unpublishes dependants, journey steps (add and edit only); CI not yet run) |
+| S6.3 | Media | in-progress (2026-10-26: browser resize and WebP, pixelate step for documents, binary upload, dedupe, budget meter and banner, archive blocked while in use; CI not yet run) |
+| S6.4 | Revalidation wiring | in-progress (2026-10-26: second request to /api/v1/admin/revalidate after a public change; not measured on the Worker; CI not yet run) |
+| S6.5 | Stale content report | in-progress (2026-10-26: stale queries on the settings day limits, Mark checked with audit; CI not yet run) |
+| S7.1 | Collector, rollup, kill switch | in-progress (2026-10-26: collector drain, daily rollup at 23:05 UTC, raw rows counted once and purged after 30 days, kill switch notice; CI not yet run) |
+| S7.2 | Funnel and Sources pages | in-progress (2026-10-26: funnel, sources, WAT range and filters, reconciled with leads in a test; CI not yet run) |
+| S7.3 | My performance tab | in-progress (2026-10-26: own performance only, taken from the session; CI not yet run) |
+| S8.1 | `/me` progress and offline snapshot | in-progress (2026-10-26: /me stage bar, offline snapshot (reference, stage, date), shown by /me and /offline; CI not yet run) |
+| S8.2 | Automatic link and claim flow | in-progress (2026-10-26: auto link for a lead made while signed in; link request answers the same whether or not a lead matched; CI not yet run) |
+| S8.3 | Profile, export, erasure | in-progress (2026-10-26: profile name, JSON export logged, erasure with a 10 minute sign-in rule (Neon Auth deletion unverified on a real branch); CI not yet run) |
 | S9.1 | Ledger repository | — |
 | S9.2 | Payments page and CSV export | — |
 | S9.3 | Payments totals in analytics | — |

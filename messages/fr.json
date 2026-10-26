@@ -94,7 +94,9 @@
       "roleOwner": "Propriétaire",
       "roleAdmin": "Administrateur",
       "leads": "Dossiers",
-      "dataRequests": "Demandes de données"
+      "dataRequests": "Demandes de données",
+      "content": "Contenu",
+      "analytics": "Statistiques"
     },
     "offline": "Vous êtes hors ligne. Les pages d'administration nécessitent une connexion.",
     "common": {
@@ -511,6 +513,507 @@
         "MISMATCH": "Cette demande n’est pas une demande d’effacement ouverte pour ce dossier. Rechargez la page.",
         "REQUIRED": "Confirmez d’abord l’identité de l’étudiant."
       }
+    },
+    "content": {
+      "hub": {
+        "title": "Contenu",
+        "intro": "Tout ce que le site public affiche se modifie ici. Rien n'est en ligne tant que vous ne l'avez pas publié.",
+        "mediaBanner": "Le stockage d'images est plein à {percent} %. Archivez les images inutilisées, ou parlez du budget au propriétaire.",
+        "warnings": "{count} à vérifier",
+        "counts": "{published} en ligne · {draft} brouillons · {archived} archivés",
+        "images": "Images",
+        "imagesAbout": "Téléversez des images, décrivez-les et voyez où elles servent.",
+        "meter": "{used} utilisés sur {budget}",
+        "stale": "Contenu à vérifier",
+        "staleAbout": "Frais et liens qui n'ont pas été vérifiés depuis longtemps."
+      },
+      "types": {
+        "universities": {
+          "name": "Universités",
+          "one": "université",
+          "about": "Nom, adresse, logo et présentation de chaque université."
+        },
+        "programmes": {
+          "name": "Programmes",
+          "one": "programme",
+          "about": "Les formations de chaque université."
+        },
+        "fees": {
+          "name": "Frais",
+          "one": "frais",
+          "about": "Fourchettes de frais. Seuls les frais confirmés sont montrés aux visiteurs."
+        },
+        "campus": {
+          "name": "Vie sur le campus",
+          "one": "contenu de campus",
+          "about": "Vidéos, visites à 360° et galeries de chaque université."
+        },
+        "resources": {
+          "name": "Ressources",
+          "one": "ressource",
+          "about": "Liens officiels pour les étudiants."
+        },
+        "testimonials": {
+          "name": "Témoignages",
+          "one": "témoignage",
+          "about": "Citations d'étudiants. Affichées seulement avec une preuve de consentement."
+        },
+        "journeys": {
+          "name": "Parcours",
+          "one": "parcours",
+          "about": "L'histoire d'un étudiant, étape par étape. Affichée seulement avec une preuve de consentement."
+        },
+        "team": {
+          "name": "Équipe",
+          "one": "membre de l'équipe",
+          "about": "Les personnes de la page À propos. Affichées seulement une fois confirmées."
+        },
+        "faqs": {
+          "name": "FAQ",
+          "one": "question",
+          "about": "Les questions des étudiants, avec les réponses."
+        },
+        "stats": {
+          "name": "Chiffres de confiance",
+          "one": "chiffre",
+          "about": "Des chiffres comme le nombre d'étudiants aidés. Affichés seulement une fois confirmés."
+        },
+        "steps": {
+          "name": "Étapes de la démarche",
+          "one": "étape",
+          "about": "Les étapes de candidature et de visa."
+        },
+        "copy": {
+          "name": "Textes des pages",
+          "one": "bloc de texte",
+          "about": "Les textes de l'accueil, de À propos, des services et des pages légales."
+        },
+        "blog": {
+          "name": "Blog",
+          "one": "article",
+          "about": "Articles écrits en Markdown."
+        },
+        "templates": {
+          "name": "Modèles de message",
+          "one": "modèle",
+          "about": "Messages WhatsApp pour chaque étape. Utilisez '{name}', '{ref}' et '{university}'."
+        }
+      },
+      "back": "Tout le contenu",
+      "backTo": "Retour à {name}",
+      "new": "Nouveau",
+      "newTitle": "Nouveau : {name}",
+      "editTitle": "Modifier : {name}",
+      "unknownType": "Ce type de contenu n'existe pas.",
+      "search": "Rechercher",
+      "searchButton": "Rechercher",
+      "statusFilter": "Afficher",
+      "status": {
+        "all": "Tout",
+        "draft": "Brouillon",
+        "published": "En ligne",
+        "archived": "Archivé"
+      },
+      "empty": "Rien ici pour le moment. Choisissez Nouveau pour ajouter le premier.",
+      "emptyFiltered": "Aucun résultat. Essayez une autre recherche ou un autre filtre.",
+      "truncated": "Seuls les 300 premiers sont affichés. Utilisez la recherche pour trouver les autres.",
+      "untitled": "(sans titre)",
+      "flags": {
+        "stale": "À vérifier",
+        "needs_consent": "Consentement requis"
+      },
+      "actions": {
+        "publish": "Publier",
+        "unpublish": "Retirer du site",
+        "archive": "Archiver",
+        "restore": "Restaurer"
+      },
+      "confirm": {
+        "unpublish": {
+          "title": "Retirer ceci du site ?",
+          "body": "Les visiteurs ne le verront plus. Il reste ici comme brouillon."
+        },
+        "archive": {
+          "title": "Archiver ceci ?",
+          "body": "Il est mis de côté et, s'il était en ligne, retiré du site. Rien n'est supprimé et vous pouvez le restaurer."
+        },
+        "restore": {
+          "title": "Restaurer ceci ?",
+          "body": "Il revient comme brouillon. Il n'est pas en ligne tant que vous ne le publiez pas."
+        }
+      },
+      "done": {
+        "publish": "C'est en ligne.",
+        "unpublish": "C'est retiré du site.",
+        "archive": "Archivé.",
+        "restore": "Restauré comme brouillon.",
+        "siteSlow": "La page publique peut mettre environ une minute à se mettre à jour."
+      },
+      "errors": {
+        "network": "Vous êtes hors ligne. Vos modifications sont conservées. Réessayez une fois reconnecté.",
+        "stale": "Quelqu'un d'autre a modifié ceci avant vous. Rechargez pour voir sa version.",
+        "archived": "Cet élément est archivé. Restaurez-le d'abord.",
+        "forbidden": "Vous n'avez pas le droit de faire cela.",
+        "notFound": "Cet élément n'existe plus.",
+        "storage": "Le stockage d'images est inaccessible pour le moment. Réessayez dans un instant.",
+        "tooBig": "C'est trop volumineux.",
+        "generic": "Une erreur s'est produite. Réessayez."
+      },
+      "saved": "Enregistré.",
+      "savedLive": "Enregistré. La modification est en ligne.",
+      "saving": "Enregistrement…",
+      "saveChanges": "Enregistrer les modifications",
+      "saveDraft": "Enregistrer le brouillon",
+      "saveFirst": "Enregistrez d'abord vos modifications.",
+      "unsaved": "Vous avez des modifications non enregistrées.",
+      "reload": "Recharger",
+      "viewOnSite": "Voir sur le site",
+      "fixErrors": "Vérifiez les champs signalés.",
+      "archivedNotice": "Cet élément est archivé et ne peut pas être modifié. Restaurez-le pour y retravailler.",
+      "choose": "Choisir…",
+      "gate": {
+        "title": "Publier ceci ?",
+        "missing": "Ce n'est pas encore possible :",
+        "ready": "Ce sera visible par tout le monde sur le site public.",
+        "refused": "Impossible de publier pour le moment. Vérifiez les champs signalés."
+      },
+      "fields": {
+        "name": "Nom",
+        "slug": "Nom dans l'adresse web",
+        "city": "Ville",
+        "state": "État",
+        "type": "Type",
+        "naacGrade": "Note NAAC",
+        "websiteUrl": "Site web",
+        "logoMediaId": "Logo",
+        "overview": "Présentation",
+        "sortOrder": "Ordre",
+        "universityId": "Université",
+        "level": "Niveau",
+        "field": "Domaine d'études",
+        "durationMonths": "Durée (mois)",
+        "programmeId": "Programme (facultatif)",
+        "currency": "Devise",
+        "amountMin": "Montant le plus bas",
+        "amountMax": "Montant le plus haut",
+        "period": "Période",
+        "dataConfirmed": "Données confirmées",
+        "sourceUrl": "Source du chiffre",
+        "kind": "Genre",
+        "title": "Titre",
+        "youtubeId": "Code de la vidéo YouTube",
+        "url": "Lien",
+        "thumbnailMediaId": "Image",
+        "studentName": "Nom de l'étudiant",
+        "country": "Pays",
+        "quote": "Citation",
+        "photoMediaId": "Photo",
+        "verified": "Vérifié comme étudiant réel",
+        "consentId": "Preuve de consentement",
+        "summary": "Résumé",
+        "roleTitle": "Rôle",
+        "bio": "Courte biographie",
+        "confirmed": "Confirmé",
+        "category": "Catégorie",
+        "question": "Question",
+        "answer": "Réponse",
+        "key": "Clé",
+        "label": "Libellé",
+        "value": "Valeur",
+        "asOf": "En date du",
+        "position": "Position",
+        "body": "Texte",
+        "text": "Texte",
+        "coverMediaId": "Image de couverture",
+        "stageCode": "Étape",
+        "locale": "Langue",
+        "steps": "Étapes",
+        "form": "Ce formulaire"
+      },
+      "help": {
+        "slug": "Fait partie de l'adresse de la page. Lettres, chiffres et tirets. Impossible à changer après l'enregistrement.",
+        "key": "Indique où le texte apparaît. Impossible à changer après l'enregistrement.",
+        "sortOrder": "Un nombre plus petit passe en premier.",
+        "dataConfirmed": "Cochez seulement après avoir vérifié les montants avec l'université. Les visiteurs ne voient que les frais confirmés.",
+        "amountMin": "Doit être supérieur à 0 pour confirmer.",
+        "youtubeId": "Les 11 caractères après v= dans une adresse YouTube.",
+        "verified": "Cochez quand vous avez vérifié que cette personne est bien un de nos étudiants.",
+        "confirmed": "Cochez seulement après avoir vérifié que c'est vrai. Les éléments non confirmés ne sont jamais affichés.",
+        "consentId": "Nécessaire pour mettre en ligne. Prouve que la personne a accepté d'être montrée.",
+        "photoMediaId": "Sur la photo d'un document, les informations privées doivent être masquées avant le téléversement.",
+        "body": "Le Markdown fonctionne : # titres, **gras**, - listes et [liens](https://example.com). Le HTML brut est affiché comme du texte."
+      },
+      "options": {
+        "kind": {
+          "video": "Vidéo",
+          "tour360": "Visite à 360°",
+          "gallery": "Galerie",
+          "application": "Candidature",
+          "visa": "Visa"
+        },
+        "currency": {
+          "USD": "Dollars américains",
+          "INR": "Roupies indiennes"
+        },
+        "country": {
+          "CM": "Cameroun",
+          "NG": "Nigéria",
+          "GH": "Ghana",
+          "CI": "Côte d'Ivoire",
+          "SN": "Sénégal",
+          "GN": "Guinée",
+          "ZA": "Afrique du Sud"
+        },
+        "locale": {
+          "en": "Anglais"
+        }
+      },
+      "tokens": {
+        "REQUIRED": "Ce champ est obligatoire.",
+        "TOO_LONG": "C'est trop long.",
+        "INVALID": "Ce n'est pas valide.",
+        "UNKNOWN_VALUE": "Choisissez l'une des options.",
+        "DUPLICATE": "Un autre élément utilise déjà ceci.",
+        "IMMUTABLE": "Impossible à changer après le premier enregistrement.",
+        "NEEDS_CONFIRMED": "Cochez d'abord Confirmé.",
+        "NEEDS_VERIFIED": "Cochez d'abord Vérifié.",
+        "NEEDS_CONSENT": "Joignez une preuve de consentement.",
+        "CONSENT_REVOKED": "Ce consentement a été retiré.",
+        "FEE_RANGE": "Des frais confirmés demandent un montant le plus bas supérieur à 0 et un montant le plus haut au moins égal.",
+        "NEEDS_YOUTUBE_ID": "Une vidéo demande son code YouTube de 11 caractères.",
+        "NEEDS_HTTPS_URL": "Une visite ou une galerie demande un lien qui commence par https://.",
+        "STEPS_CANNOT_SHRINK": "Les étapes enregistrées ne peuvent pas être supprimées.",
+        "REFERENCE_NOT_FOUND": "L'un des éléments choisis n'existe plus. Rechargez.",
+        "NETWORK": "Vous êtes hors ligne.",
+        "GENERIC": "Une erreur s'est produite."
+      },
+      "markdown": {
+        "preview": "Aperçu",
+        "edit": "Modifier",
+        "empty": "Rien à prévisualiser pour le moment."
+      },
+      "consent": {
+        "add": "Ajouter une preuve de consentement",
+        "revoke": "Retirer le consentement",
+        "revokeTitle": "Retirer ce consentement ?",
+        "revokeBody": "Tout ce qui en dépend est retiré du site immédiatement. Vous pourrez ajouter une nouvelle preuve plus tard.",
+        "revoked": "{count, plural, =0 {Consentement retiré.} one {Consentement retiré. # élément a été retiré du site.} other {Consentement retiré. # éléments ont été retirés du site.}}",
+        "revokedMark": "retiré",
+        "title": "Ajouter une preuve de consentement",
+        "who": "Qui a accepté",
+        "how": "Comment le consentement a été donné",
+        "howHelp": "Par exemple : message WhatsApp du 1er octobre, ou formulaire signé. Ne collez pas d'informations privées.",
+        "when": "Date",
+        "save": "Enregistrer la preuve",
+        "errors": {
+          "REQUIRED": "Indiquez qui a accepté et comment.",
+          "NETWORK": "Vous êtes hors ligne.",
+          "GENERIC": "Une erreur s'est produite."
+        }
+      },
+      "steps": {
+        "title": "Étapes du parcours",
+        "help": "Ajoutez les étapes dans l'ordre. Une étape enregistrée peut être modifiée mais pas supprimée.",
+        "step": "Étape {number}",
+        "stepTitle": "Titre de l'étape",
+        "stepBody": "Ce qui s'est passé",
+        "stepDate": "Quand (facultatif, par exemple mars 2026)",
+        "removeNew": "Retirer cette étape",
+        "add": "Ajouter une étape",
+        "errors": {
+          "REQUIRED": "Chaque étape demande un titre et un texte.",
+          "STEPS_CANNOT_SHRINK": "Les étapes enregistrées ne peuvent pas être supprimées."
+        }
+      },
+      "upload": {
+        "title": "Téléverser une image",
+        "file": "Image",
+        "fileHelp": "JPEG, PNG ou WebP. Elle est réduite et convertie ici, à {cap} au maximum.",
+        "kind": "De quoi s'agit-il",
+        "kinds": {
+          "photo": "Photo",
+          "logo": "Logo",
+          "blog": "Image de blog",
+          "testimonial": "Photo d'étudiant",
+          "other": "Autre"
+        },
+        "alt": "Description (texte alternatif)",
+        "altHelp": "Dit ce que montre l'image, pour les personnes qui ne la voient pas.",
+        "isDocument": "C'est la photo d'un document, par exemple une lettre d'admission",
+        "working": "Préparation de l'image…",
+        "previewLabel": "Aperçu de l'image qui sera téléversée",
+        "size": "{size} sur {cap} autorisés · {width}×{height}",
+        "blurHelp": "Faites glisser sur tout ce qui est privé (noms, numéros, signatures) pour le couvrir de blocs. Vous pouvez couvrir plusieurs zones.",
+        "blurUndo": "Annuler la dernière zone",
+        "blurClear": "Tout effacer",
+        "blurCount": "{count, plural, =0 {Aucune zone couverte} one {# zone couverte} other {# zones couvertes}}",
+        "blurConfirm": "J'ai couvert toutes les informations privées de ce document.",
+        "sending": "Téléversement…",
+        "upload": "Téléverser",
+        "problems": {
+          "NOT_IMAGE": "Ce fichier n'est pas une image.",
+          "SVG": "Les fichiers SVG ne sont pas acceptés. Utilisez une image JPEG, PNG ou WebP.",
+          "SOURCE_TOO_BIG": "Cette image est trop grande pour être ouverte. Essayez-en une plus petite.",
+          "DECODE_FAILED": "Cette image n'a pas pu être ouverte.",
+          "WEBP_UNSUPPORTED": "Ce navigateur ne sait pas créer d'images WebP. Essayez un autre navigateur.",
+          "TOO_LARGE": "Trop volumineuse, essayez une photo plus petite.",
+          "NOT_WEBP": "L'image n'a pas pu être vérifiée. Réessayez.",
+          "EMPTY": "Choisissez d'abord une image.",
+          "BUDGET_FULL": "Le stockage d'images est plein. Archivez d'abord les images inutilisées.",
+          "NETWORK": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "STORAGE": "Le stockage d'images est inaccessible pour le moment. Réessayez dans un instant.",
+          "SERVER": "Une erreur s'est produite. Réessayez."
+        }
+      },
+      "picker": {
+        "title": "Choisir une image",
+        "upload": "Téléverser une nouvelle image",
+        "empty": "Aucune image pour le moment. Téléversez la première.",
+        "close": "Fermer",
+        "choose": "Choisir une image",
+        "change": "Changer d'image",
+        "remove": "Retirer",
+        "none": "Aucune image",
+        "missing": "Image introuvable",
+        "reused": "Cette image était déjà dans la bibliothèque, elle a donc été réutilisée.",
+        "added": "Image ajoutée.",
+        "kinds": {
+          "photo": "Photo",
+          "logo": "Logo",
+          "blog": "Image de blog",
+          "testimonial": "Photo d'étudiant",
+          "other": "Autre"
+        }
+      },
+      "media": {
+        "back": "Tout le contenu",
+        "title": "Images",
+        "upload": "Téléverser une image",
+        "intro": "Chaque image du site est stockée une seule fois et réutilisée. Une image utilisée ne peut pas être archivée.",
+        "meter": "{used} utilisés sur {budget} ({percent} %)",
+        "banner": "Le stockage d'images est plein à {percent} %. Archivez les images inutilisées.",
+        "empty": "Aucune image pour le moment.",
+        "kinds": {
+          "photo": "Photo",
+          "logo": "Logo",
+          "blog": "Image de blog",
+          "testimonial": "Photo d'étudiant",
+          "other": "Autre"
+        },
+        "archived": "Archivée",
+        "used": "{count, plural, one {Utilisée à # endroit} other {Utilisée à # endroits}}",
+        "unused": "Inutilisée",
+        "reused": "Cette image était déjà dans la bibliothèque, elle a donc été réutilisée.",
+        "added": "Image ajoutée.",
+        "detailTitle": "Image",
+        "alt": "Description (texte alternatif)",
+        "saveAlt": "Enregistrer la description",
+        "altSaved": "Description enregistrée.",
+        "usedIn": "Utilisée dans",
+        "loadingUses": "Chargement…",
+        "noUses": "Pas encore utilisée.",
+        "inUseHelp": "Retirez-la d'abord de ces éléments, ou archivez-les, puis archivez l'image.",
+        "archive": "Archiver l'image",
+        "archivedDone": "Image archivée. Le fichier est conservé.",
+        "errors": {
+          "generic": "Une erreur s'est produite. Réessayez.",
+          "inUse": "Cette image est encore utilisée, elle ne peut donc pas être archivée.",
+          "network": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "stale": "Ceci a changé. Rechargez.",
+          "archived": "Déjà archivée.",
+          "forbidden": "Vous n'avez pas le droit de faire cela.",
+          "notFound": "Cette image n'existe plus.",
+          "storage": "Le stockage d'images est inaccessible pour le moment.",
+          "tooBig": "C'est trop volumineux."
+        }
+      },
+      "stale": {
+        "back": "Tout le contenu",
+        "title": "Contenu à vérifier",
+        "intro": "Frais non mis à jour depuis longtemps et liens non vérifiés depuis longtemps. Ouvrez un élément pour le corriger, ou choisissez Marquer comme vérifié s'il est toujours bon.",
+        "allFresh": "Tout a été vérifié récemment.",
+        "kind": {
+          "fees": "Frais",
+          "campus": "Lien de campus",
+          "resources": "Lien de ressource"
+        },
+        "lastChecked": "dernière vérification le {date}",
+        "neverChecked": "jamais vérifié",
+        "mark": "Marquer comme vérifié",
+        "marked": "Marqué comme vérifié.",
+        "errors": {
+          "generic": "Une erreur s'est produite. Réessayez.",
+          "network": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "stale": "Ceci a changé. La liste a été rechargée.",
+          "archived": "Cet élément est archivé.",
+          "forbidden": "Vous n'avez pas le droit de faire cela.",
+          "notFound": "Cet élément n'existe plus.",
+          "storage": "Réessayez dans un instant.",
+          "tooBig": "C'est trop volumineux."
+        }
+      }
+    },
+    "analytics": {
+      "title": "Statistiques",
+      "intro": "Comment les visiteurs deviennent des contacts, et d'où viennent les contacts. Toutes les dates sont en heure de l'Afrique de l'Ouest (Douala).",
+      "tabs": {
+        "label": "Vues des statistiques",
+        "funnel": "Entonnoir",
+        "sources": "Sources",
+        "performance": "Ma performance"
+      },
+      "filters": {
+        "from": "Du",
+        "to": "Au",
+        "country": "Pays",
+        "university": "Université",
+        "any": "Tous",
+        "apply": "Afficher",
+        "lastDays": "{days} derniers jours"
+      },
+      "problems": {
+        "INVALID": "Cette date n'est pas valide.",
+        "FUTURE": "Le dernier jour ne peut pas être dans le futur.",
+        "ORDER": "Le premier jour ne doit pas être après le dernier.",
+        "TOO_LONG": "Choisissez une période d'un an au plus.",
+        "UNKNOWN_VALUE": "Choisissez l'un des pays de la liste."
+      },
+      "limits": "Les chiffres peuvent être inférieurs au trafic réel à cause des bloqueurs de publicité et des visites hors ligne.",
+      "funnel": {
+        "range": "Du {from} au {to}.",
+        "visitsOff": "Les pages vues ne sont pas comptées pour le moment (le propriétaire les a désactivées pour économiser la base de données), l'entonnoir commence donc aux clics WhatsApp.",
+        "empty": "Aucune visite, aucun clic et aucun contact sur cette période pour le moment.",
+        "steps": {
+          "visit": "Visites",
+          "wa_tap": "Clics WhatsApp",
+          "lead": "Contacts"
+        },
+        "ofPrevious": "{percent} de l'étape précédente"
+      },
+      "sources": {
+        "country": "Par pays",
+        "university": "Par université",
+        "page": "Par page",
+        "none": "Aucun contact sur cette période.",
+        "noUniversity": "Ne vient pas d'une page d'université",
+        "noPage": "Page non enregistrée"
+      },
+      "performance": {
+        "range": "Vos contacts reçus du {from} au {to}.",
+        "noData": "Aucun contact répondu pour le moment",
+        "minutes": "{count, plural, one {# minute} other {# minutes}}",
+        "hours": "{count, plural, one {# heure} other {# heures}}",
+        "hoursMinutes": "{hours} h {minutes} min",
+        "tiles": {
+          "assigned": "Contacts qui vous sont attribués",
+          "answered": "Répondus",
+          "median": "Première réponse typique",
+          "mean": "Première réponse moyenne",
+          "overdue": "En retard maintenant"
+        },
+        "basis": "Les délais de réponse se basent sur les réponses que vous avez enregistrées, pas sur l'heure d'envoi d'un message sur WhatsApp. En retard veut dire sans réponse et après l'heure cible, quelles que soient les dates ci-dessus.",
+        "seeOverdue": "Voir vos contacts en retard"
+      }
     }
   },
   "site": {
@@ -818,5 +1321,152 @@
     "installPrompt": "Installez Scollarly sur votre téléphone pour y accéder plus vite.",
     "install": "Installer l'application",
     "dismiss": "Pas maintenant"
+  },
+  "me": {
+    "skip": "Aller au contenu principal",
+    "offline": "Vous êtes hors ligne. Vous pouvez encore voir la dernière progression enregistrée sur ce téléphone.",
+    "nav": {
+      "label": "Menu étudiant",
+      "progress": "Ma progression",
+      "link": "Lier ma candidature",
+      "profile": "Mon profil",
+      "data": "Mes données",
+      "signOut": "Se déconnecter"
+    },
+    "common": {
+      "loading": "Chargement…",
+      "error": "Nous n'avons pas pu charger cette page.",
+      "offline": "Vous êtes hors ligne, nous n'avons donc pas pu charger cette page.",
+      "retry": "Réessayer"
+    },
+    "stages": {
+      "share_results": "Envoi des résultats",
+      "choose_course": "Choix de la formation",
+      "offer_letter": "Lettre d'admission",
+      "confirm_admission": "Confirmation de l'admission",
+      "visa": "Visa",
+      "arrived": "Arrivé"
+    },
+    "next": {
+      "share_results": "Envoyez-nous vos résultats scolaires sur WhatsApp. Nous les lisons et vous disons quelles formations conviennent.",
+      "choose_course": "Parlez avec nous des formations et choisissez celles pour lesquelles vous voulez postuler.",
+      "offer_letter": "Nous préparons votre lettre d'admission avec l'université. Nous vous écrirons dès qu'elle sera prête.",
+      "confirm_admission": "Confirmez votre place auprès de l'université. Écrivez-nous si vous avez besoin d'aide pour les frais ou les papiers.",
+      "visa": "Préparez votre visa étudiant. Nous vous dirons quels papiers il faut et nous vous aiderons à les vérifier.",
+      "arrived": "Vous êtes arrivé. Écrivez-nous à tout moment si vous avez besoin d'aide pour vous installer."
+    },
+    "progress": {
+      "title": "Ma candidature",
+      "reference": "Votre référence",
+      "stepsLabel": "Les six étapes de votre candidature",
+      "done": "Terminé",
+      "here": "Vous êtes ici",
+      "nextTitle": "Et ensuite",
+      "nextFallback": "Écrivez à votre administrateur sur WhatsApp pour savoir ce qui suit.",
+      "lastUpdated": "Dernière mise à jour le {date}",
+      "whatsapp": "Écrire à votre administrateur sur WhatsApp",
+      "whatsappText": "Bonjour, ma référence Scollarly est {ref}. Ma candidature en est à l'étape « {stage} ».",
+      "whatsappMissing": "Le numéro WhatsApp n'est pas disponible pour le moment. Réessayez plus tard.",
+      "others": "{count, plural, one {Vous avez # autre candidature liée à ce compte.} other {Vous avez # autres candidatures liées à ce compte.}}",
+      "matching": {
+        "title": "Nous associons votre candidature",
+        "body": "Aucune candidature n'est encore liée à votre compte. Si vous avez déjà postulé, demandez-nous de la lier. Sinon, vous pouvez commencer depuis la page Postuler.",
+        "pending": "{count, plural, one {Votre demande attend la confirmation d'un administrateur.} other {Vos # demandes attendent la confirmation d'un administrateur.}}",
+        "link": "Lier ma candidature"
+      },
+      "offline": {
+        "body": "Vous êtes hors ligne. Voici la dernière progression enregistrée sur ce téléphone, elle peut être dépassée.",
+        "stage": "Étape",
+        "retry": "Vérifier à nouveau"
+      }
+    },
+    "link": {
+      "title": "Lier ma candidature",
+      "intro": "Si vous avez déjà postulé, dites-nous comment retrouver votre candidature et un administrateur confirmera qu'elle est bien la vôtre. Rien n'est lié tant qu'un administrateur n'a pas confirmé.",
+      "reference": "Votre référence ou le numéro WhatsApp utilisé pour postuler",
+      "help": "La référence ressemble à SC-ABCDE-12345. Un numéro peut commencer par + et l'indicatif du pays, par exemple +237…",
+      "country": "Pays du numéro (seulement s'il ne commence pas par +)",
+      "noCountry": "Pas nécessaire",
+      "countryHelp": "Choisissez-le quand vous tapez un numéro comme vous le composez chez vous, sans l'indicatif du pays.",
+      "countries": {
+        "CM": "Cameroun",
+        "NG": "Nigéria",
+        "GH": "Ghana",
+        "CI": "Côte d'Ivoire",
+        "SN": "Sénégal",
+        "GN": "Guinée",
+        "ZA": "Afrique du Sud",
+        "IN": "Inde"
+      },
+      "send": "Envoyer la demande",
+      "sending": "Envoi…",
+      "sent": "Demande envoyée. Un administrateur la confirmera. Vous verrez votre progression ici dès que ce sera fait.",
+      "back": "Retour à ma progression",
+      "errors": {
+        "REQUIRED": "Entrez votre référence ou votre numéro.",
+        "INVALID": "Cela ne ressemble ni à une référence ni à un numéro de téléphone.",
+        "NEEDS_COUNTRY": "Choisissez le pays du numéro, ou commencez-le par + et l'indicatif du pays.",
+        "TOO_LONG": "C'est trop long.",
+        "UNKNOWN_VALUE": "Choisissez l'un des pays de la liste.",
+        "NETWORK": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+        "RATE_LIMITED": "Vous avez envoyé plusieurs demandes aujourd'hui. Réessayez demain, ou écrivez-nous sur WhatsApp.",
+        "GENERIC": "Une erreur s'est produite. Réessayez."
+      }
+    },
+    "profile": {
+      "title": "Mon profil",
+      "name": "Nom",
+      "email": "E-mail",
+      "emailHelp": "C'est l'e-mail de votre compte Google. Il ne peut pas être changé ici.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Enregistré.",
+      "errors": {
+        "REQUIRED": "Entrez votre nom.",
+        "INVALID": "Ce nom n'est pas valide.",
+        "NETWORK": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+        "GENERIC": "Une erreur s'est produite. Réessayez."
+      }
+    },
+    "data": {
+      "title": "Mes données",
+      "intro": "Vous décidez de ce que nous gardons. Vous pouvez télécharger tout ce que nous avons sur vous, ou nous demander de le supprimer.",
+      "export": {
+        "title": "Télécharger mes données",
+        "body": "Un fichier avec les détails de votre compte et de vos candidatures, tels que vous nous les avez donnés. Il est fabriqué à votre demande et n'est conservé nulle part.",
+        "button": "Télécharger mes données",
+        "working": "Préparation…",
+        "done": "Votre fichier a été téléchargé.",
+        "errors": {
+          "NETWORK": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "GENERIC": "Une erreur s'est produite. Réessayez."
+        }
+      },
+      "erase": {
+        "title": "Supprimer mes données",
+        "body": "Nous retirons votre nom, votre numéro et votre e-mail de vos candidatures, et nous supprimons votre compte. Vous serez déconnecté et ne pourrez plus vous connecter avec ce compte. Cette action est définitive.",
+        "kept": {
+          "payments": "Les paiements que des universités ont faits à Scollarly restent enregistrés, sans aucun lien avec vous.",
+          "counts": "Les chiffres anonymes, comme le nombre de candidatures d'un mois, restent."
+        },
+        "button": "Supprimer mes données",
+        "dialogTitle": "Supprimer toutes mes données ?",
+        "warning": "Cela retire vos informations de chaque candidature et supprime votre compte. Cette action est définitive.",
+        "typeDelete": "Tapez DELETE pour confirmer",
+        "confirm": "Supprimer mes données",
+        "working": "Suppression…",
+        "cancel": "Annuler",
+        "reauth": "Pour votre sécurité, connectez-vous d'abord à nouveau. La suppression demande une connexion datant de moins de 10 minutes. Après la connexion, revenez sur cette page.",
+        "signInAgain": "Se reconnecter",
+        "doneTitle": "Vos données ont été supprimées",
+        "done": "Vos informations ont été retirées et votre compte a été supprimé. Vous êtes déconnecté.",
+        "home": "Aller à l'accueil",
+        "errors": {
+          "NETWORK": "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "STAFF": "Un compte de l'équipe ne peut pas se supprimer lui-même. Demandez d'abord au propriétaire de retirer votre accès à l'équipe.",
+          "GENERIC": "Une erreur s'est produite. Réessayez."
+        }
+      }
+    }
   }
 }

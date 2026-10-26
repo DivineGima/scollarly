@@ -91,7 +91,9 @@ describe("the lead and event paths load only what they need", () => {
     it(`${entry} does not reach the schema file or the sign-in, admin or student code`, () => {
       const files = [...reachable(entry)];
       expect(files.filter((f) => f === "src/server/db/schema.ts")).toEqual([]);
-      expect(files.filter((f) => /server\/auth\/|modules\/(auth|team|audit|profile|seed)\/|edge\/(authed|sign-in|landing|mutations)/.test(f))).toEqual([]);
+      // `server/auth/cookie.ts` is the one allowed file: forty lines, no import, no SDK. The lead endpoint reads the session cookie with it
+      // so a lead made by a signed-in student is linked to the account (S8.2); the sign-in code itself stays out.
+      expect(files.filter((f) => /server\/auth\/(?!cookie\.ts$)|modules\/(auth|team|audit|profile|seed|student|content-admin|analytics)\/|edge\/(authed|sign-in|landing|mutations)/.test(f))).toEqual([]);
     });
   }
 

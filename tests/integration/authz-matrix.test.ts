@@ -9,6 +9,10 @@ import { decideClaim } from "@/server/repositories/claims";
 import { completeDataRequest, logDataRequest } from "@/server/repositories/data-requests";
 import { addNote, assignLead, changeStage, eraseLead, logAdminWhatsAppOpen, logReply, resolveDuplicate } from "@/server/repositories/lead-admin";
 import { runAs } from "@/server/repositories/as-actor";
+import { TYPE_DEFS } from "@/modules/content-admin/definitions";
+import { changeStatus, createContent } from "@/server/repositories/content-admin";
+import { archiveMedia, insertMediaAs } from "@/server/repositories/media-admin";
+import { eraseMyAccount, exportMyData, requestLink } from "@/server/repositories/student";
 import { updateSetting } from "@/server/repositories/settings";
 import { createInvite, removeAdmin, revokeInvite } from "@/server/repositories/team";
 import { uuidv7 } from "@/lib/uuid";
@@ -234,6 +238,63 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
     guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
       await completeDataRequest(t.db, actor, uuidv7());
       return true;
+    }),
+
+  // Stage 6 (S6.1 to S6.3). The facade is the first lock (an admin, or an owner after 2FA); the content and media policies are the second
+  // (tests/integration/stage6-content.test.ts shows a student refused by them). As above, an attempt counts as done when the call returns.
+  "content.save": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      const outcome = await createContent(t.db, actor, TYPE_DEFS.faqs, { id: null, version: null, newId: uuidv7(), values: { category: null, question: "Matrix?", answer: "Yes.", sortOrder: 0 } });
+      return outcome.kind === "ok";
+    }),
+  "content.publish": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "publish");
+      return true;
+    }),
+  "content.unpublish": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "unpublish");
+      return true;
+    }),
+  "content.archive": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "archive");
+      return true;
+    }),
+  "content.restore": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "restore");
+      return true;
+    }),
+  "media.upload": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      const sha256 = randomBytes(32).toString("hex");
+      return (await insertMediaAs(t.db, actor, { id: uuidv7(), kind: "photo", width: 10, height: 10, bytes: 1000, sha256 }, { document: false })) !== null;
+    }),
+  "media.archive": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+      await archiveMedia(t.db, actor, uuidv7());
+      return true;
+    }),
+
+  // Stage 8 (S8.2, S8.3). Any signed-in user may use the portal (a staff member as a user), so the guard is the student level.
+  // Erasure is called with a token that is not a session: the database function refuses it (a student: no recent sign-in; staff: a team
+  // account), so the harness never erases one of its own subjects.
+  "student.requestLink": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "student"), async (actor) => {
+      await requestLink(t.db, actor, { ref: "SC-00000-00000" });
+      return true;
+    }),
+  "student.exportData": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "student"), async (actor) => {
+      await exportMyData(t.db, actor);
+      return true;
+    }),
+  "student.requestErasure": (subject) =>
+    guarded(subject, (f, h) => f.requireRole(h, "student"), async (actor) => {
+      const outcome = await eraseMyAccount(t.db, actor, "not-a-session-token-0000000000000000");
+      return outcome !== "erased";
     }),
 };
 

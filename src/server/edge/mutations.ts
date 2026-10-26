@@ -34,6 +34,8 @@ export interface MutationCall {
   /** The session token from the cookie, for the few functions that identify the user by it. */
   token: string | null;
   body: unknown;
+  /** The request body as bytes, for an operation declared `binary` (an image upload). Null for every other operation. */
+  bytes: Uint8Array | null;
   requestId: string;
   request: Request;
   env: EndpointEnv;
@@ -43,6 +45,11 @@ export interface Mutation {
   access: Access;
   /** Required for `public`. Counted per caller and operation. */
   limit?: { max: number; windowMs: number };
+  /**
+   * The body is a file, not JSON (the image upload). It is read only after the session and the access check, because it can be
+   * a few hundred kilobytes and an unauthenticated caller must not make the Worker read it. The details go in the query string.
+   */
+  binary?: { maxBytes: number };
   handle: (call: MutationCall) => Promise<Response>;
 }
 
@@ -96,7 +103,7 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
   const requestId = newRequestId();
   if (!isSameOrigin(request)) return errorResponse(403, "FORBIDDEN", "Cross-origin requests are not allowed.", requestId);
 
-  const body = await readBody(request);
+  const body = mutation.binary ? ({ ok: true, value: {} } as const) : await readBody(request);
   if (!body.ok) {
     return body.reason === "too_large"
       ? errorResponse(413, "PAYLOAD_TOO_LARGE", "Request is too large.", requestId)
@@ -118,7 +125,13 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
     const denied = denyAccess(mutation.access, actor, deps.env.now());
     if (denied) return errorResponse(denied.status, denied.code, denied.message, requestId);
 
-    return await mutation.handle({ actor, token: readSessionToken(request.headers), body: body.value, requestId, request, env: deps.env });
+    let bytes: Uint8Array | null = null;
+    if (mutation.binary) {
+      const read = await readBytes(request, mutation.binary.maxBytes);
+      if (!read.ok) return errorResponse(413, "PAYLOAD_TOO_LARGE", "Request is too large.", requestId);
+      bytes = read.value;
+    }
+    return await mutation.handle({ actor, token: readSessionToken(request.headers), body: body.value, bytes, requestId, request, env: deps.env });
   } catch (error) {
     if (error instanceof AuthError) {
       const status = error.code === "UNAUTHENTICATED" ? 401 : 403;
@@ -128,6 +141,14 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
     logError(requestId, `${route.area}/${route.operation}`, error);
     return errorResponseFor("INTERNAL", "Something went wrong.", requestId);
   }
+}
+
+/** The body as bytes, refused as soon as it is known to be over `maxBytes` (the declared length first, then the real length). */
+async function readBytes(request: Request, maxBytes: number): Promise<{ ok: true; value: Uint8Array } | { ok: false }> {
+  const declared = Number.parseInt(request.headers.get("content-length") ?? "", 10);
+  if (Number.isFinite(declared) && declared > maxBytes) return { ok: false };
+  const buffer = new Uint8Array(await request.arrayBuffer());
+  return buffer.byteLength > maxBytes ? { ok: false } : { ok: true, value: buffer };
 }
 
 /** An empty body counts as `{}`, so an operation with no input (sign out everywhere) needs no payload. */

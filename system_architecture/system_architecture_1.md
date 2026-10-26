@@ -1329,3 +1329,12 @@ A senior review of the code built in Stages 0 to 5 found ten issues; each is rep
 - **Service worker (11.1).** The never-cache rule also covers locale-prefixed paths (`/en/admin`, `/en/accept-invite/<token>`).
 - **Stage 0 scaffolding removed.** The `/api/v1/probe/*` routes, the stub lead intake, `phase0_lead_stub`, `phase0_content`, `app_create_phase0_lead` (migration 0007, the contract step), the `/phase0/published` page and its tag, and three unused repository functions (`getLeadDetail`, `findStageTemplate`, `findLeadIdByRef`; the lead screen uses `getLeadScreen`). The `admin/phase0` and `me/phase0` stub screens remain as the minimal example of the shell-plus-data-call pattern for the edge tests and the staff and student path measurements. The earlier amendment's mention of `app_create_phase0_lead` (S0.10) is history; the function is gone.
 - **Leads screen.** A slow answer for an earlier filter can no longer replace the list for the current one; the country filter uses the shared `STUDENT_COUNTRIES` (it had an extra `IN`).
+
+## Amendment (Stages 6 to 8 implementation, 2026-10-26)
+
+- **7.5:** `event.rolled_up_at` marks a raw tap as counted into `event_daily_agg`; raw rows are purged 30 days after it (`app_rollup_raw_events`). The collector's counts are added by `app_rollup_counts` after `drainAggregates` hands them out once (`agg_key_count` is reset with the keys).
+- **7.2 / 9.6:** an `auto` claim (a lead made while a student is signed in, `app_link_new_lead`) is approved without a verification method; the CHECK allows that for `method = 'auto'` only. An admin's approval still needs one.
+- **10.4:** the public refresh after a publish is a second request to `POST /api/v1/admin/revalidate` (Next.js route, session checked inside).
+- **10.8:** self-service erasure (`app_erase_my_account`) anonymises the linked leads, deletes link requests, the `app_user` row and the account's Neon Auth rows, and needs a sign-in in the last 10 minutes; payments keep no link. Team accounts are removed by the owner first.
+- **7.3:** a trigger refuses to publish a testimonial or journey against a withdrawn consent.
+- **9.6 / 10.8 (review, migration 0010):** a link request counts as a request whatever it matches, 10 a day per account (one audit row each, holding no reference or number); waiting claims are capped at 5 and the cap never changes the answer. A student's export is logged once an hour per account; a repeat inside the hour still returns the data.

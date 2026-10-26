@@ -1,5 +1,6 @@
 import { errorResponse, isSameOrigin, jsonResponse, newRequestId, readJsonBody } from "@/lib/http";
 import { createLead, type CreateLeadOutcome } from "@/modules/leads/service";
+import { readSessionToken } from "@/server/auth/cookie";
 import { getDb } from "@/server/db/runtime";
 import { insertLead } from "@/server/repositories/lead-intake";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
@@ -39,10 +40,12 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
   const limiter = createDurableObjectLimiter(env.RATE_LIMITER);
   const key = await limiterKey({ route: "leads", ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET);
 
+  // A student who is signed in has the session cookie; the lead is linked to that account (S8.2). Reading the cookie costs nothing.
+  const sessionToken = readSessionToken(request.headers);
   const measurement = isMeasurementRequest(request, env.PHASE0_PROBE_TOKEN);
   const outcome = await createLead(
     {
-      insert: (row) => insertLead(db, row),
+      insert: (row) => insertLead(db, row, sessionToken),
       verifyTurnstile: (token) => (measurement ? Promise.resolve("ok") : verifyTurnstile(env.TURNSTILE_SECRET_KEY, token)),
       limit: () => limiter(key, LIMIT, WINDOW_MS),
       slaSettings: () => cachedSlaSettings(db, env.DATABASE_URL),
