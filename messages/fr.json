@@ -1039,6 +1039,8 @@
       "title": "Paiements reçus",
       "intro": "L'argent que les universités ont versé à Scollarly, en dollars américains. Un paiement n'est jamais modifié : s'il est faux, annulez-le avec un motif et saisissez le bon.",
       "exportCsv": "Exporter en CSV",
+      "exportTooMany": "Trop de paiements pour un seul fichier. Réduisez la période puis réessayez.",
+      "exportFailed": "Le fichier n'a pas pu être téléchargé. Vérifiez votre connexion et les filtres, puis réessayez.",
       "record": "Enregistrer un paiement",
       "filterUniversity": "Université",
       "filterFrom": "Reçu à partir du",

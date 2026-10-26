@@ -45,6 +45,7 @@
 | Uptime alarm tested with **force_failure** | Same page | |
 | First image copy made to your own disk with `scripts/backup-images.mjs` (H14) | `docs/recovery.md`, section 3 | |
 | Read `docs/recovery.md` once, including the 2FA lockout steps | | |
+| Monthly habit: open the Actions page and confirm no workflow is shown as disabled (a public repository loses scheduled runs after 60 days without a commit) | `docs/recovery.md`, section 2, step 6 | |
 
 ## E. Production smoke test (S11.7)
 

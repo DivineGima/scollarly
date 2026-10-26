@@ -9,8 +9,8 @@ Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, 
 | Current PRD | `PRD_1.md` (amended in place 2026-10-24, D15) |
 | Current architecture | `system_architecture_1.md` (amended in place 2026-10-24, D15) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_1.md` (amended in place 2026-10-24, D15) |
-| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. **Stages 6, 7 and 8 were built together on 2026-10-26 (Sessions 29 and 30), reviewed, and merged in PR #31 with CI green (all five checks). They were deployed to `workers.dev` the same day (workflow run 40251230315) and the owner confirmed the four follow-up checks (Session 31). Next: Stage 9.** The documents are edited in place and are still version 1 (D13). |
-| Next stage | **Stages 9 to 11 are merged and deployed (Session 33).** Remaining: the owner role-by-role smoke test, H14, H24, French review, the pre-launch checklist and H11 sign-off. Next: the owner reviews, the merge request is opened, CI runs once, then one deploy run with `cpu_scenarios` = `payments`. Older note: **Merge request for Stages 6 to 8**, then one deploy run (`cpu_scenarios` = `content-list,analytics,student-progress`), then Stage 9 (payments). The owner decides. |
+| Phase | **Stages 0 to 5 are built, merged and deployed (PRs #15 to #28, CI green on each).** Stage 5 and Stage 4 are complete except the owner items (phone test H19, repository back to private H20, trust and legal text E1 to E8). A review of the code of Stages 0 to 5 on 2026-10-26 (Session 28) repaired ten issues on branch `fix/review-findings` and corrected the architecture, essentials and this tracker to match what was built. **Stages 6, 7 and 8 were built together on 2026-10-26 (Sessions 29 and 30), reviewed, and merged in PR #31 with CI green (all five checks). They were deployed to `workers.dev` the same day (workflow run 40251230315) and the owner confirmed the four follow-up checks (Session 31). **Stages 9 to 11 were built, reviewed and merged in PR #34 and PR #35 with CI green, deployed (workflow run 40308139427), and checked in production by the owner (Sessions 32 to 34).** The documents are edited in place and are still version 1 (D13). |
+| Next stage | **Stages 9 to 11 are merged and deployed (Session 33).** Remaining: the owner role-by-role smoke test, H14, H24, French review, the pre-launch checklist and H11 sign-off. The owner decides what comes next. |
 | Blocked by | Nothing blocks the code. Open and not blocking: the real Turnstile secret is kept on the Worker from now on (the repository secret `TURNSTILE_SECRET_KEY` exists, Session 19; the deploy workflow warns on every run if it ever goes missing); H4, H5, H9 (F7), H12, H19, H20, the `ContactSubmission` import, and the domain (F10, launch only). |
 | Gate before Stage 3 and 4 | Met and passed. **The owner waived the one-stage-at-a-time wait on 2026-10-25** and said the Google sign-in and 2FA enrolment worked, so Stages 3 and 4 were built together and Stage 5 followed. |
 
@@ -678,7 +678,7 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Built:** see `docs/stage-9-11-runbook.md` (screens, operations, decisions made without asking, owner items). Migration 0011 is additive (payment guard trigger and column grants, `app_record_job`, `app_usage_snapshot`). No new npm dependency.
 
-**Verified locally:** typecheck and lint clean; unit 638 passed; integration 647 run, 646 passed. The one failure, `stage7-analytics > adds the collector's counts ... second run`, also fails with these changes stashed (a row-order difference on this machine's PGlite; it passed in CI for PR #31). Playwright: the whole suite, 209 tests, passes on a production build, including the new `stage9-11.spec.ts` (36) with the CSP enforced and no violation on 15 public routes. **Not run:** CI on Postgres 16, the Worker size gate, the backup self-test workflow (needs age and PostgreSQL 17, runs in GitHub), any CPU measurement, anything against real Neon.
+**Verified locally:** typecheck and lint clean; unit 638 passed; integration 647 run, 646 passed. The one failure, `stage7-analytics > adds the collector's counts ... second run`, also fails with these changes stashed (a row-order difference on this machine's PGlite; it passed in CI for PR #31). Playwright: the whole suite, 209 tests, passes on a production build, including the new `stage9-11.spec.ts` (36) with the CSP enforced and no violation on 15 public routes. **Not run:** CI on Postgres 16, the Worker size gate, the backup self-test workflow (needs age and PostgreSQL 18, runs in GitHub), any CPU measurement, anything against real Neon.
 
 **Open for the owner:** H22 (backup secrets and the alarm test), H23 (uptime run and alarm test), H14 (first image copy), try the 2FA reset SQL on a throwaway Neon branch, the deploy run for the `payments` CPU row, and the whole `docs/pre-launch-checklist.md`. Stage 11 stays `in-progress` until the owner signs off (H11). No human item was marked done.
 
@@ -695,6 +695,14 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 **Done by Claude Code (not the owner):** `node scripts/smoke.mjs` against the workers.dev address, 33 of 33 PASS. The 2FA reset SQL tried on a throwaway Neon branch (copy of production, created and deleted the same hour): removed the authenticator secret, 10 recovery codes and 3 step-up checks, left the owner row, ended all sessions, wrote an audit row each run, safe to run twice. Production was not touched.
 
 **Still open for the owner:** signing in as student, admin and owner and opening each screen (checklist section E), H14 first image copy, H24, French review, the rest of `docs/pre-launch-checklist.md`, H11 sign-off.
+
+### 2026-10-26: Session 34 (review of the Stage 9 to 11 code)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `fix/stages-9-11-review`.
+
+**Review:** the code-review skill returned 10 candidates; each was read against the code and the architecture. **Fixed (real):** (1) a double submission of the same payment token could answer "already used" instead of "replayed" because the lookup in the inserting statement cannot see a row committed during it; it now reads again (unit test with the lookup mocked); (2) the payments CSV was a plain download link, so a refusal (413, lapsed sign-in) would be saved as a file; it is now fetched and the message shown (Playwright, both cases); (3) a settings change with one unknown key committed the other keys and answered 404; it is now all or nothing (integration test); (4) `saveBlob` revoked the file address before some browsers start the download; it now waits 4 seconds; (5) a stray `ci.tmp` was committed by mistake; removed and `*.tmp` ignored; (6) a dead constant `ARTIFACT_QUOTA_BYTES` that duplicated the workflow's figure was removed; (7) GitHub switches off scheduled workflows in a public repository after 60 days without a commit, which would stop the backup and uptime checks without any email; the recovery document and the checklist now say to look at the Actions page monthly. **Not defects, left alone:** the PostgreSQL 17 versus 18 finding was already fixed by PR #35; the full export reading every table in one response is fine at today's size (the Health page shows database use) and will be revisited if the database nears the Neon response limit; accepting `1,500` as one thousand five hundred is the documented input format (the French locale is off, ADR-018).
+
+**Documents corrected:** the architecture and essentials gained an amendment (backup tools on PostgreSQL 18, no artifact-quota check on the Health page, no images-only dump to restore, the uptime workflow, the 60-day rule, the payments export, settings all or nothing); the runbook says PostgreSQL 18; the position rows, the Stage 9 to 11 rows and their module rows no longer say "CI not yet run". Stage 9 and the modules listed in the registry are `complete` on the evidence above; S10.2, S11.4 and S11.6 stay `in-progress` (H24 and the owner's checklist and sign-off). No owner item was marked done by Claude Code.
 
 ## Flags (need the owner)
 
@@ -737,9 +745,9 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 6 | Content management and images | S6.1 to S6.5 | complete (2026-10-26: merged in PR #31, CI green, deployed, owner checks confirmed, Session 31) |
 | 7 | Analytics (funnel and sources) | S7.1 to S7.3 | complete (2026-10-26: merged in PR #31, CI green, deployed, owner checks confirmed, Session 31) |
 | 8 | Student portal | S8.1 to S8.3 | complete (2026-10-26: merged in PR #31, CI green, deployed, owner checks confirmed, Session 31) |
-| 9 | Payments received and admin performance | S9.1 to S9.4 | in-progress (2026-10-26, Session 32: built, tests pass locally, CI not yet run) |
-| 10 | Owner pages and operations | S10.1 to S10.4 | in-progress (2026-10-26, Session 32: built, tests pass locally; backup workflows not yet run in GitHub) |
-| 11 | Hardening and launch readiness | S11.1 to S11.8 | in-progress (2026-10-26, Session 32: code and documents done; the owner items and production steps remain) |
+| 9 | Payments received and admin performance | S9.1 to S9.4 | complete (2026-10-26: CI green on PR #34, deployed, payments CPU row p50 2 ms and p95 3 ms, owner checked the screens by role) |
+| 10 | Owner pages and operations | S10.1 to S10.4 | in-progress (2026-10-26: CI green and deployed; backup, alarm and recovery tested; S10.2 stays open until the owner decides H24, Neon compute hours) |
+| 11 | Hardening and launch readiness | S11.1 to S11.8 | in-progress (2026-10-26: CI green and deployed; S11.4 waits on H24 and S11.6 on the owner's checklist and sign-off H11) |
 
 ## Module registry (68 modules, status per module ID)
 
@@ -799,22 +807,22 @@ Update the status column (`in-progress` or `complete`) at the end of each stage.
 | S8.1 | `/me` progress and offline snapshot | complete (2026-10-26, merged in PR #31, CI green: /me stage bar, offline snapshot (reference, stage, date), shown by /me and /offline) |
 | S8.2 | Automatic link and claim flow | complete (2026-10-26, merged in PR #31, CI green: auto link for a lead made while signed in; link request answers the same whether or not a lead matched) |
 | S8.3 | Profile, export, erasure | complete (2026-10-26, merged in PR #31, CI green: profile name, JSON export logged, erasure with a 10 minute sign-in rule (Neon Auth deletion unverified on a real branch)) |
-| S9.1 | Ledger repository | in-progress (Session 32: record and void in one statement with audit, token replay, guard trigger; integration tests pass locally) |
-| S9.2 | Payments page and CSV export | in-progress (Session 32: screen, totals, filters, CSV with formula guard; integration and Playwright pass locally) |
-| S9.3 | Payments totals in analytics | in-progress (Session 32: payments block in the analytics call and screen; tests pass locally) |
-| S9.4 | All-admin performance page | in-progress (Session 32: owner only; tests pass locally) |
-| S10.1 | Settings page | in-progress (Session 32: owner, 2FA check, limits, public site refresh; tests pass locally) |
+| S9.1 | Ledger repository | complete (CI green on PR #34; Session 34 review: a same-token double submission now answers replayed) |
+| S9.2 | Payments page and CSV export | complete (CI green; Session 34 review: the CSV export is fetched so a refusal shows its message and saves no file) |
+| S9.3 | Payments totals in analytics | complete (CI green on PR #34) |
+| S9.4 | All-admin performance page | complete (CI green on PR #34) |
+| S10.1 | Settings page | complete (CI green; Session 34 review: a settings change is all or nothing) |
 | S10.2 | Health page and usage checks | in-progress (Session 32: Health page, daily usage job, deep health check; the GitHub artifact check lives in the backup workflow; Neon compute hours are not read by code) |
-| S10.3 | Owner export and backups | in-progress (Session 32: export, weekly encrypted dump workflow, restore self-test workflow, image copy script; workflows run in GitHub 2026-10-26: backup and alarm test passed (owner), self-test green in CI; first image copy H14 still open. GitHub Free artifact quota confirmed as 500 MB from GitHub Docs on 2026-10-26) |
-| S10.4 | Recovery procedures | in-progress (Session 33: docs/recovery.md; 2FA reset SQL tested on Postgres and on a throwaway Neon branch, 2026-10-26) |
-| S11.1 | CSP and security headers | in-progress (Session 32: policy enforced; no violation on 15 public routes in Playwright; script-src keeps unsafe-inline, ADR-033) |
-| S11.2 | Complete Playwright suite | in-progress (Session 32: tests/unit/flow-coverage.test.ts maps every flow of architecture section 16 to a spec; full suite 209 passed locally) |
-| S11.3 | Accessibility and Lighthouse | in-progress (Session 32: axe, 375 px and reduced motion tests exist for public and new admin screens; Lighthouse runs in CI) |
+| S10.3 | Owner export and backups | complete (CI green; weekly backup run 40314085473 and the force_failure run tested by the owner 2026-10-26; self-test green on PostgreSQL 18; H14 first image copy done) |
+| S10.4 | Recovery procedures | complete (docs/recovery.md; 2FA reset SQL tested on Postgres and on a throwaway Neon branch, 2026-10-26) |
+| S11.1 | CSP and security headers | complete (policy enforced; no violation on 15 public routes; CI green; script-src keeps unsafe-inline, ADR-033) |
+| S11.2 | Complete Playwright suite | complete (flow map test and the full Playwright suite green in CI) |
+| S11.3 | Accessibility and Lighthouse | complete (axe, 375 px, reduced motion tests and Lighthouse CI green on PR #34) |
 | S11.4 | Free-quota review | in-progress (Session 32: docs/quota-review.md; Neon compute hours not measured) |
-| S11.5 | Traceability table | in-progress (Session 32: table below; passing means passing locally until CI runs) |
+| S11.5 | Traceability table | complete (table below; passing in CI on Postgres 16) |
 | S11.6 | Pre-launch checklist | in-progress (Session 32: docs/pre-launch-checklist.md written; the owner has ticked nothing) |
-| S11.7 | Production deploy and smoke test | in-progress (Session 32: scripts/smoke.mjs written; the production deploy and the role-by-role smoke test are the owner's) |
-| S11.8 | Hourly uptime check | in-progress (Session 32: .github/workflows/uptime.yml; not yet run against production) |
+| S11.7 | Production deploy and smoke test | complete (smoke script 33 of 33 PASS against production; owner checked the role-by-role screens, 2026-10-26) |
+| S11.8 | Hourly uptime check | complete (uptime run 40314445837 and the force_failure run 40314508715 tested by the owner, 2026-10-26) |
 
 ## Stage 0 measurement report (module S0.9): first slice
 
@@ -958,7 +966,7 @@ This section replaces the "Version 2 backlog" written in Session 5. No version 2
 
 ## Traceability (to be filled at S11.5)
 
-Built 2026-10-26 (S11.5). Every FR maps to at least one test. Passing is as run locally on 2026-10-26 (unit, integration on PGlite, Playwright); CI on Postgres 16 has not yet run for Stages 9 to 11. FR-16's live proof (a publish reaching the public site with no deploy) was confirmed by the owner on the deployed Worker (Session 31).
+Built 2026-10-26 (S11.5). Every FR maps to at least one test. Passing is as run in CI on Postgres 16 for PR #34 and PR #35 (2026-10-26) and locally. FR-16's live proof (a publish reaching the public site with no deploy) was confirmed by the owner on the deployed Worker (Session 31).
 
 | FR | Test(s) |
 |---|---|

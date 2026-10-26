@@ -1342,3 +1342,13 @@ A senior review of the code built in Stages 0 to 5 found ten issues; each is rep
 ## Amendment (Stages 9 to 11 implementation, 2026-10-26)
 
 7.6: the ledger is also protected in the database (migration 0011: UPDATE only on the three void columns, the update policy requires `voided_by` to be the signed-in person, the trigger `placement_payment_guard` refuses any other edit, a second void and a re-link; clearing `lead_id` stays allowed for erasure). 8.2: `GET /api/v1/health?deep=1` is the admin's database check. 8.3: `settings.update` and the new `export.download` need a 2FA check inside 10 minutes. 8.5: after the rollup the daily job runs a usage check and records both runs (`app_record_job`, `app_usage_snapshot`). 13.1: the Content-Security-Policy is enforced; `'unsafe-inline'` stays in `script-src` because a nonce needs a dynamic render of every page (ADR-033). 13.7: the weekly dump is `pg_dump --schema=public` piped into `age` encryption to the owner's public key; restore and the 2FA lockout reset are in `docs/recovery.md`. Quota review: `docs/quota-review.md`.
+
+## Amendment (Stages 9 to 11 review, 2026-10-26)
+
+- **8.5 / 13 / S10.3 (backups):** the dump tools are the PostgreSQL 18 client (`postgresql-client-18`), because Neon production runs PostgreSQL 18 and `pg_dump` refuses a newer server; the self-test database is `postgres:18`. The backup script deletes its output file on any failure.
+- **S10.2 (artifact quota):** the Health page does not read GitHub artifact storage (the Worker would need a GitHub token). The weekly workflow itself fails at 70% of the 500 MB quota. This replaces "The Health page warns at 70% of the artifact quota" in section 13.
+- **S10.3 (exit criterion):** there is no images-only dump to restore in a test (D17). The image copy script is tested instead (`tests/unit/stage9-10-pure.test.ts`).
+- **S11.8 (uptime):** `.github/workflows/uptime.yml` calls `/api/v1/health` hourly, tries three times a minute apart before failing, and reads its address from the repository variable `UPTIME_URL` (default: the `workers.dev` address).
+- **GitHub scheduled workflows:** in a public repository GitHub disables them after 60 days without a commit; `docs/recovery.md` section 2 tells the owner to check the Actions page monthly.
+- **B9 (payments export):** the CSV is fetched by the screen, not opened as a link, so a refusal (more than 5,000 rows, a lapsed sign-in) shows its message and no file is saved.
+- **C4 (settings):** a change is all or nothing. If any key has no row, nothing is written and the call answers 404.

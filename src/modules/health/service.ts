@@ -12,9 +12,6 @@ export const GIB = 1024 * MIB;
 /** Neon free-plan storage, taken at the smaller of the two published figures. */
 export const DATABASE_BUDGET_BYTES = 512 * MIB;
 
-/** GitHub Free artifact storage, the figure the weekly backup is checked against (tracker S10.3). */
-export const ARTIFACT_QUOTA_BYTES = 500 * MIB;
-
 export const WARN_AT = 0.7;
 export const URGENT_AT = 0.9;
 
