@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canonicalJson, sha256Hex } from "@/lib/hash";
-import { errorResponse, isSameOrigin, jsonResponse, readJsonBody } from "@/lib/http";
+import { errorResponse, isSameOrigin, jsonResponse, readCappedBytes, readJsonBody } from "@/lib/http";
 
 const post = (body: string, headers: Record<string, string> = {}) =>
   new Request("https://scollarly.co.in/api/v1/leads", { method: "POST", body, headers });
@@ -22,6 +22,39 @@ describe("readJsonBody", () => {
 
   it("reports invalid JSON", async () => {
     expect(await readJsonBody(post("{not json"), 100)).toEqual({ ok: false, reason: "invalid_json" });
+    expect(await readJsonBody(post(""), 100)).toEqual({ ok: false, reason: "invalid_json" });
+  });
+});
+
+describe("a body with no declared length (chunked)", () => {
+  const chunked = (chunks: string[]) => {
+    const encoder = new TextEncoder();
+    let read = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        const next = chunks[read++];
+        if (next === undefined) controller.close();
+        else controller.enqueue(encoder.encode(next));
+      },
+    });
+    // No Content-Length is sent for a streamed body, so only counting the bytes as they arrive can stop it.
+    return { request: new Request("https://scollarly.co.in/api/v1/leads", { method: "POST", body: stream, duplex: "half" } as RequestInit), pulled: () => read };
+  };
+
+  it("is refused as soon as it passes the cap, without reading the rest", async () => {
+    const { request, pulled } = chunked(Array.from({ length: 50 }, () => "x".repeat(40)));
+    expect(await readCappedBytes(request, 100)).toEqual({ ok: false });
+    expect(pulled()).toBeLessThan(10);
+  });
+
+  it("is accepted and joined in order when it fits", async () => {
+    const { request } = chunked(['{"a"', ":1}"]);
+    expect(await readJsonBody(request, 100)).toEqual({ ok: true, value: { a: 1 } });
+  });
+
+  it("an empty body is invalid JSON unless the caller says what it stands for", async () => {
+    expect(await readJsonBody(post(""), 100, { emptyIs: {} })).toEqual({ ok: true, value: {} });
+    expect(await readJsonBody(post("  \n"), 100, { emptyIs: {} })).toEqual({ ok: true, value: {} });
     expect(await readJsonBody(post(""), 100)).toEqual({ ok: false, reason: "invalid_json" });
   });
 });

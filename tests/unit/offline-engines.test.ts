@@ -15,7 +15,7 @@ import {
   type QueuedLead,
 } from "@/offline/logic";
 import type { SendResult } from "@/offline/send";
-import { sendLead } from "@/offline/send";
+import { sendLead, timeoutSignal } from "@/offline/send";
 import { syncOnce, type SyncDeps } from "@/offline/sync-engine";
 import { submitLead, type SubmitDeps } from "@/offline/submit";
 
@@ -317,6 +317,24 @@ describe("Continue: send first, then hand off (ADR-031, S4.3)", () => {
     const a = await submitLead(deps, draft);
     const b = await submitLead(deps, { payload: { client_ref: "SC-ZZZZZ-ZZZZZ" } });
     expect([a, b].map((r) => (r.kind === "sent" ? r.key : ""))).toEqual(["key-1", "key-2"]);
+  });
+});
+
+describe("timeoutSignal", () => {
+  it("aborts after the delay, with or without AbortSignal.timeout", async () => {
+    const original = AbortSignal.timeout;
+    Object.defineProperty(AbortSignal, "timeout", { value: undefined, configurable: true });
+    try {
+      const signal = timeoutSignal(20);
+      expect(signal.aborted).toBe(false);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(signal.aborted).toBe(true);
+    } finally {
+      Object.defineProperty(AbortSignal, "timeout", { value: original, configurable: true });
+    }
+    const native = timeoutSignal(20);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(native.aborted).toBe(true);
   });
 });
 

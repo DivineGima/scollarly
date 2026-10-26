@@ -11,6 +11,17 @@ export type SendResult =
 export const LEADS_ENDPOINT = "/api/v1/leads";
 const REQUEST_TIMEOUT_MS = 20_000;
 
+/**
+ * A signal that aborts after `ms`. `AbortSignal.timeout` exists only from Chrome 103 and Safari 16, and without it every send would
+ * throw before reaching the network and look like a lost connection, so an older phone could never deliver an application.
+ */
+export function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal.timeout === "function") return AbortSignal.timeout(ms);
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 export async function sendLead(
   item: Pick<QueuedLead, "key" | "payload">,
   turnstileToken: string,
@@ -25,7 +36,7 @@ export async function sendLead(
       cache: "no-store",
       headers: { "Content-Type": "application/json", "Idempotency-Key": item.key },
       body: JSON.stringify({ ...item.payload, turnstile_token: turnstileToken }),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: timeoutSignal(timeoutMs),
     });
   } catch {
     return { verdict: "retry", status: 0, code: "NETWORK", retryAfterSeconds: null };

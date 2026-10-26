@@ -119,7 +119,7 @@ export function normalisePhone(input: string, defaultCountry?: string): Result<N
     return /^[1-9]\d{6,14}$/.test(digits) ? ok({ e164: `+${digits}`, country: null, display: `+${digits}` }) : err("INVALID_LENGTH");
   }
 
-  const rule = defaultCountry && Object.hasOwn(PHONE_RULES, defaultCountry) ? PHONE_RULES[defaultCountry as PhoneCountry] : undefined;
+  const rule = defaultCountry && Object.prototype.hasOwnProperty.call(PHONE_RULES, defaultCountry) ? PHONE_RULES[defaultCountry as PhoneCountry] : undefined;
   if (!defaultCountry || !rule) return err("NEEDS_COUNTRY");
   const country = defaultCountry as PhoneCountry;
 

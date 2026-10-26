@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { err, mapResult, ok, unwrap } from "@/lib/result";
-import { isUuid, uuidv7 } from "@/lib/uuid";
+import { isUuid, randomUuid, uuidv7 } from "@/lib/uuid";
 import { formatWat, isWatWeekend, startOfWatDay, watDateString, watParts, watToUtc } from "@/lib/time";
 import { pickTranslation } from "@/lib/translations";
 
@@ -92,6 +92,24 @@ describe("uuidv7", () => {
     expect(isUuid(uuidv7())).toBe(true);
     expect(isUuid("not-a-uuid")).toBe(false);
     expect(isUuid(5)).toBe(false);
+  });
+});
+
+describe("randomUuid", () => {
+  it("is a version 4 UUID", () => {
+    expect(randomUuid()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("still works in a browser that has no crypto.randomUUID", () => {
+    const original = crypto.randomUUID;
+    Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true });
+    try {
+      const a = randomUuid();
+      expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(randomUuid()).not.toBe(a);
+    } finally {
+      Object.defineProperty(crypto, "randomUUID", { value: original, configurable: true });
+    }
   });
 });
 

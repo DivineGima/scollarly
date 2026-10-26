@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { api, apiFile, saveBlob, type ApiFail } from "@/lib/client/api";
 import { formatWat } from "@/lib/time";
+import { randomUuid } from "@/lib/uuid";
 import { formatUsd, parseUsdToCents } from "@/modules/payments/service";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -72,7 +73,7 @@ export function queryOf(filters: Filters): string {
   return text ? `?${text}` : "";
 }
 
-const newToken = () => crypto.randomUUID();
+const newToken = randomUuid;
 
 /** "2026-10" -> "October 2026", in English (the only active locale). Built from the parts so no time zone can move the month. */
 function monthLabel(month: string): string {

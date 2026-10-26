@@ -1,3 +1,4 @@
+import { randomUuid } from "@/lib/uuid";
 import { enqueueLead, listLeads, removeLead, updateLead } from "./lead-queue";
 import { sendLead } from "./send";
 import { browserLock, type SyncDeps } from "./sync-engine";
@@ -28,7 +29,7 @@ export function realSubmitDeps(source: TokenSource, onSent?: SubmitDeps["onSent"
     send: (item, turnstileToken) => sendLead(item, turnstileToken),
     isOnline: () => navigator.onLine,
     wait: realWait,
-    newKey: () => crypto.randomUUID(),
+    newKey: randomUuid,
     ...(onSent ? { onSent } : {}),
   };
 }

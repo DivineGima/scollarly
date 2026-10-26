@@ -84,7 +84,7 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      # Offline mode (S0.8), plus axe, the security headers with CSP in report-only mode, 375 px layout and the /en rewrite (S1.5, S1.6).
+      # Offline mode (S0.8), plus axe, the security headers with the CSP enforced, 375 px layout and the /en rewrite (S1.5, S1.6).
       - run: npm run test:e2e
       - if: failure()
         uses: actions/upload-artifact@v4

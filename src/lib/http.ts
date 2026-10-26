@@ -111,12 +111,46 @@ export function isSameOrigin(request: Request): boolean {
 
 export type BodyResult = { ok: true; value: unknown } | { ok: false; reason: "too_large" | "invalid_json" };
 
-/** Reads a JSON body with a hard byte cap, checking the declared length first. */
-export async function readJsonBody(request: Request, maxBytes: number): Promise<BodyResult> {
+/**
+ * The request body as bytes, never holding more than `maxBytes` of it. The declared `Content-Length` is only a hint (a chunked
+ * body has none, and a client can lie), so the stream is counted as it is read and cancelled the moment it passes the cap. A plain
+ * `request.text()` would buffer the whole body first, up to the platform limit, before any size check ran.
+ */
+export async function readCappedBytes(request: Request, maxBytes: number): Promise<{ ok: true; value: Uint8Array } | { ok: false }> {
   const declared = Number.parseInt(request.headers.get("content-length") ?? "", 10);
-  if (Number.isFinite(declared) && declared > maxBytes) return { ok: false, reason: "too_large" };
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > maxBytes) return { ok: false, reason: "too_large" };
+  if (Number.isFinite(declared) && declared > maxBytes) return { ok: false };
+  if (!request.body) return { ok: true, value: new Uint8Array(0) };
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      return { ok: false };
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return { ok: true, value: bytes };
+}
+
+/**
+ * Reads a JSON body with a hard byte cap (`readCappedBytes`). An empty body is invalid JSON, unless `emptyIs` gives the value it
+ * stands for (an operation with no input, such as sign out everywhere, needs no payload).
+ */
+export async function readJsonBody(request: Request, maxBytes: number, options: { emptyIs?: unknown } = {}): Promise<BodyResult> {
+  const read = await readCappedBytes(request, maxBytes);
+  if (!read.ok) return { ok: false, reason: "too_large" };
+  const text = new TextDecoder().decode(read.value);
+  if (text.trim() === "" && "emptyIs" in options) return { ok: true, value: options.emptyIs };
   try {
     return { ok: true, value: JSON.parse(text) as unknown };
   } catch {

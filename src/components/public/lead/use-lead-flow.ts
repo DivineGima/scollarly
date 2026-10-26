@@ -52,7 +52,14 @@ export function useLeadFlow({ siteKey, numberE164 }: { siteKey: string; numberE1
       const deps = realSubmitDeps({ siteKey, host: () => hostRef.current, onInteractive: setInteractive });
       void trackEvent({ type: "form_submit", ...(universityId ? { universityId } : {}), pageGroup: pageGroupOf(location.pathname) });
 
-      const result = await submitLead(deps, { payload });
+      // Anything unexpected (a browser missing an API, a storage fault) must not leave the form on "submitting" for ever: nothing was
+      // queued in that case, so it is the same answer as a browser that cannot save.
+      let result: SubmitResult;
+      try {
+        result = await submitLead(deps, { payload });
+      } catch {
+        result = { kind: "save_failed" };
+      }
 
       switch (result.kind) {
         case "sent":
