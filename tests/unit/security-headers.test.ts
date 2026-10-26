@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySecurityHeaders, CSP_REPORT_ONLY, SECURITY_HEADERS, securityHeaderList } from "@/lib/security-headers";
+import { applySecurityHeaders, CSP, SECURITY_HEADERS, securityHeaderList } from "@/lib/security-headers";
 
 describe("security headers (architecture 13.1)", () => {
   it("has every header the architecture lists", () => {
@@ -11,19 +11,24 @@ describe("security headers (architecture 13.1)", () => {
     expect(SECURITY_HEADERS["Permissions-Policy"]).toMatch(/microphone=\(\)/);
   });
 
-  it("enforces only frame-ancestors, and keeps the real policy in report-only mode", () => {
-    expect(SECURITY_HEADERS["Content-Security-Policy"]).toBe("frame-ancestors 'none'");
+  it("enforces the full policy (S11.1) and no longer sends a report-only copy", () => {
+    expect(SECURITY_HEADERS["Content-Security-Policy"]).toBe(CSP);
     expect(SECURITY_HEADERS["X-Frame-Options"]).toBe("DENY");
-    expect(SECURITY_HEADERS["Content-Security-Policy-Report-Only"]).toBe(CSP_REPORT_ONLY);
+    expect(SECURITY_HEADERS["Content-Security-Policy-Report-Only"]).toBeUndefined();
   });
 
-  it("the report-only policy matches the architecture: youtube-nocookie and Turnstile frames, same-origin connections, self and data images", () => {
-    const directives: Record<string, string[]> = Object.fromEntries(CSP_REPORT_ONLY.split("; ").map((d) => [d.split(" ")[0] ?? "", d.split(" ").slice(1)]));
+  it("the policy matches the architecture: youtube-nocookie and Turnstile frames, same-origin connections, self, data and blob images", () => {
+    const directives: Record<string, string[]> = Object.fromEntries(CSP.split("; ").map((d) => [d.split(" ")[0] ?? "", d.split(" ").slice(1)]));
     expect(directives["connect-src"]).toEqual(["'self'"]);
-    expect(directives["img-src"]).toEqual(["'self'", "data:"]);
+    expect(directives["img-src"]).toEqual(["'self'", "data:", "blob:"]);
     expect(directives["frame-src"]).toEqual(expect.arrayContaining(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com"]));
-    // frame-ancestors is enforced by its own header, because browsers ignore it in a report-only policy.
-    expect(directives["frame-ancestors"]).toBeUndefined();
+    expect(directives["frame-ancestors"]).toEqual(["'none'"]);
+    expect(directives["default-src"]).toEqual(["'self'"]);
+    expect(directives["base-uri"]).toEqual(["'self'"]);
+    expect(directives["form-action"]).toEqual(["'self'"]);
+    // The one accepted gap, written down: inline scripts stay allowed because a nonce needs a dynamic render (ADR-033).
+    expect(directives["script-src"]).toContain("'unsafe-inline'");
+    expect(directives["script-src"]).not.toContain("'unsafe-eval'");
     expect(directives["object-src"]).toEqual(["'none'"]);
     // No third-party script origin other than Turnstile (CLAUDE.md: no third-party scripts).
     expect(directives["script-src"]?.filter((s) => s.startsWith("https://"))).toEqual(["https://challenges.cloudflare.com"]);

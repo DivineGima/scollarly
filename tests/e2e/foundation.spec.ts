@@ -26,14 +26,15 @@ for (const path of PUBLIC_PAGES) {
 }
 
 for (const path of [...PUBLIC_PAGES, "/api/v1/health"]) {
-  test(`${path} carries the security headers, with the CSP in report-only mode`, async ({ request }) => {
+  test(`${path} carries the security headers, with the CSP enforced`, async ({ request }) => {
     const response = await request.get(path);
     expect(response.status()).toBe(200);
     const headers = response.headers();
     for (const [name, value] of Object.entries(SECURITY_HEADERS)) expect(headers[name.toLowerCase()], name).toBe(value);
-    // Enforced: only framing is blocked. Everything else is observed, not enforced.
-    expect(headers["content-security-policy"]).toBe("frame-ancestors 'none'");
-    expect(headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+    // Enforced (S11.1): the whole policy, with nothing left to a report-only copy.
+    expect(headers["content-security-policy"]).toContain("default-src 'self'");
+    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+    expect(headers["content-security-policy-report-only"]).toBeUndefined();
   });
 }
 

@@ -7,6 +7,8 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
 import { STUDENT_COUNTRIES } from "@/lib/constants";
 import { DAY_MS, watDateString } from "@/lib/time";
+import { formatUsd } from "@/modules/payments/service";
+import { useAdminSession } from "./admin-shell";
 import { Button } from "./ui/button";
 import { cn } from "./ui/cn";
 import { Input, Label } from "./ui/input";
@@ -41,6 +43,8 @@ interface AnalyticsData {
     byPage: { page: string | null; leads: number }[];
   };
   universities: { id: string; name: string }[];
+  /** S9.3: payments received in the range, voided ones left out. */
+  payments: { totalCents: number; count: number; byUniversity: { universityId: string; name: string; totalCents: number; count: number }[] };
   totalLeads: number;
 }
 
@@ -239,6 +243,7 @@ export function AnalyticsPanel() {
 
       {analytics && applied.tab === "funnel" ? <Funnel data={analytics} filters={applied} /> : null}
       {analytics && applied.tab === "sources" ? <Sources data={analytics} /> : null}
+      {analytics ? <PaymentsReceived data={analytics} filters={applied} /> : null}
       {performance ? <Performance data={performance} /> : null}
 
       {state === "ready" ? (
@@ -343,7 +348,7 @@ function Sources({ data }: { data: AnalyticsData }) {
   );
 }
 
-function duration(t: ReturnType<typeof useTranslations>, minutes: number | null): string {
+export function duration(t: ReturnType<typeof useTranslations>, minutes: number | null): string {
   if (minutes === null) return t("performance.noData");
   if (minutes < 60) return t("performance.minutes", { count: minutes });
   const hours = Math.floor(minutes / 60);
@@ -351,9 +356,48 @@ function duration(t: ReturnType<typeof useTranslations>, minutes: number | null)
   return rest === 0 ? t("performance.hours", { count: hours }) : t("performance.hoursMinutes", { hours, minutes: rest });
 }
 
+/** S9.3: what universities paid in the range. The country filter does not apply to it (a payment has no country), and the note says so. */
+function PaymentsReceived({ data: all, filters }: { data: AnalyticsData; filters: Filters }) {
+  const t = useTranslations("admin.analytics");
+  // An older answer (a cached shell talking to an older Worker during a deploy) has no payments block: show zero, never crash the page.
+  const data = { ...all, payments: all.payments ?? { totalCents: 0, count: 0, byUniversity: [] } };
+  const params = new URLSearchParams({ from: filters.from, to: filters.to });
+  if (filters.university) params.set("university", filters.university);
+  return (
+    <section className="mt-8 rounded-lg border border-border p-4" aria-labelledby="payments-received" data-testid="payments-received">
+      <h2 id="payments-received" className="text-lg font-semibold">
+        {t("payments.title")}
+      </h2>
+      <p className="mt-1 text-3xl font-semibold" data-testid="payments-total">
+        {t("payments.total", { amount: formatUsd(data.payments.totalCents) })}
+      </p>
+      <p className="text-sm text-fg-muted">{t("payments.count", { count: data.payments.count })}</p>
+      {data.payments.byUniversity.length > 0 ? (
+        <ul className="mt-3 space-y-1">
+          {data.payments.byUniversity.map((row) => (
+            <li key={row.universityId} className="flex justify-between gap-4">
+              <span>{row.name}</span>
+              <span className="whitespace-nowrap">{t("payments.total", { amount: formatUsd(row.totalCents) })}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-fg-muted">{t("payments.none")}</p>
+      )}
+      <p className="mt-3 text-sm text-fg-muted">{filters.country ? t("payments.countryNote") : t("payments.note")}</p>
+      <p className="mt-2">
+        <a href={`/admin/payments?${params}`} className="underline">
+          {t("payments.open")}
+        </a>
+      </p>
+    </section>
+  );
+}
+
 /** B10 step 5: the admin's own leads, how fast they were first answered (from logged replies), and what is overdue. */
 function Performance({ data }: { data: PerformanceData }) {
   const t = useTranslations("admin.analytics");
+  const session = useAdminSession();
   const tiles: { key: string; value: string }[] = [
     { key: "assigned", value: String(data.assigned) },
     { key: "answered", value: String(data.answered) },
@@ -375,6 +419,13 @@ function Performance({ data }: { data: PerformanceData }) {
         ))}
       </ul>
       <p className="mt-4 text-sm text-fg-muted">{t("performance.basis")}</p>
+      {session.role === "owner" ? (
+        <p className="mt-2">
+          <a href="/admin/analytics/performance" className="underline">
+            {t("performance.seeAll")}
+          </a>
+        </p>
+      ) : null}
       {data.overdue > 0 ? (
         <p className="mt-2">
           <a href="/admin/leads?view=overdue&assigned=me" className="underline">

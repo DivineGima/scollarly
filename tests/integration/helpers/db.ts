@@ -16,7 +16,7 @@ const MIGRATIONS = "./src/server/db/migrations";
  * creates and owns these tables; tests create just enough of them so the committed migrations and functions run for real.
  * Column names and types were read from the live `neon_auth` schema on 2026-10-24.
  */
-const NEON_AUTH_STUB = `
+export const NEON_AUTH_STUB = `
   drop schema if exists neon_auth cascade;
   create schema neon_auth;
   create table neon_auth."user" (

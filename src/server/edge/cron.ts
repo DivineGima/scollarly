@@ -1,11 +1,14 @@
 import { runDailyRollup, type RollupResult } from "@/modules/analytics/rollup";
 import { getDb } from "@/server/db/runtime";
+import { recordJob } from "@/server/repositories/health";
 import { rollRawEvents, saveAggregateRows } from "@/server/repositories/rollup";
+import { runUsageCheck } from "./usage-job";
 
 /**
  * The scheduled handler (architecture 8.5): once a day at 23:05 UTC (00:05 WAT) the anonymous counts of the collector and the
  * raw tap rows are rolled into `event_daily_agg` and the old raw rows are purged (S7.1). Overdue leads, stale fees and tours and
- * expired invites are not jobs; each is a query (8.5). Storage and usage checks join this job in Stage 10 (S10.2).
+ * expired invites are not jobs; each is a query (8.5). After the rollup the usage check runs (S10.2, `usage-job.ts`), and each of the two
+ * writes a job record the owner's Health page shows.
  *
  * Nothing runs more often than daily, so Neon is never kept awake by the schedule.
  */
@@ -36,7 +39,11 @@ export async function runScheduled(env: CloudflareEnv, scheduledTime: number, no
     now,
   });
   console.log(rollupLogLine(result));
+  // The record is bookkeeping for the Health page: if it cannot be written the run still counts for what it did.
+  await recordJob(db, "rollup", result.failed.length === 0, { keys: result.keys, rows: result.rows, rawCounted: result.rawCounted, rawPurged: result.rawPurged, failed: result.failed.length }).catch(() => undefined);
+  const usage = await runUsageCheck(db);
   // A failed run is thrown, so Cloudflare lists it as failed instead of quietly succeeding.
   if (result.failed.length > 0) throw new Error(`The daily rollup failed: ${result.failed.join(", ")}`);
+  if (usage === null) throw new Error("The daily usage check failed.");
   return result;
 }

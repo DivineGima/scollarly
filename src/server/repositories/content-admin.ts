@@ -554,13 +554,18 @@ export interface StaleItem {
 
 /** B8: published fees not updated for `stale_fee_days` and published links not checked for `stale_tour_days` (S6.5). A query, not a job. */
 export async function staleItems(db: Db, actor: Actor): Promise<StaleItem[]> {
+  const [result] = await runAs(db, actor, staleQuery(db));
+  return staleItemsOf(result);
+}
+
+/** The statement behind `staleItems`, for a screen that runs it together with its other reads in one round trip (the Health page). */
+export function staleQuery(db: Db) {
   const piece = (def: TypeDef, checked: string) =>
     sql`select ${def.type}::text as type, t.id, ${sql.raw(LABEL[def.type])} as label, ${versionExpr("t")} as version, t.${sql.raw(checked)} as checked_at from ${table(def)} t where ${flagExpr(def)} = 'stale'`;
-  const [result] = await runAs(
-    db,
-    actor,
-    db.execute(sql`${piece(TYPE_DEFS.fees, "last_updated_at")} union all ${piece(TYPE_DEFS.campus, "url_last_checked_at")} union all ${piece(TYPE_DEFS.resources, "url_last_checked_at")} order by checked_at nulls first`),
-  );
+  return db.execute(sql`${piece(TYPE_DEFS.fees, "last_updated_at")} union all ${piece(TYPE_DEFS.campus, "url_last_checked_at")} union all ${piece(TYPE_DEFS.resources, "url_last_checked_at")} order by checked_at nulls first`);
+}
+
+export function staleItemsOf(result: unknown): StaleItem[] {
   return rowsOf<{ type: StaleItem["type"]; id: string; label: string; version: string; checked_at: string | Date | null }>(result).map((r) => ({
     type: r.type,
     id: r.id,

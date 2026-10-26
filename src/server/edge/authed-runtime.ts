@@ -2,8 +2,12 @@ import { loadAdminStub, loadStudentStub } from "@/modules/phase0/auth-stubs";
 import { analyticsDataCalls } from "@/modules/analytics/endpoints";
 import { auditDataCalls } from "@/modules/audit/endpoints";
 import { contentDataCalls, contentMutations } from "@/modules/content-admin/endpoints";
+import { exportMutations } from "@/modules/export/endpoints";
+import { healthDataCalls } from "@/modules/health/endpoints";
 import { leadDataCalls, leadMutations } from "@/modules/leads/admin-endpoints";
 import { authDataCalls, authMutations } from "@/modules/auth/endpoints";
+import { paymentDataCalls, paymentMutations } from "@/modules/payments/endpoints";
+import { settingsDataCalls, settingsMutations } from "@/modules/settings/endpoints";
 import { profileDataCalls, profileMutations } from "@/modules/profile/endpoints";
 import { studentDataCalls, studentMutations } from "@/modules/student/endpoints";
 import { teamDataCalls, teamMutations } from "@/modules/team/endpoints";
@@ -47,6 +51,9 @@ export function authedDeps(env: CloudflareEnv, rest: Pick<AuthedDeps, "cache" | 
       ...contentDataCalls(endpoint),
       ...analyticsDataCalls(endpoint),
       ...studentDataCalls(endpoint),
+      ...paymentDataCalls(endpoint),
+      ...settingsDataCalls(endpoint),
+      ...healthDataCalls(endpoint),
     },
   };
 }
@@ -57,7 +64,7 @@ export function mutationDeps(env: CloudflareEnv): MutationDeps {
   return {
     checkSession: facadeFor(endpoint).checkSession,
     env: endpoint,
-    mutations: { ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations },
+    mutations: { ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
     // The caller is hashed with a daily salt at once; the raw address is never stored or logged (ADR-027).
     limit: async (operation, request, max, windowMs) =>
       limiter(await limiterKey({ route: operation, ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET), max, windowMs),

@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,lead,media,media-miss").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,lead,media,media-miss").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, lead: 8, media: 8, "media-miss": 8 };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, media: 8, "media-miss": 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -171,6 +171,10 @@ try {
     // so they are watched in Workers Logs after the deploy instead (tracker, Session 27 rule 1).
     rows.push(await scenario("Staff content list: up to 300 rows with labels and flags", "content-list", () => call("/api/v1/admin/content-list?type=faqs", staff), samples, 150, (url) => url.includes("/api/v1/admin/content-list")));
     rows.push(await scenario("Staff analytics: funnel, sources and filters in one round trip", "analytics", () => call("/api/v1/admin/analytics", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/analytics")));
+    // Stage 9: the ledger screen is a NEW read shape (rows with joins, totals by university and month, and the staff list function in one round
+    // trip). Recording and voiding are single-statement writes of an already measured shape. The owner-only Settings and Health reads have no
+    // scenario: the measurement has no owner session (it needs a second factor), so they are watched in Workers Logs after the deploy.
+    rows.push(await scenario("Staff payments: ledger rows, totals by university and month, universities and the team", "payments", () => call("/api/v1/admin/payments", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/payments")));
     const seedLead = async (overrides = {}) => {
       const body = probeLead({ name: "Measure Probe", ...overrides });
       try {
