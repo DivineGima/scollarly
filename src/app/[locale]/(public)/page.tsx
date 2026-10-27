@@ -45,7 +45,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </div>
         {heroPhoto ? (
           <div className="hero-media">
-            <MediaImage media={heroPhoto} eager className="hero-photo" />
+            <MediaImage media={heroPhoto} eager priority className="hero-photo" />
           </div>
         ) : null}
       </section>
