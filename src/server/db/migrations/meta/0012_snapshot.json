@@ -2850,7 +2850,7 @@
       "checkConstraints": {
         "page_image_key_format": {
           "name": "page_image_key_format",
-          "value": "\"page_image\".\"key\" ~ '^[a-z0-9]+(.[a-z0-9]+)*$'"
+          "value": "\"page_image\".\"key\" ~ '^[a-z0-9]+(\\.[a-z0-9]+)*$'"
         }
       },
       "isRLSEnabled": false

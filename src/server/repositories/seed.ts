@@ -58,7 +58,14 @@ export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
   for (const batch of chunks(rows.faqs)) report.faqs += (await db.insert(faq).values(batch).onConflictDoNothing().returning({ id: faq.id })).length;
   for (const batch of chunks(rows.processSteps)) report.processSteps += (await db.insert(processStep).values(batch).onConflictDoNothing().returning({ id: processStep.id })).length;
   for (const batch of chunks(rows.contentBlocks)) report.contentBlocks += (await db.insert(contentBlock).values(batch).onConflictDoNothing().returning({ id: contentBlock.id })).length;
-  for (const batch of chunks(rows.pageImages)) report.pageImages += (await db.insert(pageImage).values(batch).onConflictDoNothing().returning({ id: pageImage.id })).length;
+  for (const batch of chunks(rows.pageImages)) report.pageImages += (
+      await db
+        .insert(pageImage)
+        .values(batch)
+        // A changed file for an existing slot replaces its photo (there is no admin screen for page photos); an unchanged one is left alone, so a second run reports zero.
+        .onConflictDoUpdate({ target: pageImage.key, set: { mediaAssetId: sql`excluded.media_asset_id`, updatedAt: sql`now()` }, setWhere: sql`${pageImage.mediaAssetId} <> excluded.media_asset_id` })
+        .returning({ id: pageImage.id })
+    ).length;
 
   // A setting is filled only while it is still "not set" (JSON null); a value an admin has set is left alone.
   for (const s of rows.siteSettings) {

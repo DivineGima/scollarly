@@ -60,8 +60,9 @@ describe("seed files: the format (S1.7)", () => {
   });
 
   it("page images need a dotted lower-case key and a file", () => {
-    expect(issuesOf({ page_images: [{ key: "home.hero", file: "photos/hero.jpg" }] })).toEqual([]);
-    expect(issuesOf({ page_images: [{ key: "Home Hero", file: "photos/hero.jpg" }] })).not.toEqual([]);
+    expect(issuesOf({ page_images: [{ key: "home.hero", file: "photos/hero.jpg", alt: "Hero" }] })).toEqual([]);
+    expect(issuesOf({ page_images: [{ key: "home.hero", file: "photos/hero.jpg" }] })).not.toEqual([]); // alt is required
+    expect(issuesOf({ page_images: [{ key: "Home Hero", file: "photos/hero.jpg", alt: "Hero" }] })).not.toEqual([]);
     expect(issuesOf({ page_images: [{ key: "home.hero" }] })).not.toEqual([]);
   });
 

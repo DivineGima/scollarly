@@ -223,7 +223,7 @@ body:has(.site) {
   align-items: center;
 }
 .hero-media {
-  order: -1;
+  min-width: 0;
 }
 .hero-photo {
   width: 100%;
@@ -612,9 +612,6 @@ body:has(.site) {
   }
   .hero-with-media {
     grid-template-columns: 1fr 1fr;
-  }
-  .hero-media {
-    order: 0;
   }
   .page-photo {
     aspect-ratio: 21 / 9;

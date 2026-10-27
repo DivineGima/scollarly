@@ -739,6 +739,22 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Not done, left to the owner or to CI:** merging the PR; a real Lighthouse run against a deployed build with the real images (CI does this on the next deploy); the owner has not yet reviewed the visual result; `/` was the only page whose performance was re-measured this session.
 
+### 2026-10-27: Session 37 (QA sweep and code review of S12.1)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `fix/qa-review-s12-1`. Owner asked for a QA run with Playwright and a senior code review of the S12.1 work. No human item was marked done.
+
+**QA (Playwright against the live site, phone and desktop, `/ /about /campus-tours /universities /apply /fees /faq`):** every page 200, one h1, no sideways scroll, no console errors, no failed requests. The four photos are not on the live pages yet: the pages are cached for up to an hour after the seed (a publish refreshes them at once). Not a defect.
+
+| # | Problem | Why | Fix |
+|---|---|---|---|
+| 1 | The `page_image_key_format` CHECK was written `\.` in a template literal, which loses the backslash; schema and snapshot said "any character" while the SQL migration said a dot. | The next `drizzle-kit generate` would emit a spurious migration, and environments built from the schema would accept keys the SQL rejects. | Schema uses `\.`; snapshot corrected; `drizzle-kit generate` now reports no changes. |
+| 2 | `.hero-media { order: -1 }` put the photo above the headline and buttons on a phone, against the stated intent. | The main call to action fell below the fold for the mobile audience. | Removed the order rule; the text comes first in the markup. |
+| 3 | The seed inserted `page_image` rows with `ON CONFLICT DO NOTHING`. | Swapping a photo in `page-images.json` and re-seeding changed nothing while reporting success. | Upsert that replaces the photo only when it changed, so an unchanged second run still reports zero. |
+| 4 | The home hero (the LCP image) had no `fetchpriority`. | On a slow connection it queued behind other requests. | `MediaImage` takes an optional `priority`; only the hero uses it. |
+| 5 | A page photo could be seeded with no alt text. | It would render as `alt=""`, hiding meaningful content from screen readers. | `alt` is required in the seed format. |
+
+**Noted, not changed:** (a) nothing calls `revalidateContent` for the `pageImages` tag, so a photo change shows within the hour or after any publish; no admin screen edits page photos yet. (b) `imageFiles` keeps the first kind seen for a file shared with a logo or thumbnail; no seed file does that today. (c) `page_image` has no delete grant by design (no physical deletes) and `updated_at` is set by the seed only.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |

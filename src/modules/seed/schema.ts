@@ -132,7 +132,8 @@ export const contentBlockSeedSchema = z.strictObject({
 export const pageImageSeedSchema = z.strictObject({
   key: z.string().regex(/^[a-z0-9]+(\.[a-z0-9]+)*$/, "A key is lower-case words joined by dots, for example home.hero."),
   file: text(200),
-  alt: optionalText(200),
+  /** Required: a page photo is meaningful content, so it never ships with an empty alt. */
+  alt: text(200),
 });
 
 /**

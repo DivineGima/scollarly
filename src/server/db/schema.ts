@@ -196,7 +196,7 @@ export const pageImage = pgTable(
     createdAt: tz("created_at").notNull().defaultNow(),
     updatedAt: tz("updated_at").notNull().defaultNow(),
   },
-  (t) => [check("page_image_key_format", sql`${t.key} ~ '^[a-z0-9]+(\.[a-z0-9]+)*$'`)],
+  (t) => [check("page_image_key_format", sql`${t.key} ~ '^[a-z0-9]+(\\.[a-z0-9]+)*$'`)],
 );
 
 // ---------------------------------------------------------------------------------------------
