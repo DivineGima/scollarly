@@ -755,6 +755,19 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Noted, not changed:** (a) nothing calls `revalidateContent` for the `pageImages` tag, so a photo change shows within the hour or after any publish; no admin screen edits page photos yet. (b) `imageFiles` keeps the first kind seen for a file shared with a logo or thumbnail; no seed file does that today. (c) `page_image` has no delete grant by design (no physical deletes) and `updated_at` is set by the seed only.
 
+### 2026-10-27: Session 38 (client-side "Application error" on some pages)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `fix/stale-page-client-error`. The owner sent a screenshot of `/campus-tours` showing "Application error: a client-side exception has occurred".
+
+**Investigation:** a fresh browser (Pixel 5 profile) loaded 13 public pages with no page error, console error or failed request, so the live server is sound. The owner's browser had the service worker from before the deploy. The worker keeps public pages stale-while-revalidate (architecture 11.1) in the `pages` cache, and nothing removed them when a new deploy shipped new build files, so a page kept from the old deploy ran against code that no longer matched.
+
+| # | Problem | Why | Fix |
+|---|---|---|---|
+| 1 | Pages kept by the service worker outlived the deploy that made them. | The first visit after a deploy could show a blank "Application error". | The worker drops the `pages` cache when a new worker activates (`src/app/sw.ts`). The strategy is unchanged. |
+| 2 | No root error boundary, so any failed load stayed on the blank error screen. | A visitor on a slow connection had no way out. | `src/app/global-error.tsx` reloads once from the network (after dropping the kept pages), then shows a plain message and a Reload button. English only, because it replaces the root layout and has no translation provider. |
+
+**Owner action:** a browser already showing the error needs one visit with site data cleared (Chrome: padlock, Site settings, Clear data), or two reloads after this is deployed. The root cause is not proven from the owner's browser, only from the code and from a clean browser working; if the error returns after the deploy, send the browser console text.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
