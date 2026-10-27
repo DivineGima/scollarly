@@ -45,4 +45,11 @@ const serwist = new Serwist({
   },
 });
 
+// A new deploy means new build files. A page kept from the previous deploy points at code that may no longer exist, and
+// the visitor then sees "Application error: a client-side exception". The strategy stays stale-while-revalidate
+// (architecture 11.1); the kept pages are dropped when a new worker takes over, so the first visit after a deploy is fresh.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.delete("pages"));
+});
+
 serwist.addEventListeners();
