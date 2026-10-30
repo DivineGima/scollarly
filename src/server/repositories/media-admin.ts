@@ -21,7 +21,8 @@ const USES = `
   union all select 'campus', id, title, status, thumbnail_media_id from campus_experience where thumbnail_media_id is not null
   union all select 'testimonials', id, student_name, status, photo_media_id from testimonial where photo_media_id is not null
   union all select 'team', id, name, status, photo_media_id from team_member where photo_media_id is not null
-  union all select 'blog', id, title, status, cover_media_id from post where cover_media_id is not null`;
+  union all select 'blog', id, title, status, cover_media_id from post where cover_media_id is not null
+  union all select 'page', id, key, 'published', media_asset_id from page_image`;
 
 export interface MediaItem {
   id: string;
