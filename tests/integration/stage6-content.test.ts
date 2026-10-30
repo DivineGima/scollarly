@@ -411,6 +411,13 @@ describe("S6.3 images", () => {
     expect(blocked.json.error?.fields?.media).toBe("IN_USE");
     expect((blocked.json.uses as unknown[]).length).toBe(1);
 
+    // A page photo (home hero, ...) counts as in use too, or the Media screen would let it be archived (S12.1 QA).
+    await t.run(`insert into page_image (id, key, media_asset_id) values (gen_random_uuid(), 'qa.photo', ${q(image?.id)})`);
+    const pageBlocked = await post("media.archive", admin, { id: image?.id });
+    expect(pageBlocked.status).toBe(409);
+    expect((pageBlocked.json.uses as unknown[]).length).toBe(2);
+    await t.run(`delete from page_image where key = 'qa.photo'`);
+
     await t.run(`update university set status = 'archived' where id = ${q(universityId)}`);
     expect((await post("media.archive", admin, { id: image?.id })).status).toBe(200);
     expect((await rows(`select archived_at from media_asset where id = ${q(image?.id)}`))[0]?.archived_at).not.toBeNull();

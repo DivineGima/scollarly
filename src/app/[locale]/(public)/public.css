@@ -120,6 +120,9 @@ body:has(.site) {
   padding-bottom: var(--space-1);
   width: max-content;
   min-width: 100%;
+  box-sizing: border-box;
+  /* Line the first link up with the logo and page content (the .container edge) on wide screens. */
+  padding-inline: max(var(--space-4), calc((100% - 64rem) / 2 + var(--space-4)));
 }
 .site-nav a {
   display: inline-flex;
@@ -288,13 +291,17 @@ body:has(.site) {
   gap: var(--space-3);
 }
 .logo {
-  width: 3rem;
+  width: auto;
+  min-width: 3rem;
+  max-width: 8rem; /* a wide logo (for example 512 by 73) keeps its shape instead of shrinking to a line */
   height: 3rem;
   object-fit: contain;
   flex: none;
 }
 .logo-large {
   width: 5rem;
+  min-width: 0;
+  max-width: none;
   height: 5rem;
 }
 .logo-placeholder {
