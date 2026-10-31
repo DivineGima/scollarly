@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/shell/app-nav";
 import { navLabels } from "@/components/shell/nav-labels";
+import { useUnreadCount } from "@/components/notifications/use-unread";
 import { normalisePath } from "@/modules/nav/config";
 
 /**
@@ -31,6 +32,8 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showBar = !path.startsWith("/me/onboarding");
+  // The dot on the round button: one small call after the screen loads, again when the app regains focus (at most once a minute).
+  const unread = useUnreadCount("me", path !== "" && showBar);
 
   return (
     <div className="me-shell">
@@ -48,7 +51,7 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
       <main id="main" className="me-main">
         {children}
       </main>
-      {showBar ? <AppNav role="student" labels={navLabels(shell as never, "student")} /> : null}
+      {showBar ? <AppNav role="student" labels={navLabels(shell as never, "student")} unread={unread} /> : null}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function useAdminSession(): AdminSession {
 
 interface NavItem {
   href: string;
-  label: "overview" | "leads" | "content" | "analytics" | "payments" | "dataRequests" | "profile" | "team" | "audit" | "security" | "settings" | "health";
+  label: "overview" | "leads" | "content" | "analytics" | "payments" | "dataRequests" | "notifications" | "profile" | "team" | "audit" | "security" | "settings" | "health";
   ownerOnly?: boolean;
 }
 
@@ -37,6 +37,7 @@ const NAV: readonly NavItem[] = [
   { href: "/admin/analytics", label: "analytics" },
   { href: "/admin/payments", label: "payments" },
   { href: "/admin/data-requests", label: "dataRequests" },
+  { href: "/admin/notifications", label: "notifications" },
   { href: "/admin/profile", label: "profile" },
   { href: "/admin/team", label: "team", ownerOnly: true },
   { href: "/admin/audit", label: "audit", ownerOnly: true },

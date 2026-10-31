@@ -169,7 +169,8 @@ test.describe("Help", () => {
   test("links the public guides and the WhatsApp button, with no data call", async ({ page }) => {
     const calls: string[] = [];
     page.on("request", (request) => {
-      if (request.url().includes("/api/v1/me/")) calls.push(request.url());
+      // The dot on the round button asks for its own small count on every student screen (S13.5); the Help page itself asks for nothing.
+      if (request.url().includes("/api/v1/me/") && !request.url().includes("/api/v1/me/notifications")) calls.push(request.url());
     });
     await page.goto("/me/help");
     await expect(page.getByRole("heading", { name: "Help", level: 1 })).toBeVisible();

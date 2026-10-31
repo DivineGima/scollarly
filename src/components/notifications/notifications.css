@@ -1,0 +1,106 @@
+/*
+ * The Notifications page (S13.5), shared by the student and staff areas. Plain CSS on the site's tokens, light only, thumb-sized targets.
+ * It does not rely on the student or the admin stylesheet, because both areas use it.
+ */
+.notif {
+  max-width: var(--measure, 40rem);
+  margin: 0 auto;
+}
+
+.notif h2 {
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: var(--text-lg, 1.125rem);
+}
+
+.notif-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.notif-count {
+  margin: 0;
+  font-weight: 600;
+}
+
+.notif-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target, 2.75rem);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notif-button[disabled] {
+  border-color: var(--color-border);
+  color: var(--color-muted, var(--color-fg));
+  cursor: not-allowed;
+}
+
+.notif-error {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+}
+
+.notif-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notif-item {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.notif-item[data-unread="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.notif-text {
+  margin: 0;
+  font-weight: 600;
+}
+
+.notif-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: var(--space-2);
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+.notif-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted, var(--color-fg));
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.notif-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target, 2.75rem);
+  font-weight: 600;
+}

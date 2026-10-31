@@ -120,6 +120,7 @@
       "roleAdmin": "Admin",
       "leads": "Leads",
       "dataRequests": "Data requests",
+      "notifications": "Notifications",
       "content": "Content",
       "analytics": "Analytics",
       "payments": "Payments",
@@ -1898,6 +1899,53 @@
       "whatsapp": "Message us on WhatsApp",
       "whatsappText": "Hello, I need help with my Scollarly application.",
       "whatsappMissing": "The WhatsApp number is not available right now. Please try again later."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "purposeStudent": "What needs your attention: changes to your application and universities for your course.",
+    "purposeStaff": "What needs you: new leads, replies due, requests waiting and, for the owner, money and system alerts.",
+    "loading": "Loading…",
+    "error": "We could not load your notifications.",
+    "offline": "You are offline, so we could not load your notifications.",
+    "retry": "Try again",
+    "unread": "{count, plural, =0 {Nothing new} one {# new} other {# new}}",
+    "markAll": "Mark all read",
+    "today": "Today",
+    "earlier": "Earlier",
+    "new": "New:",
+    "empty": {
+      "title": "You are all caught up",
+      "nextStudent": "When your application moves, or a new university fits your course, it will show here.",
+      "nextStaff": "New leads, replies that are due and requests will show here. Open Leads to see everyone."
+    },
+    "items": {
+      "stage_changed": "Your application moved to {stage}.",
+      "reply_logged": "Your adviser replied. Check your WhatsApp.",
+      "new_match": "{university} now offers a course you chose.",
+      "finish_onboarding": "Finish your profile to see the universities that fit your course.",
+      "new_lead": "New lead: {lead}.",
+      "sla_soon": "{lead} needs a reply within the hour.",
+      "sla_overdue": "{lead} is overdue for a reply.",
+      "lead_waiting": "{lead} has had no activity for {days} days.",
+      "link_requests": "{count, plural, one {# link request is waiting.} other {# link requests are waiting.}}",
+      "data_requests": "{count, plural, one {# data request is waiting.} other {# data requests are waiting.}}",
+      "payment": "Payment of {amount} recorded for {university}.",
+      "stale_content": "{count, plural, one {# fee or tour needs checking.} other {# fees or tours need checking.}}",
+      "storage_database_warn": "The database is above 70% of its limit.",
+      "storage_database_urgent": "The database is above 90% of its limit.",
+      "storage_images_warn": "The image store is above 70% of its limit.",
+      "storage_images_urgent": "The image store is above 90% of its limit."
+    },
+    "actions": {
+      "openProgress": "Open My progress",
+      "viewUniversity": "View university",
+      "continue": "Continue",
+      "openLead": "Open lead",
+      "openRequests": "Open requests",
+      "openPayments": "Open payments",
+      "openStale": "Open the list",
+      "openHealth": "Open Health"
     }
   }
 }
