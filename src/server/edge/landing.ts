@@ -1,4 +1,5 @@
 import { newRequestId } from "@/lib/http";
+import { readIntent, unconfirmedLanding } from "@/modules/auth/intent";
 import { INVITE_TOKEN_PATTERN, landingPathFor } from "@/modules/auth/service";
 import { hashInviteToken } from "@/modules/team/service";
 import type { Actor } from "@/server/auth/actor";
@@ -6,6 +7,7 @@ import { readSessionToken } from "@/server/auth/cookie";
 import { contextOf } from "@/server/db/rls";
 import { logError } from "@/server/log";
 import type { EndpointEnv } from "./endpoint-env";
+import { confirmAccount } from "@/server/repositories/account";
 import { acceptInvite, bootstrapOwner, scrubSessionPii } from "@/server/repositories/identity";
 import { writeAudit } from "@/server/repositories/audit";
 import { createSecondFactorStore } from "@/server/repositories/second-factor";
@@ -18,7 +20,9 @@ import { createSecondFactorStore } from "@/server/repositories/second-factor";
  *  2. clears the visitor's IP address and browser string Neon Auth keeps on the session (flag F13, CLAUDE.md: no raw IPs);
  *  3. if the sign-in carried an invite, accepts it (the database function checks the verified email), otherwise gives the owner
  *     their role when the verified email equals `OWNER_EMAIL` and no owner exists;
- *  4. sends the person to the page for their role.
+ *  4. sends a Google login with no confirmed Scollarly account to the confirm screen (they used Sign in) or confirms it and starts
+ *     onboarding (they used Create account), architecture 21.3;
+ *  5. sends everyone else to the page for their role.
  */
 
 export const LANDING_PATH = "/auth/landing";
@@ -53,9 +57,17 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
     if (invite !== null) return await landWithInvite(request, env, token, invite);
 
     let storedRole = actor.storedRole;
+    let confirmed = actor.accountConfirmed;
     if (storedRole === "student" && env.ownerEmail && (await bootstrapOwner(env.db, actor.userId, env.ownerEmail))) {
       storedRole = "owner";
+      confirmed = true; // promotion confirms the account in the same statement (migration 0013)
       await writeAudit(env.db, actor, { action: "security.ownerBootstrapped", entityType: "app_user", entityId: actor.userId });
+    }
+
+    if (!confirmed) {
+      const next = unconfirmedLanding(readIntent(new URL(request.url)));
+      if (next.confirmNow) await confirmAccount(env.db, contextOf({ userId: actor.userId, role: "student" }));
+      return redirect(request, next.path);
     }
 
     let twoFactorEnrolled = false;

@@ -31,14 +31,16 @@
   },
   "auth": {
     "signIn": {
-      "title": "Sign in",
-      "intro": "Sign in to follow your application, or to work as Scollarly staff.",
-      "google": "Continue with Google",
+      "title": "Welcome back",
+      "intro": "Sign in to follow your application, or to work as Scollarly staff. This page is for people who already have an account.",
+      "google": "Sign in with Google",
       "noGoogle": "No Google account? You can still apply and message us on WhatsApp.",
-      "offline": "You need a connection to sign in.",
+      "offline": "You need a connection to sign in or create an account.",
       "errorCancelled": "Sign-in was cancelled. Nothing was changed.",
       "errorFailed": "We could not sign you in. Please try again.",
-      "errorUnavailable": "Sign-in is not available right now. Please try again in a moment."
+      "errorUnavailable": "Sign-in is not available right now. Please try again in a moment.",
+      "newHere": "New here?",
+      "createAccount": "Create an account"
     },
     "signOut": {
       "working": "Signing you out…",
@@ -80,6 +82,29 @@
       "errorUsed": "That code was already used. Wait for the next one.",
       "errorLocked": "Too many wrong codes. Try again in 15 minutes.",
       "errorGeneric": "Something went wrong. Please try again."
+    },
+    "signUp": {
+      "title": "Create your account",
+      "intro": "It is free for students and parents. After Google, we ask a few short questions so we can show you the universities that fit.",
+      "choose": "Who is creating the account?",
+      "student": "I am a student",
+      "parent": "I am a parent applying for my child",
+      "google": "Continue with Google",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "noGoogle": "No Google account? You can still apply and message us on WhatsApp."
+    },
+    "confirm": {
+      "title": "No account found",
+      "body": "This Google account does not have a Scollarly account yet. Do you want to create one?",
+      "question": "Create an account as:",
+      "student": "A student",
+      "parent": "A parent applying for my child",
+      "back": "No, go back",
+      "working": "Creating your account...",
+      "errorOffline": "You need a connection to create your account.",
+      "errorFailed": "We could not create your account. Please try again.",
+      "errorSignedOut": "Your session ended. Please sign in again."
     }
   },
   "admin": {

@@ -78,7 +78,8 @@ beforeAll(async () => {
   const target = await t.signIn();
   ids.student = student.userId;
   ids.target = target.userId;
-  await t.run(`insert into app_user (id, role) values (${q(admin.userId)}, 'admin'), (${q(owner.userId)}, 'owner'), (${q(target.userId)}, 'student'), (${q(student.userId)}, 'student')`);
+  // These students existed before version 2, so their accounts are confirmed (migration 0013); an unconfirmed login is tested in s13-2-sign-up.
+  await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(admin.userId)}, 'admin', now()), (${q(owner.userId)}, 'owner', now()), (${q(target.userId)}, 'student', now()), (${q(student.userId)}, 'student', now())`);
 
   const ownerFresh = await addSession(owner.userId);
   const ownerStale = await addSession(owner.userId);

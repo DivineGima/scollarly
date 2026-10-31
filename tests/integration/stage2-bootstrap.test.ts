@@ -44,7 +44,8 @@ const roleOf = async (user: SignedInUser) => ((await t.run(`select role from app
 describe("owner bootstrap", () => {
   it("does not make anyone else the owner, and does not trust an unverified email", async () => {
     const other = await t.signIn({ email: "someone@example.test" });
-    expect(await landing(other)).toBe("/me");
+    // Not the owner, and a brand-new login has no Scollarly account until it confirms one (S13.2).
+    expect(await landing(other)).toBe("/account/confirm");
     expect(await roleOf(other)).toBe("student");
 
     // The exact owner address, but Google has not verified it: no session is trusted, so nothing is bootstrapped.
@@ -63,7 +64,7 @@ describe("owner bootstrap", () => {
   it("is idempotent for the owner and never gives a second person the role", async () => {
     // A second account that Google also reports as verified with the same address (written in another case).
     const second = await t.signIn({ email: "OWNER.PERSON@EXAMPLE.TEST" });
-    expect(await landing(second)).toBe("/me");
+    expect(await landing(second)).toBe("/account/confirm");
     expect(await roleOf(second)).toBe("student");
     expect(await t.run(`select count(*)::int as n from app_user where role = 'owner'`)).toEqual([{ n: 1 }]);
   });

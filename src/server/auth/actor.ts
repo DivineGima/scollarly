@@ -80,7 +80,7 @@ export function hasAtLeast(actor: Pick<ActorData, "role">, required: Role): bool
   return rank[actor.role] >= rank[required];
 }
 
-export type AuthErrorCode = "UNAUTHENTICATED" | "FORBIDDEN" | "STEP_UP_REQUIRED";
+export type AuthErrorCode = "UNAUTHENTICATED" | "FORBIDDEN" | "STEP_UP_REQUIRED" | "ACCOUNT_NOT_CONFIRMED";
 
 export class AuthError extends Error {
   constructor(

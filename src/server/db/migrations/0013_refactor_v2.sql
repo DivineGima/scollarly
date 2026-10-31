@@ -48,12 +48,13 @@ ALTER TABLE "lead" ADD CONSTRAINT "lead_quick_has_no_results" CHECK ("lead"."int
 UPDATE public.app_user SET account_confirmed_at = created_at WHERE account_confirmed_at IS NULL;
 --> statement-breakpoint
 
--- Promoting a user (owner bootstrap, accepted invite) confirms the account in the same statement, without touching those two functions.
+-- A staff account is always confirmed: promoting a user (owner bootstrap, accepted invite) or creating a row that is already admin or
+-- owner confirms it in the same statement, without touching those functions.
 CREATE OR REPLACE FUNCTION public.app_user_confirm_on_promotion() RETURNS trigger
 LANGUAGE plpgsql SET search_path = ''
 AS $$
 BEGIN
-  IF NEW.role IS DISTINCT FROM OLD.role AND NEW.role IN ('admin', 'owner') AND NEW.account_confirmed_at IS NULL THEN
+  IF NEW.role IN ('admin', 'owner') AND NEW.account_confirmed_at IS NULL AND (TG_OP = 'INSERT' OR NEW.role IS DISTINCT FROM OLD.role) THEN
     NEW.account_confirmed_at := now();
   END IF;
   RETURN NEW;
@@ -62,7 +63,7 @@ $$;
 --> statement-breakpoint
 DROP TRIGGER IF EXISTS app_user_confirm_on_promotion ON public.app_user;
 --> statement-breakpoint
-CREATE TRIGGER app_user_confirm_on_promotion BEFORE UPDATE ON public.app_user
+CREATE TRIGGER app_user_confirm_on_promotion BEFORE INSERT OR UPDATE ON public.app_user
   FOR EACH ROW EXECUTE FUNCTION public.app_user_confirm_on_promotion();
 --> statement-breakpoint
 

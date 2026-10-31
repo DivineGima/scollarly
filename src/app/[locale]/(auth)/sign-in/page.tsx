@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SignInNotice } from "@/components/auth/sign-in-notice";
 
-// A9: one button. A plain link to /auth/start, which the Worker answers before Next.js starts, so the page needs no JavaScript to work.
+// A2.1 (architecture 21.17): "Welcome back", one Google button for people who already have an account, and a clear way to create one.
+// Plain links to /auth/start and /sign-up, so the page needs no JavaScript to work.
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "auth.signIn" });
@@ -23,6 +24,11 @@ export default async function SignInPage({ params }: { params: Promise<{ locale:
       <a className="auth-button" href="/auth/start">
         {t("google")}
       </a>
+      <p className="auth-muted">
+        {t("newHere")}{" "}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/sign-up">{t("createAccount")}</a>
+      </p>
       <p className="auth-muted">{t("noGoogle")}</p>
     </main>
   );

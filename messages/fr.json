@@ -31,14 +31,16 @@
   },
   "auth": {
     "signIn": {
-      "title": "Se connecter",
-      "intro": "Connectez-vous pour suivre votre dossier, ou pour travailler dans l'équipe Scollarly.",
-      "google": "Continuer avec Google",
+      "title": "Content de vous revoir",
+      "intro": "Connectez-vous pour suivre votre dossier, ou pour travailler dans l'équipe Scollarly. Cette page est pour les personnes qui ont déjà un compte.",
+      "google": "Se connecter avec Google",
       "noGoogle": "Pas de compte Google ? Vous pouvez quand même postuler et nous écrire sur WhatsApp.",
-      "offline": "Vous avez besoin d'une connexion pour vous connecter.",
+      "offline": "Vous avez besoin d'une connexion pour vous connecter ou créer un compte.",
       "errorCancelled": "La connexion a été annulée. Rien n'a été modifié.",
       "errorFailed": "Nous n'avons pas pu vous connecter. Veuillez réessayer.",
-      "errorUnavailable": "La connexion n'est pas disponible pour le moment. Veuillez réessayer dans un instant."
+      "errorUnavailable": "La connexion n'est pas disponible pour le moment. Veuillez réessayer dans un instant.",
+      "newHere": "Nouveau ici ?",
+      "createAccount": "Créer un compte"
     },
     "signOut": {
       "working": "Déconnexion en cours…",
@@ -80,6 +82,29 @@
       "errorUsed": "Ce code a déjà été utilisé. Attendez le suivant.",
       "errorLocked": "Trop de codes erronés. Réessayez dans 15 minutes.",
       "errorGeneric": "Une erreur s'est produite. Veuillez réessayer."
+    },
+    "signUp": {
+      "title": "Créez votre compte",
+      "intro": "C'est gratuit pour les étudiants et les parents. Après Google, nous posons quelques questions courtes pour vous montrer les universités qui conviennent.",
+      "choose": "Qui crée le compte ?",
+      "student": "Je suis étudiant(e)",
+      "parent": "Je suis un parent et je postule pour mon enfant",
+      "google": "Continuer avec Google",
+      "haveAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter",
+      "noGoogle": "Pas de compte Google ? Vous pouvez quand même postuler et nous écrire sur WhatsApp."
+    },
+    "confirm": {
+      "title": "Aucun compte trouvé",
+      "body": "Ce compte Google n'a pas encore de compte Scollarly. Voulez-vous en créer un ?",
+      "question": "Créer un compte en tant que :",
+      "student": "Étudiant(e)",
+      "parent": "Parent qui postule pour son enfant",
+      "back": "Non, revenir",
+      "working": "Création de votre compte...",
+      "errorOffline": "Vous avez besoin d'une connexion pour créer votre compte.",
+      "errorFailed": "Nous n'avons pas pu créer votre compte. Veuillez réessayer.",
+      "errorSignedOut": "Votre session a pris fin. Veuillez vous reconnecter."
     }
   },
   "admin": {

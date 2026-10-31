@@ -24,8 +24,8 @@ export type Area = "admin" | "me" | "auth" | "account";
  * The role an area needs. `me` and `auth` are any signed-in user. `auth` holds the two-factor pages and their data: an
  * owner who has not passed 2FA is treated as a student, so those pages must be open to a student-level session, and the
  * data call itself then checks that the account is the owner. `account` is the one area open to a Google login that has not yet
- * confirmed a Scollarly account (architecture 21.3, ADR-042): `/account/confirm` and its data call. Refusing an unconfirmed actor in
- * `admin` and `me` is added with S13.2; here the area only exists.
+ * confirmed a Scollarly account (architecture 21.3, ADR-042): `/account/confirm` and its mutation. Every other area refuses such an
+ * actor: a shell answers 404, a data call 403 `ACCOUNT_NOT_CONFIRMED`.
  */
 export const AREA_ROLE: Record<Area, Role> = { admin: "admin", me: "student", auth: "student", account: "student" };
 
@@ -98,12 +98,17 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
     logError(requestId, `${route.area}/${route.kind === "api" ? route.name : "shell"}`, error);
     return route.kind === "shell" ? notFound() : errorResponse(503, "TEMPORARILY_UNAVAILABLE", "Please try again shortly.", requestId);
   }
-  const allowed = actor !== null && hasAtLeast(actor, AREA_ROLE[route.area]);
+  // The `account` area is the one place a Google login without a confirmed Scollarly account may go (architecture 21.3, ADR-042).
+  const allowed = actor !== null && hasAtLeast(actor, AREA_ROLE[route.area]) && (route.area === "account" || actor.accountConfirmed);
 
   if (route.kind === "shell") return allowed ? serveShell(request, url, deps) : notFound();
 
   if (!actor) return errorResponse(401, "UNAUTHENTICATED", "Sign in required.", requestId);
-  if (!allowed) return errorResponse(403, "FORBIDDEN", "Not allowed.", requestId);
+  if (!allowed) {
+    return actor.accountConfirmed
+      ? errorResponse(403, "FORBIDDEN", "Not allowed.", requestId)
+      : errorResponse(403, "ACCOUNT_NOT_CONFIRMED", "Create your account to continue.", requestId);
+  }
   try {
     const call = deps.api[`${route.area}/${route.name}`] as DataCall;
     const result = await call(actor, { token: readSessionToken(request.headers), url });
@@ -114,7 +119,7 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
     if (error instanceof AuthError) {
       return error.code === "UNAUTHENTICATED"
         ? errorResponse(401, "UNAUTHENTICATED", error.message, requestId)
-        : errorResponse(403, "FORBIDDEN", error.message, requestId);
+        : errorResponse(403, error.code === "ACCOUNT_NOT_CONFIRMED" ? "ACCOUNT_NOT_CONFIRMED" : "FORBIDDEN", error.message, requestId);
     }
     logError(requestId, `${route.area}/${route.name}`, error);
     return errorResponse(500, "INTERNAL", "Something went wrong.", requestId);
