@@ -1662,5 +1662,55 @@
         }
       }
     }
+  },
+  "shell": {
+    "navStudent": "Onglets principaux",
+    "navStaff": "Onglets principaux",
+    "tabs": {
+      "home": "Accueil",
+      "universities": "Universités",
+      "progress": "Ma progression",
+      "help": "Aide",
+      "leads": "Candidats",
+      "content": "Contenu",
+      "insights": "Analyses"
+    },
+    "more": "Plus",
+    "sheet": {
+      "title": "Plus",
+      "close": "Fermer",
+      "notifications": "Notifications",
+      "unreadCount": "{count} nouvelle(s)",
+      "items": {
+        "profile": "Profil",
+        "data": "Mes données",
+        "team": "Équipe",
+        "audit": "Journal d'audit",
+        "security": "Sécurité",
+        "settings": "Paramètres",
+        "health": "État du service"
+      },
+      "signOut": "Se déconnecter"
+    },
+    "tour": {
+      "next": "Suivant",
+      "skip": "Passer",
+      "done": "Compris",
+      "stepOf": "Étape {step} sur {total}"
+    }
+  },
+  "courses": {
+    "computer_science_it": "Informatique et TI",
+    "mechanical_engineering": "Génie mécanique",
+    "civil_engineering": "Génie civil",
+    "electrical_electronics_engineering": "Génie électrique et électronique",
+    "electronics_communication_engineering": "Électronique et communications",
+    "engineering_postgraduate": "Ingénierie (master)",
+    "business_management": "Commerce et gestion",
+    "commerce": "Comptabilité et commerce",
+    "pharmacy": "Pharmacie",
+    "health_nursing": "Santé et soins infirmiers",
+    "science_arts": "Sciences et lettres",
+    "law": "Droit"
   }
 }

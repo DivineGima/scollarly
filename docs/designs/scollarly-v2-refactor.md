@@ -209,9 +209,10 @@ Before any code: sit with **one real admin-type person** (or the first person yo
 
 ## Addendum, 2026-10-31: corrections found while writing the `_2` files
 
-The approved text above is unchanged. These four points were found by reading the code and are recorded in `system_architecture_2.md` (amendment log) for the owner to confirm:
+The approved text above is unchanged. These points were found by reading the code and are recorded in `system_architecture_2.md` (amendment log) for the owner to confirm:
 
 1. "No `app_user` row until confirm" is not possible as worded: the session function creates the row at the first authenticated request. Version 2 keeps a pending row and adds `app_user.account_confirmed_at`. Nothing is a Scollarly account until the person confirms.
 2. No new programme columns: `programme.field` (course category) and `programme.level` already exist and are empty; they are filled from the owner-approved list.
 3. `notifications_seen_at` (and the tours-seen list) live on `app_user`, because staff have no student profile.
 4. The student device copy holds a first name, extending the earlier "no name" rule.
+5. Team, Audit log, Security, Settings and Health are all owner-only pages today, so an admin's More sheet holds only Notifications, Profile and Sign out; the owner's holds all of them (found in S13.1).

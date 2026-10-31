@@ -1245,6 +1245,8 @@ This section is new in version 2. Everything above it still holds unless a row b
 | `lead.intake_kind` CHECK widened | Adds `onboarding` beside `full` and `quick` (ADR-043). Widening a CHECK is additive. The minimum profile for an `onboarding` lead is name, contact WhatsApp, country, qualification type and at least one course field. It satisfies the primary metric's "complete minimum profile". For a parent, `lead.name` is the child's name, `lead.whatsapp_e164` is the parent's number, and `lead.source` holds `{page: "onboarding", relationship, contact_name, course_fields, level, intake_year}`. `message_template` gains a `{contact_name}` placeholder so an admin's WhatsApp message to a parent greets the parent. **[Mine, confirm]** |
 | `programme.field` and `programme.level` (existing, empty today) | Filled by a seed and a data script from the owner-approved mapping (R2). No schema change. The course list (21.7) is a code constant `COURSE_FIELDS` in `src/lib/courses.ts`, not a table. **[Mine, confirm]** |
 | Security | `student_profile` has `ENABLE` and `FORCE ROW LEVEL SECURITY`: a user reads and updates their own row, staff (admin and owner) read all rows, nobody deletes. The table is added to every table-coverage test (`tests/unit/boundaries.test.ts`, `tests/integration/rls-policies.test.ts`). The runtime role may not update `app_user` columns directly; the three columns above change only through three `SECURITY DEFINER` functions with `search_path = ''` that touch only the caller's own row: `app_confirm_account()`, `app_mark_notifications_seen()`, `app_mark_tour_seen(p_tab text)` (the pattern of the existing `app_*` functions, so a user can never change their own `role`). |
+| Erasure | `app_erase_my_account` (migration 0009) is replaced with the same body plus one `DELETE FROM student_profile`, so a student's onboarding answers go with their account (the erasure carve-out of 7.9). Without it the new foreign key would stop erasure. The lead the onboarding created is anonymised by the existing path (it carries `user_id`). |
+| Session function | `app_resolve_session_v2` wraps the existing `app_resolve_session` and adds `account_confirmed`; the old function stays (additive). |
 | Not added | No notifications table. No new role. No new service or secret. |
 
 ### 21.3 How an account comes to exist (F14, ADR-041, ADR-042)
@@ -1258,7 +1260,7 @@ Today the session function inserts the `app_user` row at the first authenticated
    - **Not confirmed, intent `sign-in` or none:** go to `/account/confirm`: "No account found for this Google account. Create one?" with **Confirm** and **Back**. Confirm calls `POST /api/v1/account/confirm` (which runs `app_confirm_account()`) and goes to onboarding. Back goes to `/sign-out`.
 3. **Neon Auth's own login exists once Google has returned and cannot be prevented.** What the person confirms is the Scollarly account (`account_confirmed_at`). Until then `/admin` and `/me` and their data calls answer 404 / 403 `ACCOUNT_NOT_CONFIRMED`; only the new `account` area (`/account/confirm`, `/api/v1/account/confirm`) and `/sign-out` work. This replaces the design document's wording "no row until confirm" with "no confirmed account until confirm". **[Mine, confirm]**
 4. **No enumeration:** no endpoint ever answers "does this email have an account" before Google has returned. The confirm screen is shown only to the signed-in person, about themselves.
-5. Pending rows hold only an id and the default role. They are not purged in this stage (no physical deletes, `CLAUDE.md`; ADR-029 is unchanged). Unconfirmed rows older than 30 days are counted on the Health screen.
+5. Pending rows hold only an id and the default role. They are not purged in this stage (no physical deletes, `CLAUDE.md`; ADR-029 is unchanged). Unconfirmed rows older than 30 days are to be counted on the Health screen (S13.8, not built in S13.1).
 6. `AREA_ROLE` in `src/server/edge/authed.ts` gains `account` (any signed-in session, including unconfirmed). The `me` and `admin` areas additionally require `actor.accountConfirmed`. The facade (`src/server/auth/facade.ts`) is still the only place that decides this; there is still no access control in middleware.
 
 ### 21.4 Routes, shells and data calls
@@ -1288,7 +1290,7 @@ Signed-in screens stay as ADR-040 says: one data-free shell per route (identical
 
 ### 21.5 Old addresses redirect
 
-`src/server/edge/legacy-redirects.ts` is a tiny map checked in the Worker entry **before** the session check (it reveals nothing; the redirect target enforces the session). It answers `301` with the locale prefix kept. Query strings are kept. **[Mine, confirm]**
+`src/server/edge/legacy-redirects.ts` is a tiny map checked in the Worker entry **before** the session check (it reveals nothing; the redirect target enforces the session). It answers `301` with the locale prefix kept. Query strings are kept. The map is built and tested in S13.1 (`src/server/edge/legacy-redirects.ts`) but wired into the Worker entry in S13.6, in the same change that adds the hubs, so no address is redirected to a screen that does not exist yet. **[Mine, confirm]**
 
 | Old address | Redirects to |
 |---|---|
@@ -1348,7 +1350,7 @@ Each item carries one action (open the lead, open the screen, "Message on WhatsA
 
 - `src/modules/nav/config.ts` is pure data: for each role, the four tabs (key, icon name, translation key, route) and the More items (with `ownerOnly`). It is the only place that lists tabs. The server never trusts it: access is still decided per request (21.3, 21.4).
 - Components in `src/components/shell/`: `app-nav.tsx` (the floating pill and the round More button, light colours, labels visible, active tab highlighted, safe-area padding, `prefers-reduced-motion` respected, visible focus, keyboard and screen reader support), `more-sheet.tsx`, `page-intro.tsx` (title plus one-line purpose), `empty-state.tsx`, `first-visit-tour.tsx` (three steps, dismissible; remembers through `app_mark_tour_seen`, and in local storage as a fallback when offline). They import no shadcn and no Recharts, so the student bundle stays light (dependency rule 3 gets a test for `components/shell`).
-- `(student)/me/layout.tsx` and `(admin)/admin/layout.tsx` render `AppNav` once; tab changes are client navigations.
+- `(student)/me/layout.tsx` and `(admin)/admin/layout.tsx` render `AppNav` once. Moving between tabs is a full page load of a cached shell, as everywhere in the signed-in app (ADR-040); only the sections inside one tab change in the browser without a reload.
 - The tour and intro text are translation keys; a missing locale falls back to English.
 
 ### 21.11 Offline for signed-in screens (FR-29, ADR-047)
@@ -1469,7 +1471,7 @@ Routes without the locale prefix. Each row: **Step | You click or do | You see |
 |---|---|---|---|
 | 1 | Open (first time) | A 3-step tour, dismissible; never repeats | `app_mark_tour_seen('home')` |
 | 2 | Look | A one-line purpose, "Needs you today", four tiles with change against the last period, one chart, the latest 8 activities, a Week / Month switch | `admin/home` |
-| 3 | Tap a tile or the needs-you line | The matching Leads or Insights section | Client navigation |
+| 3 | Tap a tile or the needs-you line | The matching Leads or Insights section | Loads that tab's cached shell (ADR-040) |
 
 ##### B2.2 Leads `/admin/leads`
 
@@ -1485,7 +1487,7 @@ Sections: Funnel, Sources, Performance (an admin sees their own, the owner sees 
 
 ##### B2.5 More sheet and Notifications
 
-The round button opens the sheet: Notifications on top (with the unread count), then Team (owner only), Security, Audit, Health, Settings, Profile, Sign out. Owner-only rows are not shown to admins and are refused by their data calls.
+The round button opens the sheet: Notifications on top (with the unread count), then Profile and Sign out for an admin. The owner also sees Team, Audit log, Security, Settings and Health: the five pages that are owner-only today. Owner-only rows are not shown to admins and are refused by their data calls.
 
 #### Part D: Public
 

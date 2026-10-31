@@ -10,7 +10,7 @@ import { locales } from "../i18n/config";
  */
 export const NEVER_CACHE = new RegExp(
   // A page can also be reached under its locale prefix (`/en/admin`, `/en/accept-invite/<token>`); the rule covers both.
-  `^(?:/(?:${locales.join("|")}))?/(admin|me|api|auth|sign-in|sign-out|sign-up|verify-email|forgot-password|reset-password|accept-invite|two-factor)(/|$)`,
+  `^(?:/(?:${locales.join("|")}))?/(admin|me|api|auth|sign-in|sign-out|sign-up|verify-email|forgot-password|reset-password|accept-invite|two-factor|account)(/|$)`,
 );
 
 export function isNeverCached(pathname: string): boolean {

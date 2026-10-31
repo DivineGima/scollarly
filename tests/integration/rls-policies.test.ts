@@ -125,6 +125,12 @@ beforeAll(async () => {
   await paymentRow(t, universityPublished, { entered_by: "adm-1" });
   const heroMediaId = await insertRow(t, "media_asset", { id: uuidv7(), kind: "logo", width: 1, height: 1, bytes: 1, mime: "image/webp", sha256: "b".repeat(64) });
   await insertRow(t, "page_image", { id: uuidv7(), key: "home.hero", media_asset_id: heroMediaId });
+
+  // Version 2 (migration 0013): what a student or parent answered in onboarding.
+  for (const user of ["stu-1", "stu-2"]) {
+    await t.run(`insert into student_profile (user_id, relationship, applicant_name, applicant_country, contact_name, contact_whatsapp_e164, qualification_type, level, course_fields, intake_year, consent_notice_version, consent_at)
+      values ('${user}', 'student', 'A', 'CM', 'A', '+237612345678', 'olevel_alevel', 'undergraduate', ARRAY['law'], 2027, 'v1', now())`);
+  }
 });
 
 afterAll(async () => {
@@ -168,6 +174,7 @@ const READS: [string, number, number, number, number][] = [
   ["lead_claim", 0, 1, 2, 2],
   ["data_request", 0, 1, 2, 2],
   ["app_user", 0, 1, 4, 4],
+  ["student_profile", 0, 1, 2, 2],
   // Owner only.
   ["admin_invite", 0, 0, 0, 1],
   ["audit_log", 0, 0, 0, 1],

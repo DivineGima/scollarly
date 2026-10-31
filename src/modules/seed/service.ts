@@ -1,6 +1,7 @@
 import type { SeedRows } from "@/server/repositories/seed";
 import { seedId } from "./ids";
 import type { ImageRef, SeedBundle } from "./schema";
+import { courseOf } from "@/lib/courses";
 
 /**
  * Turns a validated seed bundle into database rows. Pure apart from hashing: no database, no storage, no files, so it is
@@ -71,8 +72,9 @@ export async function buildSeedRows(bundle: SeedBundle, mediaIds: ReadonlyMap<st
         id: await seedId("programme", `${u.slug}/${p.name}`),
         universityId,
         name: p.name,
-        level: p.level ?? null,
-        field: p.field ?? null,
+        // A seed file may name them; otherwise they come from the owner-approved course list (architecture 21.7, `src/lib/courses.ts`).
+        level: p.level ?? courseOf(p.name)?.level ?? null,
+        field: p.field ?? courseOf(p.name)?.field ?? null,
         durationMonths: p.duration_months ?? null,
         translations: p.translations ?? {},
         sortOrder: p.sort_order ?? pIndex,

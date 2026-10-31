@@ -11,6 +11,7 @@ import {
   numeric,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   unique,
@@ -31,10 +32,14 @@ import {
   EVENT_TYPES,
   INTAKE_KINDS,
   LEAD_ACTIVITY_TYPES,
+  MAX_COURSE_FIELDS,
   PROCESS_STEP_KINDS,
+  PROFILE_RELATIONSHIPS,
   QUALIFICATION_TYPES,
+  STUDY_LEVELS,
   VERIFICATION_METHODS,
 } from "../../lib/constants";
+import { COURSE_FIELDS } from "../../lib/courses";
 import type { Translations } from "../../lib/translations";
 
 /**
@@ -75,6 +80,18 @@ export const appUser = pgTable(
     /** `student` (default) / `admin` / `owner`. Created idempotently by `app_resolve_session` on the first authenticated request. */
     role: text("role").notNull().default("student"),
     createdAt: tz("created_at").notNull().defaultNow(),
+    /**
+     * Null means a Google login with no Scollarly account yet (architecture 21.3, ADR-042). Set by `app_confirm_account()`, the owner
+     * bootstrap and an accepted invite. Migration 0013 backfills every existing row to its `created_at`.
+     */
+    accountConfirmedAt: tz("account_confirmed_at"),
+    /** The one "last seen" time behind the unread dot (architecture 21.8, ADR-045). Changed only by `app_mark_notifications_seen()`. */
+    notificationsSeenAt: tz("notifications_seen_at"),
+    /** Tab keys whose first-visit tour was shown (architecture 21.10). Changed only by `app_mark_tour_seen()`. */
+    toursSeen: text("tours_seen")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
   },
   (t) => [
     check("app_user_role_check", sql`${t.role} in ('student', 'admin', 'owner')`),
@@ -272,7 +289,8 @@ export const lead = pgTable(
     // Architecture 7.2: qualification_type is null only when intake_kind is quick.
     check("lead_qualification_required_for_full", sql`${t.intakeKind} = 'quick' or ${t.qualificationType} is not null`),
     check("lead_results_is_array", sql`jsonb_typeof(${t.results}) = 'array'`),
-    check("lead_quick_has_no_results", sql`${t.intakeKind} = 'full' or ${t.results} = '[]'::jsonb`),
+    // Only a quick lead has no results; an onboarding lead carries the questionnaire's grades like a full one (migration 0013 widened this).
+    check("lead_quick_has_no_results", sql`${t.intakeKind} <> 'quick' or ${t.results} = '[]'::jsonb`),
     check("lead_source_is_object", sql`jsonb_typeof(${t.source}) = 'object'`),
     check("lead_sla_hours_positive", sql`${t.slaHoursApplied} > 0`),
     check("lead_not_merged_into_itself", sql`${t.mergedIntoId} is null or ${t.mergedIntoId} <> ${t.id}`),
@@ -395,6 +413,50 @@ export const leadDuplicateDecision = pgTable(
   (t) => [
     check("lead_duplicate_decision_check", sql`${t.decision} in ${list(DUPLICATE_DECISIONS)}`),
     check("lead_duplicate_distinct", sql`${t.leadAId} <> ${t.leadBId}`),
+  ],
+);
+
+/**
+ * What a student or parent answered in onboarding (architecture 21.2, ADR-043). Personal data: it is in the export and erasure
+ * paths (7.9). A parent's account has the student role and `relationship = 'parent'`; for a parent `applicant_*` is the child and
+ * `contact_*` is the parent, for a student both are the student.
+ */
+export const studentProfile = pgTable(
+  "student_profile",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => appUser.id),
+    relationship: text("relationship").notNull(),
+    applicantName: text("applicant_name").notNull(),
+    applicantCountry: text("applicant_country").notNull(),
+    contactName: text("contact_name").notNull(),
+    contactWhatsappE164: text("contact_whatsapp_e164").notNull(),
+    qualificationType: text("qualification_type").notNull(),
+    results: jsonb("results").$type<{ subject: string; grade: string }[]>().notNull().default([]),
+    level: text("level").notNull(),
+    /** One to five codes from `COURSE_FIELDS`. */
+    courseFields: text("course_fields").array().notNull(),
+    intakeYear: smallint("intake_year").notNull(),
+    consentNoticeVersion: text("consent_notice_version").notNull(),
+    consentAt: tz("consent_at").notNull(),
+    /** The lead this onboarding created (null only after the lead is erased). */
+    leadId: uuid("lead_id").references(() => lead.id),
+    onboardedAt: tz("onboarded_at").notNull().defaultNow(),
+    createdAt: tz("created_at").notNull().defaultNow(),
+    updatedAt: tz("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    check("student_profile_relationship_check", sql`${t.relationship} in ${list(PROFILE_RELATIONSHIPS)}`),
+    check("student_profile_level_check", sql`${t.level} in ${list(STUDY_LEVELS)}`),
+    check("student_profile_qualification_type_check", sql`${t.qualificationType} in ${list(QUALIFICATION_TYPES)}`),
+    check("student_profile_country_format", sql`${t.applicantCountry} ~ '^[A-Z]{2}$'`),
+    check("student_profile_whatsapp_format", sql`${t.contactWhatsappE164} ~ '^[+][1-9][0-9]{6,14}$'`),
+    check("student_profile_results_is_array", sql`jsonb_typeof(${t.results}) = 'array'`),
+    check("student_profile_course_fields_count", sql`cardinality(${t.courseFields}) between 1 and ${sql.raw(String(MAX_COURSE_FIELDS))}`),
+    check("student_profile_course_fields_known", sql`${t.courseFields} <@ ${sql.raw(`ARRAY[${COURSE_FIELDS.map((f) => `'${f}'`).join(", ")}]::text[]`)}`),
+    check("student_profile_intake_year_range", sql`${t.intakeYear} between 2020 and 2100`),
+    index("student_profile_lead_id_idx").on(t.leadId),
   ],
 );
 

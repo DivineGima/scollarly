@@ -1,0 +1,305 @@
+/*
+ * The shared parts of every signed-in screen (architecture 21.10): the floating tab bar, the More sheet, the page intro, the empty
+ * state and the first-visit tour. Plain CSS on the tokens of globals.css, light only (owner decision, 2026-10-31): no framework and no
+ * admin library, so a student's bundle stays small. Thumb-sized targets, readable at 320 px. Motion is short and the global
+ * `prefers-reduced-motion` rule collapses it.
+ */
+
+/* Room under the page so the floating bar never covers the last line or an input. */
+.app-nav-spacer {
+  height: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.app-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  pointer-events: none;
+}
+
+.app-nav-pill,
+.app-nav-more {
+  pointer-events: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 16px rgb(11 18 32 / 0.12);
+}
+
+.app-nav-pill {
+  flex: 0 1 26rem;
+  min-width: 0;
+  border-radius: 999px;
+  padding: var(--space-1);
+}
+
+.app-nav-pill ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-nav-pill li {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.app-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--touch-target);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  color: var(--color-fg-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-nav-tab span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-nav-tab[aria-current="page"] {
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.app-nav-more {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.app-nav-more[data-active="true"] {
+  color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.app-nav-dot {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--color-danger);
+  border: 2px solid var(--color-bg);
+}
+
+.app-nav-tab:focus-visible,
+.app-nav-more:focus-visible,
+.more-row:focus-visible,
+.more-close:focus-visible,
+.tour-next:focus-visible,
+.tour-skip:focus-visible,
+.empty-state-action:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The More sheet */
+.more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(11 18 32 / 0.4);
+}
+
+.more-sheet {
+  width: min(100%, 28rem);
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+.more-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.more-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.more-close {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  border: 0;
+  background: transparent;
+  color: var(--color-fg);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.more-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.more-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.more-row:hover {
+  background: var(--color-surface);
+}
+
+.more-row-first {
+  background: var(--color-surface);
+}
+
+.more-count {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: var(--color-accent-fg);
+  font-size: var(--text-sm);
+}
+
+/* Page intro and empty state */
+.page-intro {
+  margin-bottom: var(--space-4);
+}
+
+.page-intro h1,
+.page-intro h2 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.page-intro-purpose {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--color-fg-muted);
+}
+
+.empty-state {
+  max-width: var(--measure);
+  padding: var(--space-6) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.empty-state h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.empty-state p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-fg-muted);
+}
+
+.empty-state-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* First-visit tour */
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(11 18 32 / 0.5);
+}
+
+.tour-card {
+  width: min(100%, 24rem);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+.tour-card h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+}
+
+.tour-step {
+  margin: 0 0 var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: var(--text-sm);
+}
+
+.tour-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.tour-next,
+.tour-skip {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tour-next {
+  border: 0;
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+.tour-skip {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-fg);
+}
