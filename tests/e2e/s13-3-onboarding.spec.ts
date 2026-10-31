@@ -7,7 +7,9 @@ import { expect, test, type BrowserContext, type Page, type Request, type Route 
  * a person sees and what the screens send.
  */
 
-test.use({ viewport: { width: 360, height: 740 } });
+// Once the service worker controls a reloaded page, Playwright's stubs no longer see its requests and they reach the real test server (which
+// has no signed-in endpoints). Blocking the worker keeps the stubs in charge; the worker's own rules are covered by tests/e2e/offline.spec.ts.
+test.use({ viewport: { width: 360, height: 740 }, serviceWorkers: "block" });
 
 const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
