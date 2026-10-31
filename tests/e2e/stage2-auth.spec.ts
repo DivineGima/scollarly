@@ -302,14 +302,14 @@ test.describe("S2.6 the admin shell", () => {
     await page.goto("/admin");
     const menu = page.getByRole("navigation", { name: "Admin menu" });
     await expect(menu.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
-    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Content", "Analytics", "Payments", "Data requests", "Profile", "Sign out"]);
+    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Content", "Analytics", "Payments", "Data requests", "Notifications", "Profile", "Sign out"]);
     await expect(page.getByText("Welcome, Priya.")).toBeVisible();
     await expect(page.getByText("priya@example.test")).toBeVisible();
     await axe(page);
 
     await asRole(page, OWNER);
     await page.goto("/admin");
-    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Content", "Analytics", "Payments", "Data requests", "Profile", "Team", "Audit log", "Security", "Settings", "Health", "Sign out"]);
+    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Content", "Analytics", "Payments", "Data requests", "Notifications", "Profile", "Team", "Audit log", "Security", "Settings", "Health", "Sign out"]);
   });
 
   test("an admin who opens an owner page sees nothing of it", async ({ page }) => {

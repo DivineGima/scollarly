@@ -10,6 +10,7 @@ import { paymentDataCalls, paymentMutations } from "@/modules/payments/endpoints
 import { settingsDataCalls, settingsMutations } from "@/modules/settings/endpoints";
 import { profileDataCalls, profileMutations } from "@/modules/profile/endpoints";
 import { accountMutations } from "@/modules/account/endpoints";
+import { notificationDataCalls, notificationMutations } from "@/modules/notifications/endpoints";
 import { onboardingDataCalls, onboardingMutations } from "@/modules/onboarding/endpoints";
 import { studentDataCalls, studentMutations } from "@/modules/student/endpoints";
 import { teamDataCalls, teamMutations } from "@/modules/team/endpoints";
@@ -54,6 +55,7 @@ export function authedDeps(env: CloudflareEnv, rest: Pick<AuthedDeps, "cache" | 
       ...analyticsDataCalls(endpoint),
       ...studentDataCalls(endpoint),
       ...onboardingDataCalls(endpoint),
+      ...notificationDataCalls(endpoint),
       ...paymentDataCalls(endpoint),
       ...settingsDataCalls(endpoint),
       ...healthDataCalls(endpoint),
@@ -67,7 +69,7 @@ export function mutationDeps(env: CloudflareEnv): MutationDeps {
   return {
     checkSession: facadeFor(endpoint).checkSession,
     env: endpoint,
-    mutations: { ...accountMutations, ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...onboardingMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
+    mutations: { ...accountMutations, ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...onboardingMutations, ...notificationMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
     // The caller is hashed with a daily salt at once; the raw address is never stored or logged (ADR-027).
     limit: async (operation, request, max, windowMs) =>
       limiter(await limiterKey({ route: operation, ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET), max, windowMs),

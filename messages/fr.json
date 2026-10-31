@@ -120,6 +120,7 @@
       "roleAdmin": "Administrateur",
       "leads": "Dossiers",
       "dataRequests": "Demandes de données",
+      "notifications": "Notifications",
       "content": "Contenu",
       "analytics": "Statistiques",
       "payments": "Paiements",
@@ -1898,6 +1899,53 @@
       "whatsapp": "Nous écrire sur WhatsApp",
       "whatsappText": "Bonjour, j'ai besoin d'aide pour mon dossier Scollarly.",
       "whatsappMissing": "Le numéro WhatsApp n'est pas disponible pour le moment. Veuillez réessayer plus tard."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "purposeStudent": "Ce qui demande votre attention : les changements de votre dossier et les universités pour votre filière.",
+    "purposeStaff": "Ce qui vous attend : nouveaux contacts, réponses à donner, demandes en attente et, pour le propriétaire, l'argent et les alertes du système.",
+    "loading": "Chargement…",
+    "error": "Nous n'avons pas pu charger vos notifications.",
+    "offline": "Vous êtes hors ligne, nous n'avons donc pas pu charger vos notifications.",
+    "retry": "Réessayer",
+    "unread": "{count, plural, =0 {Rien de nouveau} one {# nouvelle} other {# nouvelles}}",
+    "markAll": "Tout marquer comme lu",
+    "today": "Aujourd'hui",
+    "earlier": "Plus tôt",
+    "new": "Nouveau :",
+    "empty": {
+      "title": "Vous êtes à jour",
+      "nextStudent": "Quand votre dossier avance, ou qu'une nouvelle université correspond à votre filière, cela s'affichera ici.",
+      "nextStaff": "Les nouveaux contacts, les réponses à donner et les demandes s'afficheront ici. Ouvrez Contacts pour voir tout le monde."
+    },
+    "items": {
+      "stage_changed": "Votre dossier est passé à l'étape {stage}.",
+      "reply_logged": "Votre conseiller a répondu. Regardez votre WhatsApp.",
+      "new_match": "{university} propose désormais une filière que vous avez choisie.",
+      "finish_onboarding": "Terminez votre profil pour voir les universités qui conviennent à votre filière.",
+      "new_lead": "Nouveau contact : {lead}.",
+      "sla_soon": "{lead} attend une réponse dans l'heure.",
+      "sla_overdue": "La réponse à {lead} est en retard.",
+      "lead_waiting": "{lead} n'a eu aucune activité depuis {days} jours.",
+      "link_requests": "{count, plural, one {# demande de lien est en attente.} other {# demandes de lien sont en attente.}}",
+      "data_requests": "{count, plural, one {# demande de données est en attente.} other {# demandes de données sont en attente.}}",
+      "payment": "Paiement de {amount} enregistré pour {university}.",
+      "stale_content": "{count, plural, one {# tarif ou visite est à vérifier.} other {# tarifs ou visites sont à vérifier.}}",
+      "storage_database_warn": "La base de données dépasse 70 % de sa limite.",
+      "storage_database_urgent": "La base de données dépasse 90 % de sa limite.",
+      "storage_images_warn": "Le stockage des images dépasse 70 % de sa limite.",
+      "storage_images_urgent": "Le stockage des images dépasse 90 % de sa limite."
+    },
+    "actions": {
+      "openProgress": "Ouvrir Mon suivi",
+      "viewUniversity": "Voir l'université",
+      "continue": "Continuer",
+      "openLead": "Ouvrir le contact",
+      "openRequests": "Ouvrir les demandes",
+      "openPayments": "Ouvrir les paiements",
+      "openStale": "Ouvrir la liste",
+      "openHealth": "Ouvrir la santé du système"
     }
   }
 }
