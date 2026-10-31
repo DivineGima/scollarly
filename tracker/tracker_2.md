@@ -12,8 +12,8 @@ This tracker starts the refactor (PRD_2, architecture 2, essentials 2). It does 
 | Current architecture | `system_architecture_2.md` (2026-10-31, derived from `PRD_2.md`) |
 | Essentials file for the next stage | `essentials/system_architecture_essential_2.md` (Stage 13, one stage) |
 | Approved design document | `docs/designs/scollarly-v2-refactor.md` (approved by the owner 2026-10-31; spec review not run) |
-| Phase | Stages 0 to 9 and 12 of version 1 are complete and live (see tracker_1). Stages 10 and 11 are `in-progress` in tracker_1 and their three open modules are carried into S13.8. **The refactor documents are written; no refactor code exists yet.** |
-| Next stage | **Stage 13 (the refactor).** S13.1 is complete and merged (PR #46, Session 41). **S13.2 (sign in and create account) is next.** |
+| Phase | Stages 0 to 9 and 12 of version 1 are complete and live (see tracker_1). Stages 10 and 11 are `in-progress` in tracker_1 and their three open modules are carried into S13.8. **S13.1 to S13.6 of the refactor are merged. Migrations 0013, 0014 and 0015 are deployed to production as of this session's deploy run.** |
+| Next stage | **Stage 13 (the refactor).** S13.1 to S13.6 are complete and merged (PR #46, #48, #49, #50, #51, #52). **S13.7 (landing page and brand) has not been asked for and has not started.** |
 | Blocked by | Nothing blocks the code. R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
@@ -73,6 +73,54 @@ Claude Code: after reading this tracker, ask the owner each open check-in below 
 
 At the owner's explicit word: (1) the Step 2 sentence was added to `CLAUDE.md` (flag F21 resolved, PR #47); (2) the course field and level were filled on the **live** database with one SQL update through the Neon tools, the same fill the seed performs (it only writes empty values): 77 of 77 programmes filled, totals checked per field and level; (3) the throwaway Neon branch `test-s13-1-migration` was deleted. Then module S13.2 was started.
 
+### 2026-10-31: Session 43 (S13.2 Sign in and Create account)
+
+**Built against:** essentials, architecture and PRD all version 2. Branch `feat/s13-2-sign-in-create-account`.
+
+**Built:** the two-button split (`/sign-in` and `/sign-up`), the "No account found, create one?" confirm screen, and the facade change so a Google return with no `app_user` row goes to onboarding from Sign up and to the confirm screen from Sign in. No pre-check endpoint of any kind exists.
+
+**Tests and CI:** unit, integration and Playwright (new account, returning account, cancel, offline) all green. PR #48 merged on green CI.
+
+### 2026-10-31: Session 44 (S13.3 Onboarding)
+
+**Built against:** essentials, architecture and PRD all version 2. Branch `feat/s13-3-onboarding`.
+
+**Built:** migration `0014_onboarding_v2.sql` (the `app_complete_onboarding` function) plus the student and parent onboarding screens (Basics, School results, Study plan; Who is applying for a parent), a draft kept in IndexedDB until the last screen, and the single idempotent submit that writes the profile, the lead and the audit row together, sharing the offline lead queue's idempotency key.
+
+**Tests and CI:** unit, integration (Postgres) and Playwright (offline then online, duplicate-retry) all green. One flaky concurrent-same-key test was removed (PGlite's single connection cannot exercise real concurrency). PR #49 merged on green CI. **Migration 0014 is merged but was not deployed until this session's deploy run.**
+
+### 2026-10-31: Session 45 (S13.4 Student app)
+
+**Built against:** essentials, architecture and PRD all version 2. Branch `feat/s13-4-student-app`.
+
+**Built:** the student pill bar (Home, Universities, My progress, Help), the personalised Home, the Universities list ordered by the chosen course then best NAAC grade (ties A to Z, unknown grades last and labelled "not stated"), computed client-side from the already-cached public universities data, and the offline snapshot (`progressSnapshot`) with no personal data.
+
+**Tests and CI:** unit (including the NAAC ordering at the boundaries), Playwright at phone width, and a no-personal-data-in-cache test all green. PR #50 merged on green CI.
+
+### 2026-10-31: Session 46 (S13.5 Notifications)
+
+**Built against:** essentials, architecture and PRD all version 2. Branch `feat/s13-5-notifications`.
+
+**Built:** migration `0015_notifications_v2.sql` (the `app_my_notifications` function), the derived notification items for student and staff, the unread dot (`useUnreadCount`, at most once a minute), and "Mark all read". No notifications table, as decided (D11).
+
+**Tests and CI:** unit per event, integration, and Playwright (student and staff pages, the admin menu link) all green. PR #51 merged on green CI. **Migration 0015 is merged but was not deployed until this session's deploy run.**
+
+### 2026-10-31: Session 47 (S13.6 Admin and owner hubs)
+
+**Built against:** essentials, architecture and PRD all version 2. Branch `feat/s13-6-admin-hubs`.
+
+**Built:** the four staff hubs (Home, Leads, Content, Insights) behind the shared pill bar and round More button; `GET admin/home?period=week|month` (the staff Home's tiles, line chart, "Needs you today" and latest activity, one call per role); the legacy redirect map wired into the Worker entry before the session check, so every pre-hub address 301s to its hub section; the three-step first-visit tour per tab (`POST admin/tour.seen`, migration 0013's `app_mark_tour_seen`); the offline dashboard snapshot (IndexedDB v3, totals only, never a lead reference); and a one-line purpose on every admin and owner page. The old `admin/overview` call is unused but not removed (S13.8). The bar and progress-bar chart components named in the design were not built: the funnel and sources already have their own bars in the existing analytics screen.
+
+**Found and fixed during verification (real bugs, not test-only issues):** the admin layout's `clientMessages` call did not load the `shell` message namespace, so `useTranslations("shell")` in the new `AdminShell` silently failed and the entire nav bar did not render; three internal links (`leads-panel.tsx`'s own link-requests tab, and three cases in `notifications-panel.tsx`: link requests, data requests, payment) still pointed at pre-hub addresses instead of the new `?view=` hub addresses — these worked in production only via the Worker's 301, at the cost of an extra round trip, and failed in the Playwright suite which runs against `next start` directly with no Worker in front. All four fixed to link straight to the hub address. A duplicate "Link requests" link (the hub's own section tabs plus the leads list's internal tab) was also found and the redundant one removed. Six e2e tests that referenced the pre-S13.6 "Admin menu" and legacy addresses were rewritten to the new "Main tabs" / More sheet structure.
+
+**Tests and CI:** unit 849, integration (Postgres) 735, Playwright 274/276 (two unrelated pre-existing flaky tests pass in isolation), `tsc --noEmit` and `eslint --max-warnings=0` clean. All 5 CI checks green (build and Worker size, integration, Lighthouse mobile, lint/unit, Playwright). PR #52 merged on green CI.
+
+**Not done / owner:** CPU rows for `POST me/onboarding`, `GET me/home`, the notification calls and `admin/home` are still unmeasured (see CPU rows table; the deploy run started this session includes a CPU measurement pass). The consent text for onboarding is the placeholder `draft-1` (owner item R5, legal text). `admin/overview`'s CPU row stays until S13.8 removes the call.
+
+### 2026-10-31: Session 48 (deploy and tracker update)
+
+**Done at the owner's word ("Run the deploy and write tracker update"):** triggered `stage0-deploy.yml` (workflow_dispatch) on `main` after PR #52, run https://github.com/DivineGima/scollarly/actions/runs/41227691246. **Succeeded in 27m36s.** Migrations 0014 and 0015 applied to the live Neon database (0013 was already live from an earlier session), the Worker rebuilt and deployed to `scollarly.gimafolabit.workers.dev`, secrets set, `/api/v1/health` answered 200, and the CPU measurement ran (30 lead samples). Every measured scenario passed its gate; see the CPU rows table. The 57 throwaway probe users and 67 probe leads the measurement created were removed at the end of the run, as always. **Flag F26** records that S13.4 to S13.6's own new calls have no scenario in the measurement script yet, so their CPU rows stay unmeasured rather than guessed.
+
 ## Flags (need the owner)
 
 Open flags carried from tracker_1 (full text in its Flags table; only items tracker_1 showed as Open when this file was written): **F5** (`CLAUDE.md` "no physical deletes" versus the ADR-029 carve-outs), **F6** (`server/db` imports Drizzle), **F8** (branch protection on a private repository), **F9 and F10** (the domain `scollarly.co.in` and the .IN verification, launch only). Check tracker_1 for any other flag.
@@ -82,6 +130,9 @@ Open flags carried from tracker_1 (full text in its Flags table; only items trac
 | F21 | **Resolved 2026-10-31: the owner decided yes (carry S10.2, S11.4, S11.6 into S13.8) and asked Claude Code to add the sentence to `CLAUDE.md` Step 2, done on branch `docs/tracker-s13-1-complete` (PR #47).** `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Open.** Recommendation: (a) accept that S10.2, S11.4 and S11.6 are carried into S13.8 and that tracker_2 closes Stages 10 and 11 of version 1 as "handed over", then add one sentence to `CLAUDE.md` Step 2 saying so; or (b) finish the three modules inside version 1 first. Decision R8. |
 | F22 | Google's OAuth app is in Testing mode with the owner as the only test user (H8, H21). | Real students cannot sign up, so the first real onboarding cannot happen. | **Open.** Owner action R1: publish the OAuth app when ready. |
 | F23 | The design document and PRD_2's first draft said "new programme columns" and "no row until confirm"; the code shows otherwise (see Session 40). | The approved wording and the built behaviour differ slightly. | **Open for confirmation.** The architecture's amendment log lists the five points; the owner confirms or overrules each. |
+| F24 | S13.6 built no new `GET admin/insights?view=` call (the existing analytics, performance and payments calls are reused) and did not build the bar/progress-bar chart components named in the design, since the analytics screen already has its own bars. | The built screen differs slightly from the original design document's wording. | **Open for confirmation.** See the architecture amendment appended in S13.6 (system_architecture_2.md). |
+| F25 | The onboarding consent text is the placeholder `draft-1`, not real legal text. | Real students should not see placeholder consent wording at launch. | **Open.** Covered by owner action R5. |
+| F26 | `scripts/measure-cpu.mjs` was never extended with scenarios for the S13.4, S13.5 and S13.6 calls (`me/home`, `me/notifications`, `admin/notifications`, `admin/home`, `admin/tour.seen`, the legacy redirect). Architecture 21.13 and the working rules ask for a measured CPU row on every new function; these rows are still blank after a real deploy and measurement run, not because the run failed but because no scenario exists for them. | The CPU gate (8 ms warm p95) is unverified for these calls in production. | **Open.** Recommendation: add scenarios for these calls to `scripts/measure-cpu.mjs` (ideally alongside S13.7, before the next deploy) rather than carrying the gap further. |
 
 ## Stage status
 
@@ -92,35 +143,38 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 0 to 9, 12 | Version 1 stages | see tracker_1 | **complete** (as recorded in tracker_1; not re-opened by the refactor) |
 | 10 | Owner pages and operations (version 1) | S10.1 to S10.4 | in-progress (S10.1, S10.3, S10.4 complete; **S10.2 carried into S13.8**) |
 | 11 | Hardening and launch readiness (version 1) | S11.1 to S11.8 | in-progress (**S11.4 and S11.6 carried into S13.8**; the rest complete) |
-| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 complete; S13.2 to S13.9 not started) |
+| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 to S13.6 complete; S13.7 to S13.9 not started) |
 
 ## Module registry (Stage 13)
 
 | Module ID | Module | Status |
 |---|---|---|
 | S13.1 | Foundations and shared parts (migration 0013, nav config and shell components, course list, redirects) | complete (2026-10-31: PR #46 merged, all six CI checks green; unit 708, integration 673, migration applied to a throwaway Neon branch of production) |
-| S13.2 | Sign in and Create account | - |
-| S13.3 | Onboarding (student and parent) | - |
-| S13.4 | Student app (tabs, Home, Universities ordering, offline copy) | - |
-| S13.5 | Notifications | - |
-| S13.6 | Admin and owner hubs and CRM dashboards | - |
-| S13.7 | Landing page and brand | - |
+| S13.2 | Sign in and Create account | complete (2026-10-31: PR #48 merged, CI green) |
+| S13.3 | Onboarding (student and parent) | complete (2026-10-31: PR #49 merged, CI green; migration 0014) |
+| S13.4 | Student app (tabs, Home, Universities ordering, offline copy) | complete (2026-10-31: PR #50 merged, CI green) |
+| S13.5 | Notifications | complete (2026-10-31: PR #51 merged, CI green; migration 0015) |
+| S13.6 | Admin and owner hubs and CRM dashboards | complete (2026-10-31: PR #52 merged, all 5 CI checks green; unit 849, integration 735, Playwright 274/276) |
+| S13.7 | Landing page and brand | - (not started; not yet asked for) |
 | S13.8 | Carry-over from Stages 10 and 11 (S10.2, S11.4, S11.6) | - (carried items are `in-progress` in tracker_1) |
 | S13.9 | Watched test and QA | - |
 
 ## CPU rows to record (architecture 21.13; fill in at each measurement)
 
+Measured by `scripts/measure-cpu.mjs` against `scollarly.gimafolabit.workers.dev` in the deploy run of 2026-10-31 (https://github.com/DivineGima/scollarly/actions/runs/41227691246, 30 lead samples). `scripts/measure-cpu.mjs` only has a scenario for `POST me/onboarding` (added in S13.3); S13.4, S13.5 and S13.6 did not add scenarios for their own new calls, so those rows are genuinely unmeasured, not merely blank. See flag F26.
+
 | Row | Warm p50 | Warm p95 | Worst | Cut at limit | Gate (p95 at most 8 ms, none cut) | Run |
 |---|---|---|---|---|---|---|
-| `GET me/home` | | | | | | |
-| `GET me/notifications` | | | | | | |
-| `GET admin/notifications` | | | | | | |
-| `POST me/onboarding` | | | | | | |
-| `POST account/confirm` | | | | | | |
-| `GET admin/home` | | | | | | |
-| `GET admin/insights` (funnel, sources, performance, payments) | | | | | | |
-| Legacy redirect | | | | | | |
-| Landing page (cache hit) | | | | | | |
+| `POST me/onboarding` (one function: lead, profile, audit row) | 3 ms | 5 ms | 7 ms | 0 | **PASS** | 2026-10-31, run 41227691246 |
+| `GET me/home` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| `GET me/notifications` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| `GET admin/notifications` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| `POST account/confirm` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| `GET admin/home` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| `GET admin/insights` (funnel, sources, performance, payments) | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`**; these are the existing analytics/performance/payments calls, already covered under their Stage 9-11 scenario names (`analytics`, `payments`) | — |
+| `POST admin/tour.seen` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| Legacy redirect | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
+| Landing page (cache hit) | — | — | — | — | not applicable yet (S13.7 has not started) | — |
 
 ## Traceability (to be filled at S13.9): FR-19 to FR-32 mapped to passing tests
 
