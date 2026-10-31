@@ -18,18 +18,20 @@ import { isStorablePage, toEdgeCopy } from "./fast-path";
  * security under it (ADR-038); it is not in middleware. The shell holds nothing private, so a cached copy can never leak data.
  */
 
-export type Area = "admin" | "me" | "auth";
+export type Area = "admin" | "me" | "auth" | "account";
 
 /**
  * The role an area needs. `me` and `auth` are any signed-in user. `auth` holds the two-factor pages and their data: an
  * owner who has not passed 2FA is treated as a student, so those pages must be open to a student-level session, and the
- * data call itself then checks that the account is the owner.
+ * data call itself then checks that the account is the owner. `account` is the one area open to a Google login that has not yet
+ * confirmed a Scollarly account (architecture 21.3, ADR-042): `/account/confirm` and its data call. Refusing an unconfirmed actor in
+ * `admin` and `me` is added with S13.2; here the area only exists.
  */
-export const AREA_ROLE: Record<Area, Role> = { admin: "admin", me: "student", auth: "student" };
+export const AREA_ROLE: Record<Area, Role> = { admin: "admin", me: "student", auth: "student", account: "student" };
 
-const SHELL_PATH = /^\/(?:en\/)?(admin|me|two-factor)(?:\/.*)?$/;
-const API_PATH = /^\/api\/v1\/(admin|me|auth)\/([a-z0-9-]+)$/;
-const SHELL_AREA: Record<string, Area> = { admin: "admin", me: "me", "two-factor": "auth" };
+const SHELL_PATH = /^\/(?:en\/)?(admin|me|two-factor|account)(?:\/.*)?$/;
+const API_PATH = /^\/api\/v1\/(admin|me|auth|account)\/([a-z0-9-]+)$/;
+const SHELL_AREA: Record<string, Area> = { admin: "admin", me: "me", "two-factor": "auth", account: "account" };
 
 /**
  * A screen for one record (`/admin/leads/<id>`) is still one shell: it has no data in it, and the screen reads the id from the

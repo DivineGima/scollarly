@@ -25,6 +25,7 @@ export function createAuthFacade(resolveSession: ResolveSession) {
       storedRole,
       role: effectiveRole(storedRole, session.stepUpAt),
       twoFactorVerifiedAt: session.stepUpAt,
+      accountConfirmed: session.accountConfirmed ?? true,
     });
   }
 

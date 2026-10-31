@@ -240,7 +240,7 @@ All UI text goes through translation keys from day one. French is scaffolded but
 ### F12 Hub navigation [Owner, refactor 2026-10-31]
 - After sign-in every role sees a floating pill tab bar and, next to it, a separate round button that opens a **More** sheet. Light colours only; the reference images are samples of shape and layout.
 - **Admin and owner tabs:** Home, Leads, Content, Insights. **Student tabs:** Home, Universities, My progress, Help.
-- **More sheet:** Notifications on top. Admin and owner then see Team (owner only), Security, Audit, Health, Settings, Profile and Sign out. A student sees Profile, My data, language and Sign out.
+- **More sheet:** Notifications on top. An admin then sees Profile and Sign out. The owner also sees Team, Audit log, Security, Settings and Health, which are owner-only pages today and stay owner-only. A student sees Profile, My data and Sign out (a language row is added when French launches).
 - Each tab is one screen. Admin and owner screens absorb today's separate pages as sections: Leads (list, link requests, data requests, overdue view), Content (universities, FAQs, photos, blog, stale list, media), Insights (funnel, sources and countries, admin performance, payments). Old addresses redirect to the matching section so bookmarks keep working.
 - **Page help:** every admin and owner page shows a one-line purpose under its title and a helpful empty screen (it says what to do next). The first time a person opens a tab they see a short 3-step tour that can be dismissed and never repeats. There is no per-page "?" button.
 

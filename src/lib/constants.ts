@@ -21,8 +21,19 @@ export const DEFAULT_STAGE_CODE: PipelineStageCode = "share_results";
 export const CONTENT_STATUSES = ["draft", "published", "archived"] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
 
-export const INTAKE_KINDS = ["full", "quick"] as const;
+/** `onboarding` (architecture 21.2, ADR-043): the lead a finished student or parent questionnaire creates. */
+export const INTAKE_KINDS = ["full", "quick", "onboarding"] as const;
 export type IntakeKind = (typeof INTAKE_KINDS)[number];
+
+/** Who is filling in the questionnaire (architecture 21.2). A parent is a student-role account, not a role (ADR-043). */
+export const PROFILE_RELATIONSHIPS = ["student", "parent"] as const;
+export type ProfileRelationship = (typeof PROFILE_RELATIONSHIPS)[number];
+
+export const STUDY_LEVELS = ["undergraduate", "postgraduate"] as const;
+export type StudyLevel = (typeof STUDY_LEVELS)[number];
+
+/** A student chooses between one and this many course fields in the questionnaire (architecture 21.2). */
+export const MAX_COURSE_FIELDS = 5;
 
 export const QUALIFICATION_TYPES = ["olevel_alevel", "grade10_11"] as const;
 export type QualificationType = (typeof QUALIFICATION_TYPES)[number];

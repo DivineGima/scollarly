@@ -11,15 +11,16 @@ interface SessionRow {
   email_verified: boolean;
   role: string;
   step_up_at: string | Date | null;
+  account_confirmed: boolean;
 }
 
 /**
  * The single query the auth facade runs per request (ADR-034). The SECURITY DEFINER function looks the Neon Auth
  * session up, creates the `app_user` row on the first sign-in (idempotent), and returns the role and the step-up
- * time. Returns null for an unknown, expired or banned session.
+ * time and whether the account is confirmed (`app_resolve_session_v2`, ADR-042). Returns null for an unknown, expired or banned session.
  */
 export async function resolveSession(db: Db, token: string): Promise<ResolvedSession | null> {
-  const [row] = rowsOf<SessionRow>(await db.execute(sql`select * from public.app_resolve_session(${token})`));
+  const [row] = rowsOf<SessionRow>(await db.execute(sql`select * from public.app_resolve_session_v2(${token})`));
   if (!row) return null;
   return {
     userId: row.user_id,
@@ -28,6 +29,7 @@ export async function resolveSession(db: Db, token: string): Promise<ResolvedSes
     emailVerified: row.email_verified === true,
     role: row.role,
     stepUpAt: row.step_up_at === null ? null : new Date(row.step_up_at),
+    accountConfirmed: row.account_confirmed === true,
   };
 }
 

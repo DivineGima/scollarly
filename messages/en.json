@@ -1662,5 +1662,55 @@
         }
       }
     }
+  },
+  "shell": {
+    "navStudent": "Main tabs",
+    "navStaff": "Main tabs",
+    "tabs": {
+      "home": "Home",
+      "universities": "Universities",
+      "progress": "My progress",
+      "help": "Help",
+      "leads": "Leads",
+      "content": "Content",
+      "insights": "Insights"
+    },
+    "more": "More",
+    "sheet": {
+      "title": "More",
+      "close": "Close",
+      "notifications": "Notifications",
+      "unreadCount": "{count} new",
+      "items": {
+        "profile": "Profile",
+        "data": "My data",
+        "team": "Team",
+        "audit": "Audit log",
+        "security": "Security",
+        "settings": "Settings",
+        "health": "Health"
+      },
+      "signOut": "Sign out"
+    },
+    "tour": {
+      "next": "Next",
+      "skip": "Skip",
+      "done": "Got it",
+      "stepOf": "Step {step} of {total}"
+    }
+  },
+  "courses": {
+    "computer_science_it": "Computer Science and IT",
+    "mechanical_engineering": "Mechanical Engineering",
+    "civil_engineering": "Civil Engineering",
+    "electrical_electronics_engineering": "Electrical and Electronics Engineering",
+    "electronics_communication_engineering": "Electronics and Communication Engineering",
+    "engineering_postgraduate": "Engineering (postgraduate)",
+    "business_management": "Business and Management",
+    "commerce": "Commerce",
+    "pharmacy": "Pharmacy",
+    "health_nursing": "Health and Nursing",
+    "science_arts": "Science and Arts",
+    "law": "Law"
   }
 }

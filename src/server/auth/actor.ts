@@ -22,6 +22,11 @@ export interface ResolvedSession {
   role: string;
   /** When this session last passed the second factor, or null. */
   stepUpAt: Date | null;
+  /**
+   * Whether the person has confirmed their Scollarly account (architecture 21.3, ADR-042). The real resolver always sets it from
+   * `app_user.account_confirmed_at`; an absent value (older test resolvers) counts as confirmed.
+   */
+  accountConfirmed?: boolean;
 }
 
 export const STEP_UP_WINDOW_MS = 10 * 60 * 1000; // architecture 9.3 step 5 [Mine, confirm]
@@ -38,12 +43,18 @@ export interface ActorData {
   role: Role;
   /** When this session last passed a TOTP or recovery-code check. Null if never. */
   twoFactorVerifiedAt: Date | null;
+  /**
+   * False for a Google login that has not yet confirmed a Scollarly account (architecture 21.3). The `admin` and `me` areas refuse
+   * such an actor; only the `account` area and sign-out work (S13.2).
+   */
+  accountConfirmed: boolean;
 }
 
 export type Actor = Readonly<ActorData> & { readonly [actorBrand]: true };
 
-export function mintActor(data: ActorData): Actor {
-  return Object.freeze({ ...data }) as Actor;
+/** `accountConfirmed` defaults to true so callers that build an actor for a confirmed user (tests, background jobs) stay short. */
+export function mintActor(data: Omit<ActorData, "accountConfirmed"> & { accountConfirmed?: boolean }): Actor {
+  return Object.freeze({ ...data, accountConfirmed: data.accountConfirmed ?? true }) as Actor;
 }
 
 export function isRole(value: unknown): value is Role {

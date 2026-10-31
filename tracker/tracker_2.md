@@ -13,8 +13,8 @@ This tracker starts the refactor (PRD_2, architecture 2, essentials 2). It does 
 | Essentials file for the next stage | `essentials/system_architecture_essential_2.md` (Stage 13, one stage) |
 | Approved design document | `docs/designs/scollarly-v2-refactor.md` (approved by the owner 2026-10-31; spec review not run) |
 | Phase | Stages 0 to 9 and 12 of version 1 are complete and live (see tracker_1). Stages 10 and 11 are `in-progress` in tracker_1 and their three open modules are carried into S13.8. **The refactor documents are written; no refactor code exists yet.** |
-| Next stage | **Stage 13 (the refactor), module S13.1.** Waiting on: the owner merging the pull request that adds these four files; the owner's answers to the R items below that block S13.1 to S13.4 (R2 course list, R7 numbering, R8 `CLAUDE.md` Step 2). |
-| Blocked by | Nothing blocks starting S13.1 except flag F21 (the `CLAUDE.md` Step 2 question). R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
+| Next stage | **Stage 13 (the refactor).** S13.1 is built and tested locally and on a throwaway Neon branch (Session 41); it waits for CI on its pull request. S13.2 (sign in and create account) is next. |
+| Blocked by | Nothing blocks the code. The owner still needs to add one sentence to `CLAUDE.md` Step 2 (flag F21). R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -53,13 +53,27 @@ Claude Code: after reading this tracker, ask the owner each open check-in below 
 
 **Not done:** no code, no migration, no deploy. The gstack upgrade offered at the start of the session was blocked by the permission classifier and not run. The spec review loop of the office-hours skill was not run.
 
+### 2026-10-31: Session 41 (Stage 13, module S13.1 foundations)
+
+**Built against:** essentials `system_architecture_essential_2.md`, architecture `system_architecture_2.md`, PRD `PRD_2.md`, all version 2 (N = 2 everywhere; the owner's yes on F21 is the basis for starting from essentials 2). Branch `feat/s13-1-foundations`. Module S13.1 only.
+
+**Owner answers recorded:** all five decisions yes (F21 carry-over, the five confirmation points, the course list with M.Tech under "Engineering (postgraduate)", Stage 13 numbering, the neon blue hex); NAAC grades left "not stated"; the owner account is unchanged. PR #45 was merged by the owner.
+
+**Built:** migration `0013_refactor_v2.sql` (`app_user.account_confirmed_at` with backfill, `notifications_seen_at`, `tours_seen`; `student_profile` with row level security forced; the lead checks widened for `onboarding`; `app_resolve_session_v2`, `app_confirm_account`, `app_mark_notifications_seen`, `app_mark_tour_seen`; a trigger that confirms an account on promotion; the erasure function also deletes the profile). `Actor.accountConfirmed` and the `account` area in the Worker's signed-in routing (no refusal of unconfirmed users yet: that is S13.2). `src/lib/courses.ts` (course list and the mapping from programme names), filled into `programme.field` and `level` by the seed (a second run reports zero). `src/modules/nav/config.ts` and `src/components/shell/` (tab bar, More sheet, page intro, empty state, first-visit tour, icons, CSS). The legacy redirect map (built, tested, not wired until S13.6). English and French strings for the shell and the courses. `/account` is never cached by the service worker.
+
+**Tests:** 57 new unit tests, 20 new integration tests; the RLS matrix gained `student_profile`. Whole unit suite 708 of 708; related integration suites (RLS matrix, seed, auth, student, leads, repositories) 218 of 218 on in-process Postgres; `tsc --noEmit` and `eslint` clean. **Migration check on Neon:** applied to a throwaway branch (`test-s13-1-migration`, created from production on 2026-10-31) with the Neon tools: 28 statements, no error; the 4 existing users all became confirmed at their creation time; the 3 leads were untouched; row level security forced on `student_profile` with 3 policies; the runtime role can run the new functions, `PUBLIC` cannot, and nobody can delete a profile. The branch role cannot impersonate `app_runtime` on Neon, so the role-level behaviour was proven by the in-process tests only.
+
+**Found:** the owner-only pages today are Team, Audit, Security, Settings and Health, so an admin's More sheet is only Notifications, Profile and Sign out (PRD_2, architecture 21.4 and 21.17 corrected). Signed-in tabs are full page loads of cached shells (ADR-040), not client navigations (architecture 21.10 corrected). The `{contact_name}` template placeholder moved from S13.1 to S13.3.
+
+**Not done / owner:** CI has not run yet. The course field and level reach the live database only when the seed is run against production (needs the owner's go-ahead). The throwaway Neon branch `test-s13-1-migration` still exists and costs nothing while idle; deleting it needs the owner's word. The `CLAUDE.md` Step 2 sentence (F21) is the owner's to add. No human item was marked done by Claude Code.
+
 ## Flags (need the owner)
 
 Open flags carried from tracker_1 (full text in its Flags table; only items tracker_1 showed as Open when this file was written): **F5** (`CLAUDE.md` "no physical deletes" versus the ADR-029 carve-outs), **F6** (`server/db` imports Drizzle), **F8** (branch protection on a private repository), **F9 and F10** (the domain `scollarly.co.in` and the .IN verification, launch only). Check tracker_1 for any other flag.
 
 | ID | Flag | Why it matters | Needed from owner |
 |---|---|---|---|
-| F21 | `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Open.** Recommendation: (a) accept that S10.2, S11.4 and S11.6 are carried into S13.8 and that tracker_2 closes Stages 10 and 11 of version 1 as "handed over", then add one sentence to `CLAUDE.md` Step 2 saying so; or (b) finish the three modules inside version 1 first. Decision R8. |
+| F21 | **Owner decided yes on 2026-10-31 (carry S10.2, S11.4, S11.6 into S13.8); the one sentence in `CLAUDE.md` Step 2 is still the owner's to add.** `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Open.** Recommendation: (a) accept that S10.2, S11.4 and S11.6 are carried into S13.8 and that tracker_2 closes Stages 10 and 11 of version 1 as "handed over", then add one sentence to `CLAUDE.md` Step 2 saying so; or (b) finish the three modules inside version 1 first. Decision R8. |
 | F22 | Google's OAuth app is in Testing mode with the owner as the only test user (H8, H21). | Real students cannot sign up, so the first real onboarding cannot happen. | **Open.** Owner action R1: publish the OAuth app when ready. |
 | F23 | The design document and PRD_2's first draft said "new programme columns" and "no row until confirm"; the code shows otherwise (see Session 40). | The approved wording and the built behaviour differ slightly. | **Open for confirmation.** The architecture's amendment log lists the five points; the owner confirms or overrules each. |
 
@@ -72,13 +86,13 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 0 to 9, 12 | Version 1 stages | see tracker_1 | **complete** (as recorded in tracker_1; not re-opened by the refactor) |
 | 10 | Owner pages and operations (version 1) | S10.1 to S10.4 | in-progress (S10.1, S10.3, S10.4 complete; **S10.2 carried into S13.8**) |
 | 11 | Hardening and launch readiness (version 1) | S11.1 to S11.8 | in-progress (**S11.4 and S11.6 carried into S13.8**; the rest complete) |
-| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | - (not started) |
+| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 built, awaiting CI; others not started) |
 
 ## Module registry (Stage 13)
 
 | Module ID | Module | Status |
 |---|---|---|
-| S13.1 | Foundations and shared parts (migration 0013, nav config and shell components, course list, redirects) | - |
+| S13.1 | Foundations and shared parts (migration 0013, nav config and shell components, course list, redirects) | in-progress (2026-10-31: built; unit 708, related integration 218, tsc and eslint clean, migration applied to a throwaway Neon branch of production; CI pending) |
 | S13.2 | Sign in and Create account | - |
 | S13.3 | Onboarding (student and parent) | - |
 | S13.4 | Student app (tabs, Home, Universities ordering, offline copy) | - |
@@ -125,14 +139,14 @@ Recorded only when the owner says so.
 | # | Action | Needed before | Status |
 |---|---|---|---|
 | R1 | Publish Google's OAuth app (Testing mode today, owner is the only test user) | First real onboarding | Open |
-| R2 | Approve the course categories and the level of each of the 77 programmes (Claude Code proposes a mapping) | S13.3 and S13.4 | Open |
-| R3 | NAAC grades for the 5 universities without one, or accept "not stated, listed last" | S13.4 | Open |
-| R4 | Confirm the dark neon blue hex (proposed `#1F3BFF`) and check the traced logo | S13.7 | Open |
+| R2 | Approve the course categories and the level of each of the 77 programmes (Claude Code proposes a mapping) | S13.3 and S13.4 | **Approved by the owner 2026-10-31 ("all yes")**, with M.Tech filed under "Engineering (postgraduate)", the option offered. The mapping is in `src/lib/courses.ts`. The values reach the live database only when the seed is run against production (owner go-ahead needed). |
+| R3 | NAAC grades for the 5 universities without one, or accept "not stated, listed last" | S13.4 | **Decided by the owner 2026-10-31: leave them not stated.** |
+| R4 | Confirm the dark neon blue hex (proposed `#1F3BFF`) and check the traced logo | S13.7 | **Hex confirmed by the owner 2026-10-31 ("yes").** The traced logo is still to be checked at S13.7. |
 | R5 | Legal check and text for a parent applying for a child, minors, and consent for automatic lead creation (extends H5) | Launch | Open |
 | R6 | Trust content for the landing page (E1 to E3) | Launch | Open |
-| R7 | Confirm Stage 13 and the S13.x numbering | Start of the stage | Open |
-| R8 | Decide `CLAUDE.md` Step 2 (flag F21) | Start of the stage | Open |
-| R9 | Merge the pull request that adds PRD_2, architecture 2, essentials 2, tracker_2 and the design document | Start of S13.1 | Open |
+| R7 | Confirm Stage 13 and the S13.x numbering | Start of the stage | **Confirmed by the owner 2026-10-31.** |
+| R8 | Decide `CLAUDE.md` Step 2 (flag F21) | Start of the stage | **Decided yes 2026-10-31.** The sentence in `CLAUDE.md` is still to be added by the owner. |
+| R9 | Merge the pull request that adds PRD_2, architecture 2, essentials 2, tracker_2 and the design document | Start of S13.1 | **Done: the owner merged PR #45 (2026-10-31).** |
 
 ### Carried from tracker_1 (open items only; full text and the done items are in tracker_1)
 

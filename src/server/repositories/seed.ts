@@ -51,7 +51,20 @@ export async function applySeed(db: Db, rows: SeedRows): Promise<SeedReport> {
 
   // Parents before children, so every foreign key resolves.
   for (const batch of chunks(rows.universities)) report.universities += (await db.insert(university).values(batch).onConflictDoNothing().returning({ id: university.id })).length;
-  for (const batch of chunks(rows.programmes)) report.programmes += (await db.insert(programme).values(batch).onConflictDoNothing().returning({ id: programme.id })).length;
+  for (const batch of chunks(rows.programmes))
+    report.programmes += (
+      await db
+        .insert(programme)
+        .values(batch)
+        // Version 2: a programme row that already exists gets its course field and level filled in once (they were empty before), and
+        // is never overwritten after that, so an admin's edit stays. A second run therefore reports zero.
+        .onConflictDoUpdate({
+          target: programme.id,
+          set: { field: sql`coalesce(${programme.field}, excluded.field)`, level: sql`coalesce(${programme.level}, excluded.level)`, updatedAt: sql`now()` },
+          setWhere: sql`(${programme.field} is null and excluded.field is not null) or (${programme.level} is null and excluded.level is not null)`,
+        })
+        .returning({ id: programme.id })
+    ).length;
   for (const batch of chunks(rows.feeStructures)) report.feeStructures += (await db.insert(feeStructure).values(batch).onConflictDoNothing().returning({ id: feeStructure.id })).length;
   for (const batch of chunks(rows.campusExperiences)) report.campusExperiences += (await db.insert(campusExperience).values(batch).onConflictDoNothing().returning({ id: campusExperience.id })).length;
   for (const batch of chunks(rows.officialResources)) report.officialResources += (await db.insert(officialResource).values(batch).onConflictDoNothing().returning({ id: officialResource.id })).length;
