@@ -13,9 +13,9 @@
         "logo": null,
         "overview": "Alpha University is a test university with confirmed fees.\n\nIt has a second paragraph.",
         "programmes": [
-          { "id": "00000000-0000-4000-8000-0000000000a1", "name": "B.Tech Computer Science", "level": "Undergraduate", "field": "Engineering", "durationMonths": 48 },
-          { "id": "00000000-0000-4000-8000-0000000000a2", "name": "MBA", "level": "Postgraduate", "field": "Business", "durationMonths": 24 },
-          { "id": "00000000-0000-4000-8000-0000000000a3", "name": "BBA", "level": "Undergraduate", "field": "Business", "durationMonths": 36 }
+          { "id": "00000000-0000-4000-8000-0000000000a1", "name": "B.Tech Computer Science", "level": "Undergraduate", "field": "computer_science_it", "durationMonths": 48 },
+          { "id": "00000000-0000-4000-8000-0000000000a2", "name": "MBA", "level": "Postgraduate", "field": "business_management", "durationMonths": 24 },
+          { "id": "00000000-0000-4000-8000-0000000000a3", "name": "BBA", "level": "Undergraduate", "field": "business_management", "durationMonths": 36 }
         ],
         "fees": [
           { "id": "00000000-0000-4000-8000-0000000000f1", "currency": "USD", "min": 3000, "max": 6000, "period": "tuition per year", "lastUpdatedAt": "2026-06-12T00:00:00.000Z", "programmeId": null },
@@ -38,7 +38,7 @@
         "websiteUrl": null,
         "logo": null,
         "overview": "Beta University has no confirmed fee yet.",
-        "programmes": [{ "id": "00000000-0000-4000-8000-0000000000b1", "name": "B.Com", "level": "Undergraduate", "field": "Commerce", "durationMonths": 36 }],
+        "programmes": [{ "id": "00000000-0000-4000-8000-0000000000b1", "name": "B.Com", "level": "Undergraduate", "field": "commerce", "durationMonths": 36 }],
         "fees": [],
         "experiences": [],
         "resources": []

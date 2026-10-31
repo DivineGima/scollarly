@@ -38,9 +38,15 @@ export interface OnboardingDraft {
 
 export interface ProgressSnapshot {
   userId: string;
+  /** Empty when the student has no linked application yet (a snapshot can then hold only the profile fields below). */
   leadRef: string;
   stageCode: string;
   updatedAt: number;
+  /** S13.4 (architecture 21.11): the first name only, never the full name, a number or an email. */
+  firstName?: string | null;
+  /** The course fields and study level the student chose, so Universities can be ordered without a connection. */
+  courseFields?: string[];
+  level?: string | null;
 }
 
 interface ScollarlyDb extends DBSchema {

@@ -1846,5 +1846,58 @@
       "noStorage": "This browser cannot keep your answers while you are offline. Please connect and try again.",
       "review": "Review my answers"
     }
+  },
+  "student": {
+    "home": {
+      "greeting": "Hi {name}",
+      "greetingNoName": "Welcome",
+      "stageTitle": "Where you are",
+      "stepOf": "Step {position} of {total}",
+      "nextTitle": "What happens next",
+      "noApplication": "We are matching your application. Open My progress to link one you already made.",
+      "progressLink": "Open My progress",
+      "finishProfile": {
+        "title": "Finish your profile",
+        "body": "A few short questions let us show the universities that fit your course.",
+        "button": "Continue"
+      },
+      "forYou": {
+        "title": "Universities for you",
+        "subtitle": "Universities offering {courses} come first, then the best NAAC grade.",
+        "subtitleNone": "Best NAAC grade first. Answer the questions to put your course first.",
+        "seeAll": "See all universities"
+      },
+      "whatsapp": "Message your admin on WhatsApp",
+      "whatsappText": "Hello, my Scollarly reference is {ref}. My application is at the step \"{stage}\".",
+      "whatsappMissing": "The WhatsApp number is not available right now. Please try again later.",
+      "offline": "You are offline. This is what this phone kept the last time you were online."
+    },
+    "universities": {
+      "title": "Universities",
+      "intro": "Indian universities we work with. The ones that offer your course come first.",
+      "yourCourses": "Your courses",
+      "chooseHint": "Tap a course to put it first. This does not change your answers.",
+      "noCourse": "No course chosen yet, so the list starts with the best NAAC grade.",
+      "finishProfile": "Finish your profile to start with your own courses.",
+      "finishButton": "Continue",
+      "empty": "No universities are published yet. Please check again soon.",
+      "naac": "NAAC {grade}",
+      "naacMissing": "NAAC grade not stated",
+      "offers": "Offers your course: {courses}",
+      "open": "View {name}",
+      "offline": "You are offline. This list is the one this phone kept."
+    },
+    "help": {
+      "title": "Help",
+      "intro": "Answers to common questions, and a way to reach us.",
+      "guides": "Guides",
+      "process": "How applying works",
+      "visa": "The student visa",
+      "faq": "Questions and answers",
+      "contact": "Contact us",
+      "whatsapp": "Message us on WhatsApp",
+      "whatsappText": "Hello, I need help with my Scollarly application.",
+      "whatsappMissing": "The WhatsApp number is not available right now. Please try again later."
+    }
   }
 }

@@ -11,6 +11,7 @@ import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
 import { profileOf, setProfileName } from "@/server/repositories/identity";
 import { eraseMyAccount, exportMyData, progressOf, requestLink } from "@/server/repositories/student";
+import { homeOf, preferencesOf } from "@/server/repositories/student-home";
 
 /**
  * The student portal (S8.1 to S8.3; architecture 9.6, 10.8, 16 A11 to A13): plain data calls and mutations in the Worker entry
@@ -43,6 +44,12 @@ export function readLinkInput(text: string, country?: PhoneCountry): { ref: stri
 
 const signedIn = { kind: "signed-in" } as const;
 
+/** The first word of a name: what the screens greet and what the phone keeps offline (never the full name). Null for nothing. */
+export function firstNameOf(name: string | null | undefined): string | null {
+  const first = (name ?? "").trim().split(/\s+/)[0] ?? "";
+  return first === "" ? null : first.slice(0, 40);
+}
+
 export function studentDataCalls(env: EndpointEnv): Record<string, DataCall> {
   return {
     /** A11: the student's stage, the six stages and what to do next. Offline, the screen shows the last copy it kept on the phone. */
@@ -60,6 +67,33 @@ export function studentDataCalls(env: EndpointEnv): Record<string, DataCall> {
         otherLeads: Math.max(0, progress.leads.length - 1),
         whatsappE164: progress.whatsappE164,
       };
+    },
+
+    /**
+     * S13.4, the student's Home: their name, answers, stage and the WhatsApp number in one call. When the person has not onboarded yet the
+     * greeting falls back to the name Google gave us. The ordered university list is made on the phone from the public catalogue.
+     */
+    "me/home": async (actor, call) => {
+      const home = await homeOf(env.db, actor);
+      const fallback = home.contactName === null && call.token ? (await profileOf(env.db, call.token))?.name ?? null : null;
+      return {
+        userId: actor.userId,
+        onboarded: home.onboarded,
+        relationship: home.relationship,
+        firstName: firstNameOf(home.contactName ?? fallback),
+        courseFields: home.courseFields,
+        level: home.level,
+        intakeYear: home.intakeYear,
+        lead: home.lead ? { ref: home.lead.ref, stage: home.lead.stageCode, updatedAt: home.lead.updatedAt.toISOString() } : null,
+        stages: home.stages,
+        whatsappE164: home.whatsappE164,
+      };
+    },
+
+    /** S13.4: the answers only, so Universities can pre-select and order. */
+    "me/preferences": async (actor) => {
+      const preferences = await preferencesOf(env.db, actor);
+      return { userId: actor.userId, onboarded: preferences.onboarded, firstName: firstNameOf(preferences.contactName), courseFields: preferences.courseFields, level: preferences.level, intakeYear: preferences.intakeYear };
     },
 
     /** A13 step 1: the name and email the sign-in gave us. */

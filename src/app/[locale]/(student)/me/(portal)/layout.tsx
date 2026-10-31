@@ -19,7 +19,7 @@ export default async function StudentLayout({ children, params }: { children: Re
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
-  const messages = await clientMessages(locale as Locale, ["me"]);
+  const messages = await clientMessages(locale as Locale, ["me", "shell"]);
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <StudentShell>{children}</StudentShell>

@@ -26,3 +26,50 @@ export function isBuildAsset(pathname: string): boolean {
 export function isMediaImage(pathname: string): boolean {
   return pathname.startsWith("/media/");
 }
+
+/**
+ * The signed-in shells the service worker may keep and serve only when the network fails (architecture 21.11, ADR-047). A shell is the
+ * data-free page of a signed-in route: the same HTML for everyone, nothing private in it. Only the student app's pages today; the staff
+ * pages join them with the staff hubs (S13.6). The sign-in, sign-out and account pages, the questionnaire's API and every `/api/*`
+ * route are not shells and are never kept.
+ */
+export const KEPT_SHELL = new RegExp(`^(?:/(?:${locales.join("|")}))?/me(?:/(?:universities|progress|help|notifications|profile|data|link-application|onboarding))?/?$`);
+
+export function isKeptShell(pathname: string): boolean {
+  return KEPT_SHELL.test(pathname);
+}
+
+/** The cache the kept shells live in: dropped when a new worker takes over (a new deploy) and on sign-out. */
+export const KEPT_SHELL_CACHE = "signed-in-shells";
+
+/** The marker the Worker puts on a signed-in shell it serves, and the only thing that lets the service worker keep a page. */
+export const SHELL_HEADER = "x-app-shell";
+
+/** The key a shell is kept under: the path without a trailing slash and without the query, so every visit to a tab finds the same copy. */
+export function shellKey(url: URL): string {
+  return `${url.origin}${url.pathname.replace(/\/+$/, "") || "/"}`;
+}
+
+export interface KeptShellDeps {
+  fetch: (request: Request) => Promise<Response>;
+  /** The kept-shell cache (`caches.open(KEPT_SHELL_CACHE)`). */
+  cache: () => Promise<Pick<Cache, "put" | "match">>;
+}
+
+/**
+ * Network first, and the copy only when the network fails. A page is kept only when the Worker said it is a signed-in shell
+ * (`x-app-shell`): an error page, a sign-in redirect or a 404 for a signed-out visitor is never kept. The copy holds nothing private.
+ * When the network fails and nothing is kept, the original error is thrown so the service worker's `/offline` fallback applies.
+ */
+export async function keptShellResponse(request: Request, url: URL, deps: KeptShellDeps): Promise<Response> {
+  const key = shellKey(url);
+  try {
+    const response = await deps.fetch(request);
+    if (response.ok && response.headers.get(SHELL_HEADER) === "1") await (await deps.cache()).put(key, response.clone());
+    return response;
+  } catch (error) {
+    const kept = await (await deps.cache()).match(key);
+    if (kept) return kept;
+    throw error;
+  }
+}

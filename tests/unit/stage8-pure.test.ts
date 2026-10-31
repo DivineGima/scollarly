@@ -114,9 +114,10 @@ describe("S8.1 the offline copy and the frame", () => {
     expect(html).toContain("Lettre d&#x27;admission");
   });
 
-  it("the frame has the four screens, a way out and a skip link", () => {
+  it("the frame has the four tabs, the More button and a skip link (S13.4; the profile, data and sign-out links are in the More sheet)", () => {
     const html = render(createElement(StudentShell, null, createElement("p", null, "inside")));
-    for (const href of ['href="/me"', 'href="/me/link-application"', 'href="/me/profile"', 'href="/me/data"', 'href="/sign-out"', 'href="#main"']) expect(html, href).toContain(href);
+    for (const href of ['href="/me"', 'href="/me/universities"', 'href="/me/progress"', 'href="/me/help"', 'href="#main"']) expect(html, href).toContain(href);
+    expect(html).toContain('aria-label="More"');
     expect(html).toContain("inside");
   });
 });
