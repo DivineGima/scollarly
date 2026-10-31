@@ -212,6 +212,23 @@ test.describe("a parent", () => {
   });
 });
 
+/** What the page shows and what the phone's queue holds, so a failure in CI says what happened instead of only what was missing. */
+async function describePage(page: Page): Promise<string> {
+  return page.evaluate(
+    () =>
+      new Promise<string>((resolve) => {
+        const text = (document.querySelector("main")?.textContent ?? "").slice(0, 200);
+        const open = indexedDB.open("scollarly");
+        open.onerror = () => resolve(`${text} | no database`);
+        open.onsuccess = () => {
+          const all = open.result.transaction("leadQueue").objectStore("leadQueue").getAll();
+          all.onsuccess = () => resolve(`${text} | queue: ${JSON.stringify((all.result as { kind?: string; status?: string; lastError?: string | null; attempts?: number }[]).map((i) => ({ kind: i.kind, status: i.status, lastError: i.lastError, attempts: i.attempts })))} | online: ${navigator.onLine}`);
+          all.onerror = () => resolve(`${text} | queue unreadable`);
+        };
+      }),
+  );
+}
+
 async function setConnection(context: BrowserContext, server: Stub, online: boolean) {
   server.blocked = !online;
   await context.setOffline(!online);
@@ -249,7 +266,12 @@ test.describe("without a connection, and without a session", () => {
     // A navigation straight after the connection returns can briefly fail on a busy machine, so try the reload until the page answers.
     await expect(async () => {
       await page.reload();
-      await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible({ timeout: 8_000 });
+      try {
+        await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible({ timeout: 8_000 });
+      } catch (error) {
+        throw new Error(`${(error as Error).message}
+PAGE: ${await describePage(page)}`);
+      }
     }).toPass({ timeout: 40_000 });
   });
 
