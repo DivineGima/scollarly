@@ -28,6 +28,8 @@ If the tracker has a section named **Standing owner check-ins**, ask the owner e
 
 Look in `/essentials/` for files matching `^system_architecture_essential_\d+\.md$`. Take the lowest-numbered file that still has an incomplete stage according to the tracker (essential_1 if nothing has started). If the file does not exist, halt and flag.
 
+Owner decision, 2026-10-31 (tracker flag F21): the version 2 refactor is one stage in `system_architecture_essential_2.md`. Stages 10 and 11 of `system_architecture_essential_1.md` are closed as handed over: their open modules S10.2, S11.4 and S11.6 are carried into module S13.8 of essentials 2, so essentials 1 is history and is not chosen here. While Stage 13 is incomplete in the latest tracker, the essentials file is `system_architecture_essential_2.md`.
+
 ### Step 3: Resolve the current architecture version
 
 Within `/system_architecture/` only, match files against `^system_architecture_\d+\.md$` (the character right after the underscore must be a digit). Extract the trailing integer from each and take the highest as current. This pattern deliberately excludes `system_architecture_essential_N.md`, which lives in `/essentials/` and must never count as an architecture version. If names do not parse cleanly (non-numeric suffix, gaps, duplicates), halt and flag. Read the current architecture file. Consult older versions only to resolve a conflict.
