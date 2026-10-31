@@ -13,7 +13,7 @@ This tracker starts the refactor (PRD_2, architecture 2, essentials 2). It does 
 | Essentials file for the next stage | `essentials/system_architecture_essential_2.md` (Stage 13, one stage) |
 | Approved design document | `docs/designs/scollarly-v2-refactor.md` (approved by the owner 2026-10-31; spec review not run) |
 | Phase | Stages 0 to 9 and 12 of version 1 are complete and live (see tracker_1). Stages 10 and 11 are `in-progress` in tracker_1 and their three open modules are carried into S13.8. **The refactor documents are written; no refactor code exists yet.** |
-| Next stage | **Stage 13 (the refactor).** S13.1 is built and tested locally and on a throwaway Neon branch (Session 41); it waits for CI on its pull request. S13.2 (sign in and create account) is next. |
+| Next stage | **Stage 13 (the refactor).** S13.1 is complete and merged (PR #46, Session 41). **S13.2 (sign in and create account) is next.** |
 | Blocked by | Nothing blocks the code. The owner still needs to add one sentence to `CLAUDE.md` Step 2 (flag F21). R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
@@ -65,7 +65,9 @@ Claude Code: after reading this tracker, ask the owner each open check-in below 
 
 **Found:** the owner-only pages today are Team, Audit, Security, Settings and Health, so an admin's More sheet is only Notifications, Profile and Sign out (PRD_2, architecture 21.4 and 21.17 corrected). Signed-in tabs are full page loads of cached shells (ADR-040), not client navigations (architecture 21.10 corrected). The `{contact_name}` template placeholder moved from S13.1 to S13.3.
 
-**Not done / owner:** CI has not run yet. The course field and level reach the live database only when the seed is run against production (needs the owner's go-ahead). The throwaway Neon branch `test-s13-1-migration` still exists and costs nothing while idle; deleting it needs the owner's word. The `CLAUDE.md` Step 2 sentence (F21) is the owner's to add. No human item was marked done by Claude Code.
+**CI result:** the first run failed three table-coverage tests (`schema-foundation` twice, the owner-export decision test once) because `student_profile` was missing from the exported `schema` object and from `EXPORT_TABLES`. Fixed in the same PR (the profile is in the owner's full export, as lead data already is); I had run only subsets of the integration suite locally, so the full suite (673 tests) is now run before every push. All six checks then passed and the owner asked for the merge on green: PR #46 merged 2026-10-31.
+
+**Not done / owner:** The course field and level reach the live database only when the seed is run against production (needs the owner's go-ahead). The throwaway Neon branch `test-s13-1-migration` still exists and costs nothing while idle; deleting it needs the owner's word. The `CLAUDE.md` Step 2 sentence (F21) is the owner's to add. No human item was marked done by Claude Code.
 
 ## Flags (need the owner)
 
@@ -86,13 +88,13 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 0 to 9, 12 | Version 1 stages | see tracker_1 | **complete** (as recorded in tracker_1; not re-opened by the refactor) |
 | 10 | Owner pages and operations (version 1) | S10.1 to S10.4 | in-progress (S10.1, S10.3, S10.4 complete; **S10.2 carried into S13.8**) |
 | 11 | Hardening and launch readiness (version 1) | S11.1 to S11.8 | in-progress (**S11.4 and S11.6 carried into S13.8**; the rest complete) |
-| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 built, awaiting CI; others not started) |
+| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 complete; S13.2 to S13.9 not started) |
 
 ## Module registry (Stage 13)
 
 | Module ID | Module | Status |
 |---|---|---|
-| S13.1 | Foundations and shared parts (migration 0013, nav config and shell components, course list, redirects) | in-progress (2026-10-31: built; unit 708, related integration 218, tsc and eslint clean, migration applied to a throwaway Neon branch of production; CI pending) |
+| S13.1 | Foundations and shared parts (migration 0013, nav config and shell components, course list, redirects) | complete (2026-10-31: PR #46 merged, all six CI checks green; unit 708, integration 673, migration applied to a throwaway Neon branch of production) |
 | S13.2 | Sign in and Create account | - |
 | S13.3 | Onboarding (student and parent) | - |
 | S13.4 | Student app (tabs, Home, Universities ordering, offline copy) | - |
