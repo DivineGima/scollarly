@@ -631,7 +631,7 @@
         "templates": {
           "name": "Message templates",
           "one": "template",
-          "about": "WhatsApp messages for each stage. Use '{name}', '{ref}' and '{university}'."
+          "about": "WhatsApp messages for each stage. Use '{name}', '{ref}', '{university}' and '{contact_name}' (the parent's name when a parent applied for a child, otherwise the student's)."
         }
       },
       "back": "All content",
@@ -1737,5 +1737,114 @@
     "health_nursing": "Health and Nursing",
     "science_arts": "Science and Arts",
     "law": "Law"
+  },
+  "onboarding": {
+    "loading": "Loading…",
+    "choose": "Choose…",
+    "progress": "Step {position} of {total}",
+    "savedOnPhone": "Your answers are saved on this phone as you go.",
+    "fixErrors": "Please fix the highlighted answers to continue.",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "sending": "Sending…",
+    "countries": {
+      "CM": "Cameroon",
+      "NG": "Nigeria",
+      "GH": "Ghana",
+      "CI": "Ivory Coast",
+      "SN": "Senegal",
+      "GN": "Guinea",
+      "ZA": "South Africa"
+    },
+    "basics": {
+      "title": "About you",
+      "intro": "A few quick details so an adviser can help you.",
+      "name": "Your full name",
+      "country": "Your country",
+      "whatsapp": "Your WhatsApp number",
+      "whatsappHint": "We message you here about your application. Start with the country code, for example +237, or type it the way you usually do."
+    },
+    "who": {
+      "title": "Who is applying?",
+      "intro": "Tell us about the student who wants to study in India.",
+      "name": "The student's full name",
+      "country": "The student's country"
+    },
+    "results": {
+      "title": "School results",
+      "intro": "Tell us which exams the student has written. You can add the grades now or later.",
+      "qualification": "Which exams?",
+      "qualifications": {
+        "olevel_alevel": "O Level / A Level (GCE)",
+        "grade10_11": "Grade 10 / 11 (or equivalent)"
+      },
+      "grades": "Subjects and grades",
+      "gradesHint": "Optional. Add a subject and its grade, one per line.",
+      "subject": "Subject",
+      "grade": "Grade",
+      "add": "Add a subject",
+      "remove": "Remove"
+    },
+    "plan": {
+      "title": "Study plan",
+      "intro": "What would you like to study?",
+      "level": "Which level?",
+      "levels": {
+        "undergraduate": "Bachelor's degree (undergraduate)",
+        "postgraduate": "Master's degree (postgraduate)"
+      },
+      "courses": "Which courses interest you? Choose up to {max}.",
+      "year": "When would you like to start?",
+      "choose": "Choose a year…"
+    },
+    "contact": {
+      "title": "Your contact details",
+      "intro": "As the parent, you are the person we message about this application.",
+      "name": "Your full name",
+      "country": "Your country",
+      "whatsapp": "Your WhatsApp number",
+      "whatsappHint": "We message you here. Start with the country code, for example +237."
+    },
+    "consent": {
+      "title": "Almost done",
+      "intro": "Check your answers with Back if you like, then agree below to send them to Scollarly.",
+      "tick": "I agree that Scollarly may use these details to contact me about studying in India.",
+      "privacy": "Read the privacy notice"
+    },
+    "errors": {
+      "REQUIRED": "This answer is needed.",
+      "TOO_LONG": "This is too long.",
+      "INVALID": "Please check this answer.",
+      "UNKNOWN_VALUE": "Please choose from the list.",
+      "DUPLICATE": "Each choice can only be used once.",
+      "PHONE_INVALID": "This number does not look right for that country.",
+      "CONSENT_REQUIRED": "Please tick the box to continue."
+    },
+    "sent": {
+      "title": "Thank you, you are all set",
+      "body": "An adviser will message you on WhatsApp soon.",
+      "ref": "Your reference: {ref}",
+      "go": "Go to my page"
+    },
+    "already": {
+      "title": "You have already finished",
+      "body": "Your answers were sent before. An adviser will message you on WhatsApp."
+    },
+    "queued": {
+      "title": "Saved on this phone",
+      "offline": "You are offline. We will send your answers as soon as you are back online. You can close this page.",
+      "signIn": "Your session ended. Sign in to send your answers.",
+      "signInButton": "Sign in",
+      "numberLimit": "This WhatsApp number has been used for several applications today. We will try again later.",
+      "retry": "We could not send your answers yet. We will try again.",
+      "tryNow": "Try now"
+    },
+    "rejected": {
+      "title": "We could not send your answers",
+      "body": "Some answers need checking. Please review them and send again.",
+      "noStorage": "This browser cannot keep your answers while you are offline. Please connect and try again.",
+      "review": "Review my answers"
+    }
   }
 }

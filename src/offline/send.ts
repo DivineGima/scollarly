@@ -9,6 +9,7 @@ export type SendResult =
   | { verdict: "retry"; status: number; code: string; retryAfterSeconds: number | null };
 
 export const LEADS_ENDPOINT = "/api/v1/leads";
+export const ONBOARDING_ENDPOINT = "/api/v1/me/onboarding";
 const REQUEST_TIMEOUT_MS = 20_000;
 
 /**
@@ -23,26 +24,27 @@ export function timeoutSignal(ms: number): AbortSignal {
 }
 
 export async function sendLead(
-  item: Pick<QueuedLead, "key" | "payload">,
+  item: Pick<QueuedLead, "key" | "payload" | "kind">,
   turnstileToken: string,
   fetchImpl: typeof fetch = fetch,
   timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<SendResult> {
+  const onboarding = item.kind === "onboarding";
   let response: Response;
   try {
-    response = await fetchImpl(LEADS_ENDPOINT, {
+    response = await fetchImpl(onboarding ? ONBOARDING_ENDPOINT : LEADS_ENDPOINT, {
       method: "POST",
       credentials: "same-origin",
       cache: "no-store",
       headers: { "Content-Type": "application/json", "Idempotency-Key": item.key },
-      body: JSON.stringify({ ...item.payload, turnstile_token: turnstileToken }),
+      body: JSON.stringify(onboarding ? item.payload : { ...item.payload, turnstile_token: turnstileToken }),
       signal: timeoutSignal(timeoutMs),
     });
   } catch {
     return { verdict: "retry", status: 0, code: "NETWORK", retryAfterSeconds: null };
   }
 
-  type Body = { status?: string; ref?: string; error?: { code?: string; fields?: Record<string, string> } };
+  type Body = { status?: string; ref?: string | null; error?: { code?: string; fields?: Record<string, string> } };
   let json = null as Body | null;
   try {
     json = (await response.json()) as Body;
@@ -59,8 +61,9 @@ export async function sendLead(
   switch (verdict) {
     case "sent":
       // A success without a reference cannot be shown to the student; treat it as a failed attempt and retry (the key makes that safe).
-      return typeof json?.ref === "string"
-        ? { verdict: "sent", ref: json.ref, replayed: json.status === "replayed" || response.status === 200 }
+      // An onboarding that another device already finished answers 200 with no reference: it is done, so it counts as sent.
+      return typeof json?.ref === "string" || (onboarding && json?.ref === null)
+        ? { verdict: "sent", ref: json?.ref ?? "", replayed: json?.status === "replayed" || response.status === 200 }
         : { verdict: "retry", status: response.status, code: "BAD_RESPONSE", retryAfterSeconds: null };
     case "rejected":
       return { verdict: "rejected", status: response.status, code, fields };

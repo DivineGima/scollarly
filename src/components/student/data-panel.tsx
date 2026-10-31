@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
 import { watDateString } from "@/lib/time";
+import { clearOnboardingOnDevice } from "@/offline/onboarding-draft";
 import { clearProgressSnapshot } from "@/offline/progress-snapshot";
 
 type Step = "idle" | "confirm" | "working" | "reauth" | "done";
@@ -97,6 +98,7 @@ function EraseCard() {
     if (result.ok) {
       // The account and its sessions are gone on the server. Forget what this phone kept, then leave.
       await clearProgressSnapshot();
+      await clearOnboardingOnDevice();
       setStep("done");
       dialog.current?.close();
       return;

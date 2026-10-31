@@ -23,6 +23,8 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 const EMAIL_PATTERN = "s010-probe-%@scollarly.invalid";
+/** Fresh students for the onboarding CPU row; the measurement script uses as many as it sends requests. */
+const ONBOARDING_PROBES = 55;
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
@@ -31,6 +33,13 @@ async function cleanup() {
   try {
     const ids = (await client.query(`select id::text as id from neon_auth."user" where email like $1`, [EMAIL_PATTERN])).rows.map((r) => r.id);
     if (ids.length > 0) {
+      // A probe onboarding (S13.3) made a lead for the probe user and a profile that points at it: the profile goes first, then the lead's children.
+      await client.query("delete from public.student_profile where user_id = any($1)", [ids]);
+      const ownLeads = "select id from public.lead where user_id = any($1)";
+      for (const table of ["event", "lead_activity", "lead_programme_pref", "lead_note", "lead_claim", "data_request"]) {
+        await client.query(`delete from public.${table} where lead_id in (${ownLeads})`, [ids]);
+      }
+      await client.query("delete from public.lead where user_id = any($1)", [ids]);
       for (const table of ["step_up", "recovery_code", "owner_totp"]) await client.query(`delete from public.${table} where user_id = any($1)`, [ids]);
       await client.query("delete from public.app_user where id = any($1)", [ids]);
       await client.query(`delete from neon_auth.session where "userId"::text = any($1)`, [ids]);
@@ -67,8 +76,19 @@ try {
       const user = await client.query(`insert into neon_auth."user" (name, email, "emailVerified") values ($1, $2, true) returning id::text as id`, [`S010 probe ${who}`, email]);
       const userId = user.rows[0].id;
       await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now())`, [token, userId]);
-      await client.query("insert into public.app_user (id, role) values ($1, $2) on conflict (id) do update set role = excluded.role", [userId, role]);
+      await client.query("insert into public.app_user (id, role, account_confirmed_at) values ($1, $2, now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at", [userId, role]);
       sessions[who] = { token, userId };
+    }
+    // S13.3: fresh confirmed students for the `POST me/onboarding` CPU row (an account can onboard once, so each request needs its own).
+    sessions.onboarding = [];
+    for (let i = 0; i < ONBOARDING_PROBES; i += 1) {
+      const email = `s010-probe-onboarding-${i}-${randomBytes(4).toString("hex")}@scollarly.invalid`;
+      const token = randomBytes(24).toString("hex").slice(0, 32);
+      const user = await client.query(`insert into neon_auth."user" (name, email, "emailVerified") values ($1, $2, true) returning id::text as id`, [`S010 probe onboarding ${i}`, email]);
+      const userId = user.rows[0].id;
+      await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now())`, [token, userId]);
+      await client.query("insert into public.app_user (id, role, account_confirmed_at) values ($1, 'student', now()) on conflict (id) do nothing", [userId]);
+      sessions.onboarding.push({ token, userId });
     }
     mkdirSync("scripts/.generated", { recursive: true });
     writeFileSync("scripts/.generated/probe-sessions.json", JSON.stringify(sessions));

@@ -66,9 +66,9 @@ describe("Sign in with a Google login that has no account", () => {
 });
 
 describe("Create account", () => {
-  it("confirms the account in the same step and goes on (to the student home until onboarding exists)", async () => {
+  it("confirms the account in the same step and goes on to onboarding, with who and which course", async () => {
     const parent = await t.signIn();
-    expect(await landing(parent, "?intent=sign-up&as=parent&course=law")).toBe("/me");
+    expect(await landing(parent, "?intent=sign-up&as=parent&course=law")).toBe("/me/onboarding?as=parent&course=law");
     expect(await confirmedAt(parent)).not.toBeNull();
     expect(await auditCount(parent)).toBe(1);
     // Signing in later is an ordinary sign in.
@@ -111,9 +111,9 @@ describe("what an unconfirmed login can call", () => {
 
     const first = await call("/api/v1/account/confirm", person);
     expect(first.status).toBe(200);
-    expect(await first.json()).toEqual({ confirmed: true, created: true, next: "/me" });
+    expect(await first.json()).toEqual({ confirmed: true, created: true, next: "/me/onboarding?as=student" });
     const second = await call("/api/v1/account/confirm", person);
-    expect(await second.json()).toEqual({ confirmed: true, created: false, next: "/me" });
+    expect(await second.json()).toEqual({ confirmed: true, created: false, next: "/me/onboarding?as=student" });
     expect(await auditCount(person)).toBe(1);
 
     expect((await call("/api/v1/me/probe", person)).status).toBe(200);

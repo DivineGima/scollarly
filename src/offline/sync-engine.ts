@@ -75,7 +75,9 @@ export async function syncOnce(deps: SyncDeps): Promise<SyncReport | undefined> 
       report.attempted += 1;
       let result: SendResult;
       try {
-        result = await deps.send({ ...item, attempts, status: "sending" }, await deps.getToken());
+        // An onboarding item is sent by a signed-in person, so it needs no Turnstile token (the session protects it).
+        const token = item.kind === "onboarding" ? "" : await deps.getToken();
+        result = await deps.send({ ...item, attempts, status: "sending" }, token);
       } catch {
         // No token (Turnstile blocked or timed out) or an unexpected failure: wait and try again later.
         result = { verdict: "retry", status: 0, code: "TURNSTILE_UNAVAILABLE", retryAfterSeconds: null };

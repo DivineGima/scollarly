@@ -10,7 +10,7 @@ import { rowsOf } from "@/server/db/rows";
  */
 
 /** A PostgreSQL array literal for values already validated as references or UUIDs, so no driver has to guess how to send an array. */
-function pgArray(values: readonly string[]): string {
+export function pgArray(values: readonly string[]): string {
   return `{${values.map((v) => `"${v.replace(/[\\"]/g, "\\$&")}"`).join(",")}}`;
 }
 

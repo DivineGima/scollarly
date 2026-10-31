@@ -1,8 +1,10 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { QueuedLead } from "./logic";
+import type { OnboardingValues } from "@/modules/onboarding/payload";
 
 /**
- * The browser's small database (architecture 11.2). Four stores:
+ * The browser's small database (architecture 11.2). Five stores (the fifth, `onboardingDraft`, is the unfinished questionnaire of S13.3,
+ * kept on the phone until it is sent and deleted on sign-out):
  *   leadQueue         applications waiting to be sent, keyed by their idempotency key
  *   eventQueue        analytics events waiting for the next batch
  *   meta              the browsing session id and a visit counter
@@ -22,6 +24,18 @@ export interface QueuedEvent {
   createdAt: number;
 }
 
+/** The unfinished questionnaire of one signed-in person (architecture 21.6). Never sent anywhere until the last screen. */
+export interface OnboardingDraft {
+  userId: string;
+  values: OnboardingValues;
+  /** The screen the person was on, so they come back to it. */
+  step: string;
+  /** The idempotency key and the reference, made once when the draft starts so a retry or a second tap is the same request. */
+  key: string;
+  ref: string;
+  updatedAt: number;
+}
+
 export interface ProgressSnapshot {
   userId: string;
   leadRef: string;
@@ -34,23 +48,28 @@ interface ScollarlyDb extends DBSchema {
   eventQueue: { key: number; value: QueuedEvent };
   meta: { key: string; value: unknown };
   progressSnapshot: { key: string; value: ProgressSnapshot };
+  onboardingDraft: { key: string; value: OnboardingDraft };
 }
 
 export type OfflineDb = IDBPDatabase<ScollarlyDb>;
 
 const NAME = "scollarly";
-const VERSION = 1;
+const VERSION = 2;
 
 let opening: Promise<OfflineDb> | null = null;
 
 /** Opens the database once per page. Rejects where IndexedDB is unavailable (some private windows); callers handle that. */
 export function offlineDb(): Promise<OfflineDb> {
   opening ??= openDB<ScollarlyDb>(NAME, VERSION, {
-    upgrade(db) {
-      db.createObjectStore("leadQueue", { keyPath: "key" });
-      db.createObjectStore("eventQueue", { keyPath: "id", autoIncrement: true });
-      db.createObjectStore("meta");
-      db.createObjectStore("progressSnapshot", { keyPath: "userId" });
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        db.createObjectStore("leadQueue", { keyPath: "key" });
+        db.createObjectStore("eventQueue", { keyPath: "id", autoIncrement: true });
+        db.createObjectStore("meta");
+        db.createObjectStore("progressSnapshot", { keyPath: "userId" });
+      }
+      // Version 2 (S13.3): the onboarding draft. Existing queues and snapshots are untouched.
+      if (oldVersion < 2) db.createObjectStore("onboardingDraft", { keyPath: "userId" });
     },
   }).catch((error) => {
     opening = null;

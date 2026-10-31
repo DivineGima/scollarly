@@ -47,7 +47,7 @@ interface LeadDetailData {
     firstResponseAt: string | null;
     erased: boolean;
     mergedInto: { id: string; ref: string } | null;
-    source: { page: string | null; university: string | null };
+    source: { page: string | null; university: string | null; contactName: string | null };
     version: string;
   };
   prefs: { rank: number; programmeId: string; programmeName: string; universityName: string }[];
@@ -151,8 +151,12 @@ function LeadDetail({ data, reload }: { data: LeadDetailData; reload: () => void
   const firstName = (lead.name ?? "").trim().split(/\s+/)[0] ?? "";
   const university = lead.source.university ?? data.prefs[0]?.universityName ?? "";
 
+  // A parent who applied for a child is greeted by their own name (`{contact_name}`); everyone else by the name on the lead.
+  const contactFirstName = (lead.source.contactName ?? "").trim().split(/\s+/)[0] || firstName;
+
   function defaultMessage(): string {
-    const fill = (text: string) => text.replaceAll("{name}", firstName).replaceAll("{ref}", lead.ref).replaceAll("{university}", university);
+    const fill = (text: string) =>
+      text.replaceAll("{name}", firstName).replaceAll("{contact_name}", contactFirstName).replaceAll("{ref}", lead.ref).replaceAll("{university}", university);
     if (data.template) return fill(data.template);
     const key = `templates.${lead.stage}`;
     return t.has(key) ? t(key, { name: firstName, ref: lead.ref, university }) : t("templates.default", { name: firstName, ref: lead.ref });

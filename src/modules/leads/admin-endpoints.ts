@@ -160,7 +160,7 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
           firstResponseAt: l.firstResponseAt ? l.firstResponseAt.toISOString() : null,
           erased: l.anonymisedAt !== null,
           mergedInto: l.mergedIntoId ? { id: l.mergedIntoId, ref: detail.mergedIntoRef ?? "" } : null,
-          source: { page: typeof l.source.page === "string" ? l.source.page : null, university: detail.sourceUniversityName },
+          source: { page: typeof l.source.page === "string" ? l.source.page : null, university: detail.sourceUniversityName, contactName: typeof l.source.contact_name === "string" ? l.source.contact_name : null },
           version: l.version,
         },
         prefs: detail.prefs,

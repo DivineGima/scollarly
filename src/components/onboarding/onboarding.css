@@ -1,0 +1,108 @@
+/*
+ * The onboarding questionnaire (S13.3). Plain CSS on the site's tokens, light only, thumb-sized targets, readable at 320 px. It builds
+ * on the portal's `me-*` classes (fields, buttons, notices) and adds only what a step-by-step form needs.
+ */
+.ob h1 {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--text-2xl);
+}
+
+.ob h1:focus {
+  outline: none;
+}
+
+.ob-progress-label {
+  margin: 0;
+  color: var(--color-muted, var(--color-fg));
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.ob-progress {
+  width: 100%;
+  height: 0.5rem;
+  margin-top: var(--space-2);
+  accent-color: var(--color-primary, #1d4ed8);
+}
+
+.ob-saved {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.ob-choices {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: var(--space-6) 0;
+  padding: 0;
+  border: 0;
+}
+
+.ob-choices legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 600;
+}
+
+.ob-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.ob-choice input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+
+.ob-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6rem auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+/* An input never sets the width of its column: without this the Grade box ran off the edge of a 360 px screen. */
+.ob-row .me-field {
+  min-width: 0;
+}
+
+.ob-row input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.ob-row .me-field {
+  margin: var(--space-2) 0;
+}
+
+.ob-actions {
+  margin-top: var(--space-6);
+}
+
+.ob-ref {
+  font-weight: 600;
+}
+
+@media (max-width: 30rem) {
+  .ob-row {
+    grid-template-columns: minmax(0, 1fr) 5rem;
+  }
+  .ob-row .me-button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-progress {
+    transition: none;
+  }
+}

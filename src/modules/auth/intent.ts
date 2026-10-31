@@ -44,10 +44,10 @@ export function intentParams(value: AuthIntent): URLSearchParams {
 }
 
 /**
- * Whether the onboarding screens exist yet. S13.2 ships the sign-in and confirm steps before S13.3 builds onboarding, so until
- * S13.3 flips this, a new account goes to the student home (`/me`) instead of a page that does not exist.
+ * Whether the onboarding screens exist. S13.2 shipped the sign-in and confirm steps first, so a new account went to the student
+ * home (`/me`); S13.3 built `/me/onboarding` and turned this on. Setting it back to `false` restores the S13.2 behaviour.
  */
-export const ONBOARDING_READY = false;
+export const ONBOARDING_READY = true;
 
 export function onboardingPath(as: ProfileRelationship, course: CourseField | null, ready: boolean = ONBOARDING_READY): string {
   if (!ready) return "/me";

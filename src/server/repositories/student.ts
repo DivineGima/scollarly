@@ -87,6 +87,21 @@ export interface MyExport {
     consent: { noticeVersion: string; at: string };
   }[];
   linkRequests: { method: string; status: string; requestedAt: string; decidedAt: string | null }[];
+  /** What the person answered in the onboarding questionnaire (S13.3), or null if they have not finished it. */
+  profile: {
+    relationship: string;
+    applicantName: string;
+    applicantCountry: string;
+    contactName: string;
+    contactWhatsapp: string;
+    qualificationType: string;
+    results: unknown;
+    level: string;
+    courseFields: string[];
+    intakeYear: number;
+    consent: { noticeVersion: string; at: string };
+    onboardedAt: string;
+  } | null;
 }
 
 /**
@@ -95,7 +110,7 @@ export interface MyExport {
  * Staff notes are not included: they are the team's working notes about the lead, not data the student gave.
  */
 export async function exportMyData(db: Db, actor: Actor): Promise<MyExport> {
-  const [, leads, prefs, claims] = await runAs(
+  const [, leads, prefs, claims, profile] = await runAs(
     db,
     actor,
     db.execute(sql`select public.app_log_my_export()`),
@@ -108,6 +123,10 @@ export async function exportMyData(db: Db, actor: Actor): Promise<MyExport> {
         from lead_programme_pref p join lead l on l.id = p.lead_id left join programme pr on pr.id = p.programme_id
        where l.user_id = ${actor.userId} order by p.lead_id, p.rank`),
     db.execute(sql`select c.method, c.status, c.created_at, c.decided_at from lead_claim c where c.user_id = ${actor.userId} order by c.created_at`),
+    db.execute(sql`
+      select relationship, applicant_name, applicant_country, contact_name, contact_whatsapp_e164, qualification_type, results, level,
+             course_fields, intake_year, consent_notice_version, consent_at, onboarded_at
+        from student_profile where user_id = ${actor.userId}`),
   );
   const programmes = rowsOf<{ lead_id: string; rank: number; name: string | null }>(prefs);
   const iso = (v: string | Date) => new Date(v).toISOString();
@@ -150,6 +169,41 @@ export async function exportMyData(db: Db, actor: Actor): Promise<MyExport> {
       requestedAt: iso(c.created_at),
       decidedAt: c.decided_at ? iso(c.decided_at) : null,
     })),
+    profile: toProfile(rowsOf<ProfileRow>(profile)[0], iso),
+  };
+}
+
+interface ProfileRow {
+  relationship: string;
+  applicant_name: string;
+  applicant_country: string;
+  contact_name: string;
+  contact_whatsapp_e164: string;
+  qualification_type: string;
+  results: unknown;
+  level: string;
+  course_fields: string[];
+  intake_year: number;
+  consent_notice_version: string;
+  consent_at: string | Date;
+  onboarded_at: string | Date;
+}
+
+function toProfile(row: ProfileRow | undefined, iso: (v: string | Date) => string): MyExport["profile"] {
+  if (!row) return null;
+  return {
+    relationship: row.relationship,
+    applicantName: row.applicant_name,
+    applicantCountry: row.applicant_country,
+    contactName: row.contact_name,
+    contactWhatsapp: row.contact_whatsapp_e164,
+    qualificationType: row.qualification_type,
+    results: row.results,
+    level: row.level,
+    courseFields: row.course_fields,
+    intakeYear: row.intake_year,
+    consent: { noticeVersion: row.consent_notice_version, at: iso(row.consent_at) },
+    onboardedAt: iso(row.onboarded_at),
   };
 }
 
