@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,lead,media,media-miss").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,lead,media,media-miss").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, media: 8, "media-miss": 8 };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, media: 8, "media-miss": 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -287,6 +287,45 @@ try {
     rows.push(await scenario("Student screen, shell: session query, then the cached page", "student-shell", (m) => call(`/me/phase0?${m}`, as("student"))));
     rows.push(await scenario("Student /me progress: own lead, stages, claims and the WhatsApp setting", "student-progress", () => call("/api/v1/me/progress", as("student")), samples, 150, (url) => url.endsWith("/api/v1/me/progress")));
     rows.push(await scenario("Student screen, data: session query, then one query under row level security", "student-data", (m) => call(`/api/v1/me/phase0?${m}`, as("student"))));
+
+    // S13.3: finishing onboarding is one database function (migration 0014). Each request is a different freshly made student, so every one
+    // takes the creating path (lead, claim, profile, audit), not the cheap replay. Gate: at most 8 ms warm (architecture 21.13).
+    const onboarders = sessions.onboarding ?? [];
+    if (onboarders.length > 0) {
+      const onboardingBody = (i) => ({
+        relationship: "student",
+        applicant_name: "Measure Probe",
+        applicant_country: "NG",
+        contact_name: "Measure Probe",
+        contact_country: "NG",
+        contact_whatsapp: `+234803${String(1000000 + i)}`,
+        qualification_type: "olevel_alevel",
+        results: [{ subject: "Mathematics", grade: "A" }],
+        level: "undergraduate",
+        course_fields: ["computer_science_it"],
+        intake_year: new Date().getUTCFullYear() + 1,
+        locale: "en",
+        client_ref: probeLead({}).client_ref,
+        client_created_at: new Date().toISOString(),
+        consent: { notice_version: "draft-1" },
+      });
+      rows.push(
+        await scenario(
+          "Onboarding POST: one function makes the lead, the profile and the audit row",
+          "onboarding",
+          (m, i) => {
+            const who = onboarders[i % onboarders.length];
+            return call(`/api/v1/me/onboarding?${m}`, {
+              method: "POST",
+              headers: { "content-type": "application/json", origin: base, "idempotency-key": crypto.randomUUID(), cookie: `__Secure-neon-auth.session_token=${who.token}.c2lnbmF0dXJl` },
+              body: JSON.stringify(onboardingBody(i)),
+            });
+          },
+          Math.min(50, onboarders.length),
+          200,
+        ),
+      );
+    }
   } else if ([...only].some((k) => /^(admin|student)-/.test(k))) {
     console.error("No --sessions file: the staff and student scenarios were skipped.");
   }

@@ -99,6 +99,13 @@
       "when": 1793421094151,
       "tag": "0013_refactor_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793444930151,
+      "tag": "0014_onboarding_v2",
+      "breakpoints": true
     }
   ]
 }

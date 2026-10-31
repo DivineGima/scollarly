@@ -631,7 +631,7 @@
         "templates": {
           "name": "Modèles de message",
           "one": "modèle",
-          "about": "Messages WhatsApp pour chaque étape. Utilisez '{name}', '{ref}' et '{university}'."
+          "about": "Messages WhatsApp pour chaque étape. Utilisez '{name}', '{ref}', '{university}' et '{contact_name}' (le nom du parent quand un parent postule pour son enfant, sinon celui de l'étudiant)."
         }
       },
       "back": "Tout le contenu",
@@ -1737,5 +1737,114 @@
     "health_nursing": "Santé et soins infirmiers",
     "science_arts": "Sciences et lettres",
     "law": "Droit"
+  },
+  "onboarding": {
+    "loading": "Chargement…",
+    "choose": "Choisir…",
+    "progress": "Étape {position} sur {total}",
+    "savedOnPhone": "Vos réponses sont enregistrées sur ce téléphone au fur et à mesure.",
+    "fixErrors": "Veuillez corriger les réponses signalées pour continuer.",
+    "back": "Retour",
+    "next": "Suivant",
+    "finish": "Terminer",
+    "sending": "Envoi…",
+    "countries": {
+      "CM": "Cameroun",
+      "NG": "Nigéria",
+      "GH": "Ghana",
+      "CI": "Côte d'Ivoire",
+      "SN": "Sénégal",
+      "GN": "Guinée",
+      "ZA": "Afrique du Sud"
+    },
+    "basics": {
+      "title": "À propos de vous",
+      "intro": "Quelques détails rapides pour qu'un conseiller puisse vous aider.",
+      "name": "Votre nom complet",
+      "country": "Votre pays",
+      "whatsapp": "Votre numéro WhatsApp",
+      "whatsappHint": "Nous vous écrivons ici au sujet de votre dossier. Commencez par l'indicatif du pays, par exemple +237, ou saisissez-le comme d'habitude."
+    },
+    "who": {
+      "title": "Qui postule ?",
+      "intro": "Parlez-nous de l'étudiant(e) qui veut étudier en Inde.",
+      "name": "Nom complet de l'étudiant(e)",
+      "country": "Pays de l'étudiant(e)"
+    },
+    "results": {
+      "title": "Résultats scolaires",
+      "intro": "Dites-nous quels examens l'étudiant(e) a passés. Vous pouvez ajouter les notes maintenant ou plus tard.",
+      "qualification": "Quels examens ?",
+      "qualifications": {
+        "olevel_alevel": "O Level / A Level (GCE)",
+        "grade10_11": "Classe de seconde / première (ou équivalent)"
+      },
+      "grades": "Matières et notes",
+      "gradesHint": "Facultatif. Ajoutez une matière et sa note, une par ligne.",
+      "subject": "Matière",
+      "grade": "Note",
+      "add": "Ajouter une matière",
+      "remove": "Retirer"
+    },
+    "plan": {
+      "title": "Projet d'études",
+      "intro": "Que souhaitez-vous étudier ?",
+      "level": "Quel niveau ?",
+      "levels": {
+        "undergraduate": "Licence (premier cycle)",
+        "postgraduate": "Master (deuxième cycle)"
+      },
+      "courses": "Quelles filières vous intéressent ? Choisissez-en jusqu'à {max}.",
+      "year": "Quand souhaitez-vous commencer ?",
+      "choose": "Choisir une année…"
+    },
+    "contact": {
+      "title": "Vos coordonnées",
+      "intro": "En tant que parent, vous êtes la personne que nous contactons au sujet de ce dossier.",
+      "name": "Votre nom complet",
+      "country": "Votre pays",
+      "whatsapp": "Votre numéro WhatsApp",
+      "whatsappHint": "Nous vous écrivons ici. Commencez par l'indicatif du pays, par exemple +237."
+    },
+    "consent": {
+      "title": "Presque terminé",
+      "intro": "Vérifiez vos réponses avec Retour si vous voulez, puis acceptez ci-dessous pour les envoyer à Scollarly.",
+      "tick": "J'accepte que Scollarly utilise ces informations pour me contacter au sujet des études en Inde.",
+      "privacy": "Lire la politique de confidentialité"
+    },
+    "errors": {
+      "REQUIRED": "Cette réponse est nécessaire.",
+      "TOO_LONG": "C'est trop long.",
+      "INVALID": "Veuillez vérifier cette réponse.",
+      "UNKNOWN_VALUE": "Veuillez choisir dans la liste.",
+      "DUPLICATE": "Chaque choix ne peut être utilisé qu'une fois.",
+      "PHONE_INVALID": "Ce numéro ne semble pas correct pour ce pays.",
+      "CONSENT_REQUIRED": "Veuillez cocher la case pour continuer."
+    },
+    "sent": {
+      "title": "Merci, c'est fait",
+      "body": "Un conseiller vous écrira bientôt sur WhatsApp.",
+      "ref": "Votre référence : {ref}",
+      "go": "Aller à ma page"
+    },
+    "already": {
+      "title": "Vous avez déjà terminé",
+      "body": "Vos réponses ont déjà été envoyées. Un conseiller vous écrira sur WhatsApp."
+    },
+    "queued": {
+      "title": "Enregistré sur ce téléphone",
+      "offline": "Vous êtes hors ligne. Nous enverrons vos réponses dès que vous serez de nouveau connecté. Vous pouvez fermer cette page.",
+      "signIn": "Votre session a pris fin. Connectez-vous pour envoyer vos réponses.",
+      "signInButton": "Se connecter",
+      "numberLimit": "Ce numéro WhatsApp a été utilisé pour plusieurs demandes aujourd'hui. Nous réessaierons plus tard.",
+      "retry": "Nous n'avons pas encore pu envoyer vos réponses. Nous allons réessayer.",
+      "tryNow": "Réessayer maintenant"
+    },
+    "rejected": {
+      "title": "Nous n'avons pas pu envoyer vos réponses",
+      "body": "Certaines réponses sont à vérifier. Veuillez les relire et les renvoyer.",
+      "noStorage": "Ce navigateur ne peut pas garder vos réponses hors ligne. Veuillez vous connecter et réessayer.",
+      "review": "Relire mes réponses"
+    }
   }
 }

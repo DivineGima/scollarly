@@ -34,6 +34,23 @@ export function realSubmitDeps(source: TokenSource, onSent?: SubmitDeps["onSent"
   };
 }
 
+/**
+ * The sync deps for the signed-in screens (S13.3): only finished questionnaires, which need no Turnstile (the session protects them).
+ * `getToken` is never called for them, and rejects if it ever were, so a lead from the apply form can never be sent from here by mistake.
+ */
+export function realOnboardingSyncDeps(onSent?: SyncDeps["onSent"]): SyncDeps {
+  return {
+    list: async () => (await listLeads()).filter((item) => item.kind === "onboarding"),
+    update: updateLead,
+    remove: removeLead,
+    now: () => Date.now(),
+    getToken: () => Promise.reject(new Error("no token for onboarding")),
+    send: (item, turnstileToken) => sendLead(item, turnstileToken),
+    withLock: browserLock(),
+    ...(onSent ? { onSent } : {}),
+  };
+}
+
 export function realSyncDeps(source: TokenSource, onSent?: SyncDeps["onSent"]): SyncDeps {
   return {
     list: listLeads,
