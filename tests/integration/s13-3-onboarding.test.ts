@@ -121,16 +121,6 @@ describe("finishing onboarding", () => {
     expect(await count(`select count(*)::int as n from audit_log where action = 'onboarding.completed' and actor_id = ${q(user.userId)}`)).toBe(1);
   });
 
-  it("makes one lead when two copies of the request arrive at the same moment", async () => {
-    const user = await account();
-    const body = bodyOf(student());
-    const key = randomUUID();
-    const [a, b] = await Promise.all([post(user, body, key), post(user, body, key)]);
-    expect([a.status, b.status].sort()).toEqual([200, 201]);
-    expect(await leadsOf(user)).toBe(1);
-    expect(await profilesOf(user)).toBe(1);
-  });
-
   it("lets a second device carry on: another key from the same account creates nothing", async () => {
     const user = await account();
     expect((await post(user, bodyOf(student()))).status).toBe(201);

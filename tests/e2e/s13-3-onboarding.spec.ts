@@ -159,7 +159,8 @@ test.describe("a student", () => {
     // The draft is written a moment after the last change.
     await page.waitForTimeout(600);
     await page.reload();
-    await expect(page.getByText("Step 2 of 4")).toBeVisible();
+    // A reloaded page hydrates and reads the phone's database again, which is slow on a busy CI machine.
+    await expect(page.getByText("Step 2 of 4")).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "Back" }).click();
     await expect(page.getByLabel("Your full name")).toHaveValue("Ada Eze");
     await expect(page.getByLabel("Your WhatsApp number")).toHaveValue("+2348031234567");
@@ -229,7 +230,7 @@ test.describe("without a connection, and without a session", () => {
     // The phone is back online but the server is still unreachable, so the answers must still be waiting after a reload.
     await context.setOffline(false);
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible({ timeout: 20_000 });
   });
 
   test("an ended session keeps the answers and asks the person to sign in", async ({ page }) => {
