@@ -768,6 +768,23 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Owner action:** a browser already showing the error needs one visit with site data cleared (Chrome: padlock, Site settings, Clear data), or two reloads after this is deployed. The root cause is not proven from the owner's browser, only from the code and from a clean browser working; if the error returns after the deploy, send the browser console text.
 
+### 2026-10-31: Session 39 (live QA report and repairs for S12.1)
+
+**Built against:** essentials `system_architecture_essential_1.md`, architecture `system_architecture_1.md`, PRD `PRD_1.md`, all version 1. Branch `fix/qa-s12-1-findings` (PR #42). The owner asked for a report-only QA of the live site, then approved repairing every finding. No human item was marked done.
+
+**QA scope:** 15 public routes on a phone and a desktop viewport (status, console, failed requests, overflow, images, tap targets) and full-page screenshots of `/`, `/about`, `/campus-tours`, `/universities`. All routes returned 200 (`/nonexistent` returned 404), with no console error, failed request or overflow. Images reported as broken at first were lazy-loading, not a defect (all loaded after scrolling). Not covered: axe contrast, keyboard navigation, form submission, a Lighthouse run from the QA side.
+
+| # | Problem | Why | Fix |
+|---|---|---|---|
+| 1 | `/universities` showed no photo. | Its image was archived from the Media screen on 2026-10-27 (audit row `media.archive`), because the "Used in" query (`USES` in `src/server/repositories/media-admin.ts`) did not list `page_image`, so a page photo looked unused. All four page photos had the same exposure. | `page_image` added to `USES`, so archiving a page photo is refused; a case added to `tests/integration/stage6-content.test.ts`. The archived image was restored in Neon with a `media.restore` audit row. |
+| 2 | Desktop nav started at the page edge, about 116 px left of the logo and content. | Inconsistent left edge on every page at 1280 px. | `.site-nav ul` padding matches the container (`public.css`). |
+| 3 | Wide logos (Swami Vivekanand is 512 by 73) shrank to a hairline in a 3rem square. | Logo unreadable in the cards. | `.logo` may be up to 8rem wide (`public.css`). The Swami logo is still small; a better-cropped file from the owner is the lasting fix. |
+| 4 | An FAQ row showed a lowercase category and question. | Owner-created data (not seeded), inconsistent with the rest. | Data only: "Documents for application" and "What documents are needed for application?". |
+
+**Checked after the deploy (2026-10-31):** `/universities` shows the photo and every image loads; the nav link box and the page content share one left edge (144 px at 1280); the wide logos are readable; the FAQ text reads correctly; the other pages are unchanged. CI on PR #42 was green (build and Worker size, integration on Postgres, Lighthouse mobile, lint and unit, Playwright). The Media-screen test could not run locally (the in-memory test database runs out of memory on this machine), so CI is its only run.
+
+**Stage 12 status:** still **in-progress**. The owner has not yet said S12.1 is complete.
+
 ## Flags (need the owner)
 
 | ID | Flag | Why it matters | Needed from owner |
