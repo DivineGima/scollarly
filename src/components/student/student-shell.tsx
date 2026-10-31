@@ -1,36 +1,25 @@
 "use client";
 
-/* eslint-disable @next/next/no-html-link-for-pages -- every signed-in screen is a cached shell plus a data call, so moving between screens is a full page load on purpose (ADR-040) */
-
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-
-interface NavItem {
-  href: string;
-  label: "progress" | "link" | "profile" | "data";
-}
-
-const NAV: readonly NavItem[] = [
-  { href: "/me", label: "progress" },
-  { href: "/me/link-application", label: "link" },
-  { href: "/me/profile", label: "profile" },
-  { href: "/me/data", label: "data" },
-];
-
-const LOCALE_PREFIX = /^\/en(?=\/)/;
+import { AppNav } from "@/components/shell/app-nav";
+import { navLabels } from "@/components/shell/nav-labels";
+import { normalisePath } from "@/modules/nav/config";
 
 /**
- * The frame of the student portal (S8.1): a small menu, the offline notice, and the page. Plain CSS on the site's tokens, no admin
- * library, so the portal stays light on a limited data plan. The page around it is the same HTML for everyone; who is signed in
- * and what is shown come from the data calls after it has loaded.
+ * The frame of the student app (S8.1, S13.4; architecture 21.10): a small header, the offline notice, the page, and the floating bar
+ * with the round More button (ADR-041). Plain CSS on the site's tokens, no admin library, so the app stays light on a limited data
+ * plan. The page around it is the same HTML for everyone; who is signed in and what is shown come from the data calls after it loads.
+ * The questionnaire hides the bar: a new person has one thing to do.
  */
 export function StudentShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("me");
+  const shell = useTranslations("shell");
   const [path, setPath] = useState("");
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
-    setPath(window.location.pathname.replace(LOCALE_PREFIX, "").replace(/\/+$/, "") || "/");
+    setPath(normalisePath(window.location.pathname));
     const update = () => setOnline(navigator.onLine);
     update();
     window.addEventListener("online", update);
@@ -41,6 +30,8 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const showBar = !path.startsWith("/me/onboarding");
+
   return (
     <div className="me-shell">
       <a className="skip-link" href="#main">
@@ -48,20 +39,6 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
       </a>
       <header className="me-header">
         <strong>Scollarly</strong>
-        <nav aria-label={t("nav.label")}>
-          <ul className="me-nav">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <a href={item.href} aria-current={path === item.href ? "page" : undefined}>
-                  {t(`nav.${item.label}`)}
-                </a>
-              </li>
-            ))}
-            <li>
-              <a href="/sign-out">{t("nav.signOut")}</a>
-            </li>
-          </ul>
-        </nav>
       </header>
       {online ? null : (
         <p role="status" className="me-offline">
@@ -71,6 +48,7 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
       <main id="main" className="me-main">
         {children}
       </main>
+      {showBar ? <AppNav role="student" labels={navLabels(shell as never, "student")} /> : null}
     </div>
   );
 }

@@ -144,6 +144,8 @@ function privateCopy(response: Response): Response {
   const copy = new Response(response.body, response);
   copy.headers.set("Cache-Control", "private, no-store");
   copy.headers.delete("X-Edge-Cache");
+  // Says "this is a data-free signed-in shell", so the service worker may keep a copy for an offline moment (architecture 21.11).
+  copy.headers.set("X-App-Shell", "1");
   return copy;
 }
 

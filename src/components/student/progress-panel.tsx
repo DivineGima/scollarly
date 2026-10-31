@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { watDateString } from "@/lib/time";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import { clearProgressSnapshot, readProgressSnapshot, saveProgressSnapshot } from "@/offline/progress-snapshot";
+import { clearStageFromSnapshot, hasStage, readProgressSnapshot, saveProgressSnapshot } from "@/offline/progress-snapshot";
 import type { ProgressSnapshot } from "@/offline/db";
 import { Offline } from "./offline-view";
 import { MeStatus, useMeData } from "./use-me-data";
@@ -33,7 +33,7 @@ export function ProgressPanel() {
     if (state.status !== "ready") return;
     const { userId, lead } = state.data;
     if (lead) void saveProgressSnapshot({ userId, leadRef: lead.ref, stageCode: lead.stage, updatedAt: new Date(lead.updatedAt).getTime() });
-    else void clearProgressSnapshot();
+    else void clearStageFromSnapshot(userId);
   }, [state]);
 
   // When the request never reached the server, look for the copy on the phone.
@@ -42,7 +42,7 @@ export function ProgressPanel() {
   }, [state]);
 
   if (state.status === "ready") return <Ready data={state.data} />;
-  if (state.status === "error" && state.offline && kept) return <Offline snapshot={kept} retry={reload} />;
+  if (state.status === "error" && state.offline && kept && hasStage(kept)) return <Offline snapshot={kept} retry={reload} />;
   return (
     <section>
       <h1>{t("title")}</h1>

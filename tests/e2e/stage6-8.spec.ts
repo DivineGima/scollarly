@@ -603,7 +603,7 @@ async function snapshot(page: Page) {
 test.describe("A11 /me progress", () => {
   test("a linked student sees the six steps, where they are, what comes next and a WhatsApp button built from the one helper", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => json(route, progress()));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect(page.getByTestId("reference")).toHaveText("SC-ABCDE-12345");
     const bar = page.getByTestId("stage-bar");
     await expect(bar.getByRole("listitem")).toHaveCount(6);
@@ -620,7 +620,7 @@ test.describe("A11 /me progress", () => {
 
   test("keeps only the reference, the stage and the date on the phone, and replaces another student's copy", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => json(route, progress()));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect(page.getByTestId("reference")).toBeVisible();
     await expect.poll(() => snapshot(page)).toEqual([{ userId: "student-1", leadRef: "SC-ABCDE-12345", stageCode: "offer_letter", updatedAt: Date.parse("2026-10-24T09:30:00.000Z") }]);
 
@@ -636,7 +636,7 @@ test.describe("A11 /me progress", () => {
   test("offline, shows the last stage kept on the phone with its date; with nothing kept it says it could not load", async ({ page }) => {
     let online = true;
     await page.route("**/api/v1/me/progress", (route) => (online ? json(route, progress()) : route.abort("internetdisconnected")));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect(page.getByTestId("reference")).toBeVisible();
     await expect.poll(async () => (await snapshot(page)).length).toBe(1);
 
@@ -655,14 +655,14 @@ test.describe("A11 /me progress", () => {
 
   test("with nothing kept, an offline student sees the usual error and a retry", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => route.abort("internetdisconnected"));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect(alerts(page)).toContainText("You're offline, so we could not load this page.");
     await expect(page.getByTestId("offline-progress")).toHaveCount(0);
   });
 
   test("a student with no linked application sees 'matching' and no lead data, and forgets any kept copy", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => json(route, progress({ state: "matching", lead: null, pendingClaims: 1 })));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     const card = page.getByTestId("matching");
     await expect(card).toContainText("We are matching your application");
     await expect(card).toContainText("Your request is waiting for an admin to confirm it.");
@@ -674,7 +674,7 @@ test.describe("A11 /me progress", () => {
 
   test("the offline page shows the kept stage to a student whose /me cannot be reached", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => json(route, progress()));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect.poll(async () => (await snapshot(page)).length).toBe(1);
     await page.goto("/offline");
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
@@ -684,7 +684,7 @@ test.describe("A11 /me progress", () => {
 
   test("signing out deletes the kept copy before the session ends", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => json(route, progress()));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect.poll(async () => (await snapshot(page)).length).toBe(1);
     await page.route("**/api/auth/sign-out", (route) => json(route, { success: true }));
     await page.goto("/sign-out");
@@ -760,7 +760,7 @@ test.describe("A13 profile and my data", () => {
 
   test("erasure needs the word DELETE, then deletes, forgets the kept copy and says so", async ({ page }) => {
     await page.route("**/api/v1/me/progress", (route) => json(route, progress()));
-    await page.goto("/me");
+    await page.goto("/me/progress");
     await expect.poll(async () => (await snapshot(page)).length).toBe(1);
     let body: unknown = null;
     await page.route("**/api/v1/me/student.requestErasure", (route) => {

@@ -1846,5 +1846,58 @@
       "noStorage": "Ce navigateur ne peut pas garder vos réponses hors ligne. Veuillez vous connecter et réessayer.",
       "review": "Relire mes réponses"
     }
+  },
+  "student": {
+    "home": {
+      "greeting": "Bonjour {name}",
+      "greetingNoName": "Bienvenue",
+      "stageTitle": "Où vous en êtes",
+      "stepOf": "Étape {position} sur {total}",
+      "nextTitle": "Et ensuite",
+      "noApplication": "Nous faisons le lien avec votre dossier. Ouvrez Mon suivi pour en lier un que vous avez déjà fait.",
+      "progressLink": "Ouvrir Mon suivi",
+      "finishProfile": {
+        "title": "Terminez votre profil",
+        "body": "Quelques questions courtes nous permettent de vous montrer les universités qui conviennent à votre filière.",
+        "button": "Continuer"
+      },
+      "forYou": {
+        "title": "Universités pour vous",
+        "subtitle": "Les universités qui proposent {courses} passent en premier, puis la meilleure note NAAC.",
+        "subtitleNone": "La meilleure note NAAC d'abord. Répondez aux questions pour placer votre filière en premier.",
+        "seeAll": "Voir toutes les universités"
+      },
+      "whatsapp": "Écrire à votre conseiller sur WhatsApp",
+      "whatsappText": "Bonjour, ma référence Scollarly est {ref}. Mon dossier est à l'étape « {stage} ».",
+      "whatsappMissing": "Le numéro WhatsApp n'est pas disponible pour le moment. Veuillez réessayer plus tard.",
+      "offline": "Vous êtes hors ligne. Voici ce que ce téléphone a gardé la dernière fois que vous étiez en ligne."
+    },
+    "universities": {
+      "title": "Universités",
+      "intro": "Les universités indiennes avec lesquelles nous travaillons. Celles qui proposent votre filière passent en premier.",
+      "yourCourses": "Vos filières",
+      "chooseHint": "Touchez une filière pour la placer en premier. Cela ne change pas vos réponses.",
+      "noCourse": "Aucune filière choisie pour l'instant : la liste commence par la meilleure note NAAC.",
+      "finishProfile": "Terminez votre profil pour commencer par vos propres filières.",
+      "finishButton": "Continuer",
+      "empty": "Aucune université n'est encore publiée. Revenez bientôt.",
+      "naac": "NAAC {grade}",
+      "naacMissing": "Note NAAC non indiquée",
+      "offers": "Propose votre filière : {courses}",
+      "open": "Voir {name}",
+      "offline": "Vous êtes hors ligne. Cette liste est celle que ce téléphone a gardée."
+    },
+    "help": {
+      "title": "Aide",
+      "intro": "Des réponses aux questions courantes, et un moyen de nous joindre.",
+      "guides": "Guides",
+      "process": "Comment se passe la candidature",
+      "visa": "Le visa étudiant",
+      "faq": "Questions et réponses",
+      "contact": "Nous contacter",
+      "whatsapp": "Nous écrire sur WhatsApp",
+      "whatsappText": "Bonjour, j'ai besoin d'aide pour mon dossier Scollarly.",
+      "whatsappMissing": "Le numéro WhatsApp n'est pas disponible pour le moment. Veuillez réessayer plus tard."
+    }
   }
 }
