@@ -783,7 +783,7 @@ The one 9 ms request is a single worst case; the gate is the p95. The content an
 
 **Checked after the deploy (2026-10-31):** `/universities` shows the photo and every image loads; the nav link box and the page content share one left edge (144 px at 1280); the wide logos are readable; the FAQ text reads correctly; the other pages are unchanged. CI on PR #42 was green (build and Worker size, integration on Postgres, Lighthouse mobile, lint and unit, Playwright). The Media-screen test could not run locally (the in-memory test database runs out of memory on this machine), so CI is its only run.
 
-**Stage 12 status:** still **in-progress**. The owner has not yet said S12.1 is complete.
+**Stage 12 status:** **complete** (2026-10-31). The owner confirmed S12.1 is complete after reviewing the QA findings and the repairs.
 
 ## Flags (need the owner)
 
@@ -829,7 +829,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 9 | Payments received and admin performance | S9.1 to S9.4 | complete (2026-10-26: CI green on PR #34, deployed, payments CPU row p50 2 ms and p95 3 ms, owner checked the screens by role) |
 | 10 | Owner pages and operations | S10.1 to S10.4 | in-progress (2026-10-26: CI green and deployed; backup, alarm and recovery tested; S10.2 stays open until the owner decides H24, Neon compute hours) |
 | 11 | Hardening and launch readiness | S11.1 to S11.8 | in-progress (2026-10-26: CI green and deployed; S11.4 waits on H24 and S11.6 on the owner's checklist and sign-off H11) |
-| 12 | Public-site visual redesign and the owner's page photos (not one of F1 to F18; polish on already-shipped pages, Session 36) | S12.1 | **in-progress** (2026-10-31: built and deployed through PR #39, #40, #41 and #42; live QA findings repaired and re-checked on the live site, Session 39; waiting for the owner to say S12.1 is complete) |
+| 12 | Public-site visual redesign and the owner's page photos (not one of F1 to F18; polish on already-shipped pages, Session 36) | S12.1 | **complete** (2026-10-31: built and deployed through PR #39, #40, #41 and #42; live QA findings repaired and re-checked on the live site, Session 39; the owner confirmed S12.1 is complete) |
 
 ## Module registry (68 modules, status per module ID)
 
