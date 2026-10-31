@@ -156,10 +156,27 @@ test.describe("a student", () => {
     await fillBasics(page);
     await page.getByRole("button", { name: "Next" }).click();
     await expect(page.getByText("Step 2 of 4")).toBeVisible();
-    // The draft is written a moment after the last change.
-    await page.waitForTimeout(600);
-    await page.reload();
+    // Reload only once the phone's database holds the draft on the second screen (it is written a moment after the change).
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            new Promise<string>((resolve) => {
+              const open = indexedDB.open("scollarly");
+              open.onerror = () => resolve("");
+              open.onsuccess = () => {
+                const db = open.result;
+                if (!db.objectStoreNames.contains("onboardingDraft")) return resolve("");
+                const all = db.transaction("onboardingDraft").objectStore("onboardingDraft").getAll();
+                all.onsuccess = () => resolve((all.result[0] as { step?: string } | undefined)?.step ?? "");
+                all.onerror = () => resolve("");
+              };
+            }),
+        ),
+      )
+      .toBe("results");
     // A reloaded page hydrates and reads the phone's database again, which is slow on a busy CI machine.
+    await page.reload();
     await expect(page.getByText("Step 2 of 4")).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "Back" }).click();
     await expect(page.getByLabel("Your full name")).toHaveValue("Ada Eze");
@@ -229,8 +246,11 @@ test.describe("without a connection, and without a session", () => {
     await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible();
     // The phone is back online but the server is still unreachable, so the answers must still be waiting after a reload.
     await context.setOffline(false);
-    await page.reload();
-    await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible({ timeout: 20_000 });
+    // A navigation straight after the connection returns can briefly fail on a busy machine, so try the reload until the page answers.
+    await expect(async () => {
+      await page.reload();
+      await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible({ timeout: 8_000 });
+    }).toPass({ timeout: 40_000 });
   });
 
   test("an ended session keeps the answers and asks the person to sign in", async ({ page }) => {

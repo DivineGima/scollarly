@@ -93,12 +93,34 @@ function Questionnaire({ userId }: { userId: string }) {
     };
   }, [userId]);
 
-  // Keep the answers on the phone after every change (a short pause, so typing is not a write per letter).
+  // Keep the answers on the phone after every change (a short pause, so typing is not a write per letter), at once when the screen
+  // changes, and when the page is hidden or closed, so leaving halfway never loses the last words typed.
+  const latest = useRef<OnboardingDraft | null>(null);
+  const savedStep = useRef<string | null>(null);
   useEffect(() => {
+    latest.current = draft;
     if (!loaded.current || !draft || phase.name !== "questions") return;
+    const stepChanged = savedStep.current !== null && savedStep.current !== draft.step;
+    savedStep.current = draft.step;
+    if (stepChanged) {
+      void saveDraft({ ...draft, updatedAt: Date.now() });
+      return;
+    }
     const timer = setTimeout(() => void saveDraft({ ...draft, updatedAt: Date.now() }), SAVE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [draft, phase.name]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (loaded.current && latest.current && document.visibilityState !== "visible") void saveDraft({ ...latest.current, updatedAt: Date.now() });
+    };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, []);
 
   useEffect(() => {
     if (phase.name === "questions") heading.current?.focus();
