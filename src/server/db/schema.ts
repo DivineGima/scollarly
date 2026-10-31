@@ -944,6 +944,7 @@ export const schema = {
   leadActivity,
   leadNote,
   leadClaim,
+  studentProfile,
   leadDuplicateDecision,
   dataRequest,
   university,
