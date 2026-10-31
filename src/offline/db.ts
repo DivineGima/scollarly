@@ -3,8 +3,8 @@ import type { QueuedLead } from "./logic";
 import type { OnboardingValues } from "@/modules/onboarding/payload";
 
 /**
- * The browser's small database (architecture 11.2). Five stores (the fifth, `onboardingDraft`, is the unfinished questionnaire of S13.3,
- * kept on the phone until it is sent and deleted on sign-out):
+ * The browser's small database (architecture 11.2). Six stores (`onboardingDraft` is the unfinished questionnaire of S13.3, kept until it is
+ * sent and deleted on sign-out; `dashboardSnapshot` is the staff Home's totals, S13.6, deleted on sign-out):
  *   leadQueue         applications waiting to be sent, keyed by their idempotency key
  *   eventQueue        analytics events waiting for the next batch
  *   meta              the browsing session id and a visit counter
@@ -36,6 +36,17 @@ export interface OnboardingDraft {
   updatedAt: number;
 }
 
+/** The staff Home's numbers kept for an offline moment (architecture 21.11). Counts only: no lead, name, number or reference. */
+export interface DashboardSnapshot {
+  userId: string;
+  period: string;
+  role: string;
+  /** The tile numbers and the leads-per-day line exactly as the Home call answered them (`totals` and `series`), without the activity list. */
+  totals: unknown;
+  series: { label: string; value: number }[];
+  updatedAt: number;
+}
+
 export interface ProgressSnapshot {
   userId: string;
   /** Empty when the student has no linked application yet (a snapshot can then hold only the profile fields below). */
@@ -55,12 +66,13 @@ interface ScollarlyDb extends DBSchema {
   meta: { key: string; value: unknown };
   progressSnapshot: { key: string; value: ProgressSnapshot };
   onboardingDraft: { key: string; value: OnboardingDraft };
+  dashboardSnapshot: { key: string; value: DashboardSnapshot };
 }
 
 export type OfflineDb = IDBPDatabase<ScollarlyDb>;
 
 const NAME = "scollarly";
-const VERSION = 2;
+const VERSION = 3;
 
 let opening: Promise<OfflineDb> | null = null;
 
@@ -76,6 +88,8 @@ export function offlineDb(): Promise<OfflineDb> {
       }
       // Version 2 (S13.3): the onboarding draft. Existing queues and snapshots are untouched.
       if (oldVersion < 2) db.createObjectStore("onboardingDraft", { keyPath: "userId" });
+      // Version 3 (S13.6): the staff Home's totals for offline reading.
+      if (oldVersion < 3) db.createObjectStore("dashboardSnapshot", { keyPath: "userId" });
     },
   }).catch((error) => {
     opening = null;

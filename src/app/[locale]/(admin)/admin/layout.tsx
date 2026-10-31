@@ -19,7 +19,7 @@ export default async function AdminLayout({ children, params }: { children: Reac
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
-  const messages = await clientMessages(locale as Locale, ["admin", "phase0"]);
+  const messages = await clientMessages(locale as Locale, ["admin", "phase0", "shell"]);
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <AdminShell>{children}</AdminShell>

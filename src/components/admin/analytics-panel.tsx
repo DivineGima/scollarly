@@ -69,7 +69,8 @@ export function defaultFilters(): Filters {
 export function filtersFromSearch(search: string): Filters {
   const params = new URLSearchParams(search);
   const base = defaultFilters();
-  const tab = params.get("tab");
+  // `view` is the hub's name for it (an old bookmark of the Insights hub, S13.6); `tab` is what the panel itself writes.
+  const tab = params.get("tab") ?? params.get("view");
   return {
     tab: (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : base.tab,
     from: params.get("from") ?? base.from,

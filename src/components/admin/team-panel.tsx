@@ -1,5 +1,6 @@
 "use client";
 
+import { PageIntro } from "@/components/shell/page-intro";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 import { api, type ApiFail } from "@/lib/client/api";
@@ -98,7 +99,7 @@ export function TeamPanel() {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <PageIntro title={t("title")} purpose={t("purpose")} />
         <Button onClick={() => openInvite()}>{t("invite")}</Button>
       </div>
 

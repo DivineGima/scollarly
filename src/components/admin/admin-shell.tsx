@@ -2,7 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { createContext, useContext, useEffect, useState } from "react";
-import { cn } from "./ui/cn";
+import { useUnreadCount } from "@/components/notifications/use-unread";
+import { AppNav } from "@/components/shell/app-nav";
+import { FirstVisitTour, type TourStep } from "@/components/shell/first-visit-tour";
+import { navLabels } from "@/components/shell/nav-labels";
+import { api } from "@/lib/client/api";
+import { activeItem, normalisePath, TOUR_KEYS, type TabKey } from "@/modules/nav/config";
 import { Badge } from "./ui/badge";
 import { StepUpProvider } from "./step-up";
 import { DataStatus, useAdminData } from "./use-admin-data";
@@ -13,6 +18,9 @@ export interface AdminSession {
   name: string;
   email: string;
   stepUpFresh: boolean;
+  /** The tabs whose first-visit tour this person has already seen (`app_user.tours_seen`). */
+  toursSeen: string[];
+  userId: string;
 }
 
 const SessionContext = createContext<AdminSession | null>(null);
@@ -21,34 +29,6 @@ export function useAdminSession(): AdminSession {
   const session = useContext(SessionContext);
   if (!session) throw new Error("useAdminSession needs the AdminShell");
   return session;
-}
-
-interface NavItem {
-  href: string;
-  label: "overview" | "leads" | "content" | "analytics" | "payments" | "dataRequests" | "notifications" | "profile" | "team" | "audit" | "security" | "settings" | "health";
-  ownerOnly?: boolean;
-}
-
-/** Every screen a stage adds is one line here. The menu follows the role (B-part intro, C-part intro of architecture 16). */
-const NAV: readonly NavItem[] = [
-  { href: "/admin", label: "overview" },
-  { href: "/admin/leads", label: "leads" },
-  { href: "/admin/content", label: "content" },
-  { href: "/admin/analytics", label: "analytics" },
-  { href: "/admin/payments", label: "payments" },
-  { href: "/admin/data-requests", label: "dataRequests" },
-  { href: "/admin/notifications", label: "notifications" },
-  { href: "/admin/profile", label: "profile" },
-  { href: "/admin/team", label: "team", ownerOnly: true },
-  { href: "/admin/audit", label: "audit", ownerOnly: true },
-  { href: "/admin/security", label: "security", ownerOnly: true },
-  { href: "/admin/settings", label: "settings", ownerOnly: true },
-  { href: "/admin/health", label: "health", ownerOnly: true },
-];
-
-/** A screen inside a section (a lead, the link requests) keeps its section's menu item lit; the Overview is only itself. */
-function isCurrent(path: string, href: string): boolean {
-  return href === "/admin" ? path === href : path === href || path.startsWith(`${href}/`);
 }
 
 function useOnline(): boolean {
@@ -67,22 +47,39 @@ function useOnline(): boolean {
 }
 
 /**
- * The admin frame (S2.6): a role-based menu, the offline banner (admin pages are online-only, architecture 11.4), the 2FA
- * step-up prompt, and the signed-in person's session for the screens inside. The page around it is the same HTML for
- * everyone; who you are and which items you see come from `/api/v1/admin/session` after the page has loaded.
+ * The admin frame (S2.6, S13.6): the signed-in person's name and role, the offline banner (admin pages are read-only offline, architecture
+ * 11.4), the 2FA step-up prompt, the floating bar with the round More button (architecture 21.10, ADR-041), and the three-step tour of the tab
+ * a person opens for the first time. The page around it is the same HTML for everyone; who you are and which More rows you see come from
+ * `/api/v1/admin/session` after the page has loaded. Access is decided by the server on every request, never by this menu.
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("admin");
+  const shell = useTranslations("shell");
   const { state, reload } = useAdminData<AdminSession>("/api/v1/admin/session");
   const online = useOnline();
   const [path, setPath] = useState("");
-  useEffect(() => setPath(window.location.pathname.replace(/^\/en(?=\/)/, "").replace(/\/+$/, "") || "/"), []);
+  const [seen, setSeen] = useState<string[] | null>(null);
+  useEffect(() => setPath(normalisePath(window.location.pathname)), []);
 
   const session = state.status === "ready" ? state.data : null;
+  useEffect(() => {
+    // A session that does not say which tours were seen shows none, rather than showing every tour again.
+    if (session) setSeen(Array.isArray(session.toursSeen) ? session.toursSeen : null);
+  }, [session]);
+
+  const unread = useUnreadCount("admin", session !== null);
+  const lit = session && path ? activeItem(session.role, path) : null;
+  const tourTab: TabKey | null = lit && lit !== "more" && (TOUR_KEYS as readonly string[]).includes(lit) ? lit : null;
+
+  function tourSeen(tab: TabKey) {
+    setSeen((current) => [...(current ?? []), tab]);
+    void api("POST", "/api/v1/admin/tour.seen", { tab });
+  }
+
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:bg-bg focus:p-2">
-        {t("nav.overview")}
+        {t("skip")}
       </a>
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
@@ -94,28 +91,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
           ) : null}
         </div>
-        <nav aria-label={t("nav.label")} className="mx-auto max-w-5xl px-4">
-          <ul className="flex flex-wrap gap-x-1 gap-y-1 pb-2">
-            {NAV.filter((item) => !item.ownerOnly || session?.role === "owner").map((item) => (
-              <li key={item.href}>
-                {/* Full page loads on purpose: each screen is a cached shell plus a data call (ADR-040). */}
-                <a
-                  href={item.href}
-                  aria-current={isCurrent(path, item.href) ? "page" : undefined}
-                  className={cn("inline-flex min-h-11 items-center rounded-md px-3 font-semibold hover:bg-surface", isCurrent(path, item.href) && "bg-surface")}
-                >
-                  {t(`nav.${item.label}`)}
-                </a>
-              </li>
-            ))}
-            <li>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/sign-out" className="inline-flex min-h-11 items-center rounded-md px-3 font-semibold hover:bg-surface">
-                {t("nav.signOut")}
-              </a>
-            </li>
-          </ul>
-        </nav>
       </header>
 
       {online ? null : (
@@ -133,6 +108,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <DataStatus state={state} reload={reload} />
         )}
       </main>
+
+      {session ? <AppNav role={session.role} labels={navLabels(shell as never, "staff")} unread={unread} /> : null}
+      {session && tourTab ? (
+        <FirstVisitTour
+          tabKey={tourTab}
+          steps={tourSteps(t.raw(`tours.${tourTab}`))}
+          labels={{ next: shell("tour.next"), skip: shell("tour.skip"), done: shell("tour.done"), stepOf: (step, total) => shell("tour.stepOf", { step, total }) }}
+          seen={seen === null ? null : seen.includes(tourTab)}
+          onSeen={tourSeen}
+        />
+      ) : null}
     </div>
   );
+}
+
+/** The steps of a tab's tour from the messages; anything that is not a list of title and body is no tour. */
+function tourSteps(raw: unknown): TourStep[] {
+  return Array.isArray(raw) ? (raw as TourStep[]).filter((step) => typeof step?.title === "string" && typeof step?.body === "string") : [];
 }

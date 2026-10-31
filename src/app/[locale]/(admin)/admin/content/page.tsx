@@ -1,9 +1,9 @@
 import { setRequestLocale } from "next-intl/server";
-import { ContentHub } from "@/components/admin/content/hub-panel";
+import { ContentSections } from "@/components/admin/hubs";
 
-// B6. A shell with no data: the cards and their counts are read in the browser after the page loads.
+// S13.6: the Content hub. Sections: the kinds of content, what is stale, the images. A shell with no data.
 export default async function AdminContentPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <ContentHub />;
+  return <ContentSections />;
 }

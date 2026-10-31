@@ -179,7 +179,8 @@
       "signedOutOthers": "Déconnecté de {count} autres sessions.",
       "signOut": "Se déconnecter",
       "roleOwner": "Propriétaire",
-      "roleAdmin": "Administrateur"
+      "roleAdmin": "Administrateur",
+      "purpose": "Votre nom et les informations avec lesquelles vous vous connectez."
     },
     "team": {
       "title": "Équipe",
@@ -212,7 +213,8 @@
       "errorEmail": "Saisissez une adresse e-mail valide.",
       "errorAlreadyStaff": "Cette personne fait déjà partie de l'équipe.",
       "errorConflict": "Une invitation vient d'être créée pour cette adresse. Rechargez la page.",
-      "errorGeneric": "Une erreur s'est produite. Veuillez réessayer."
+      "errorGeneric": "Une erreur s'est produite. Veuillez réessayer.",
+      "purpose": "Qui peut travailler dans Scollarly, et ce que chacun peut faire."
     },
     "audit": {
       "title": "Journal d'audit",
@@ -273,7 +275,8 @@
       "download": "Télécharger",
       "codesSaved": "Je les ai enregistrés",
       "signOutEverywhere": "Se déconnecter partout ailleurs",
-      "signedOutEverywhere": "Déconnecté de {count} autres sessions."
+      "signedOutEverywhere": "Déconnecté de {count} autres sessions.",
+      "purpose": "La connexion en deux étapes, et les appareils connectés à votre compte."
     },
     "leads": {
       "title": "Dossiers",
@@ -1234,6 +1237,154 @@
         "cloudflare": "Cloudflare : requêtes et erreurs du Worker",
         "github": "GitHub : minutes Actions et stockage des artefacts"
       }
+    },
+    "skip": "Aller au contenu principal",
+    "home": {
+      "title": "Accueil",
+      "purpose": "Votre journée en un coup d'œil : ce qui vous attend, comment va la période, et ce qui s'est passé en dernier.",
+      "welcome": "Bonjour {name}",
+      "period": {
+        "label": "Période",
+        "week": "Cette semaine",
+        "month": "Ce mois-ci"
+      },
+      "needs": {
+        "title": "Ce qui vous attend aujourd'hui",
+        "nothing": "Rien ne vous attend pour le moment.",
+        "overdue": "{count, plural, one {# contact est en retard} other {# contacts sont en retard}}",
+        "waiting": "{count, plural, one {# contact attend une réponse} other {# contacts attendent une réponse}}",
+        "claims": "{count, plural, one {# demande de lien} other {# demandes de lien}}",
+        "data": "{count, plural, one {# demande de données} other {# demandes de données}}"
+      },
+      "tiles": {
+        "newLeads": "Nouveaux contacts",
+        "waiting": "En attente de réponse",
+        "overdue": "En retard",
+        "stageMoves": "Vos changements d'étape",
+        "payments": "Paiements reçus",
+        "onboarded": "Étudiants inscrits"
+      },
+      "change": {
+        "now": "En ce moment",
+        "same": {
+          "week": "Comme la semaine dernière",
+          "month": "Comme le mois dernier"
+        },
+        "up": {
+          "week": "En hausse de {delta} sur la semaine dernière",
+          "month": "En hausse de {delta} sur le mois dernier"
+        },
+        "down": {
+          "week": "En baisse de {delta} sur la semaine dernière",
+          "month": "En baisse de {delta} sur le mois dernier"
+        }
+      },
+      "chart": {
+        "caption": {
+          "week": "Nouveaux contacts chaque jour cette semaine",
+          "month": "Nouveaux contacts chaque jour ce mois-ci"
+        },
+        "day": "Jour",
+        "leads": "Nouveaux contacts",
+        "empty": "Aucun nouveau contact sur cette période pour l'instant. Quand il en arrivera un, il s'affichera ici."
+      },
+      "activity": {
+        "title": "Dernière activité",
+        "emptyTitle": "Rien ne s'est encore passé",
+        "emptyNext": "Les nouveaux contacts, les réponses et les changements d'étape s'afficheront ici.",
+        "emptyAction": "Ouvrir Contacts",
+        "types": {
+          "created": "Nouveau contact {ref}",
+          "note": "Une note a été ajoutée à {ref}",
+          "stage_changed": "{ref} est passé à une nouvelle étape",
+          "reply_logged": "Une réponse a été notée sur {ref}",
+          "assigned": "{ref} a été attribué",
+          "admin_wa_opened": "WhatsApp a été ouvert pour {ref}",
+          "claimed": "{ref} a été lié à un compte étudiant",
+          "merged": "{ref} a été fusionné avec un autre contact",
+          "duplicate_dismissed": "Un doublon de {ref} a été écarté",
+          "anonymised": "{ref} a été effacé à la demande de l'étudiant",
+          "other": "Quelque chose a changé sur {ref}"
+        }
+      },
+      "offline": "Vous êtes hors ligne. Voici les totaux que ce téléphone a gardés.",
+      "lastUpdated": "Dernière mise à jour : {date}."
+    },
+    "hub": {
+      "loading": "Chargement…",
+      "label": "Sections",
+      "leads": {
+        "leads": "Contacts",
+        "linkRequests": "Demandes de lien",
+        "dataRequests": "Demandes de données"
+      },
+      "content": {
+        "overview": "Tout le contenu",
+        "stale": "À vérifier",
+        "media": "Images"
+      },
+      "insights": {
+        "results": "Résultats",
+        "payments": "Paiements"
+      }
+    },
+    "tours": {
+      "home": [
+        {
+          "title": "Votre journée sur un écran",
+          "body": "L'encadré du haut dit ce qui vous attend. Touchez un chiffre pour ouvrir la liste derrière."
+        },
+        {
+          "title": "Cette semaine ou ce mois-ci",
+          "body": "Changez de période. Chaque chiffre se compare à la période précédente."
+        },
+        {
+          "title": "Le bouton rond",
+          "body": "Il ouvre les notifications, votre profil et, pour le propriétaire, Équipe, Sécurité, Journal, Santé et Réglages."
+        }
+      ],
+      "leads": [
+        {
+          "title": "Tous ceux qui ont écrit",
+          "body": "La liste montre tous les contacts. Utilisez les onglets au-dessus pour voir ceux en retard ou non attribués."
+        },
+        {
+          "title": "Demandes de lien et de données",
+          "body": "Les étudiants vous demandent de lier un dossier ou d'exporter ou d'effacer leurs données. Chacune a sa section."
+        },
+        {
+          "title": "Ouvrez un contact pour agir",
+          "body": "Écrire sur WhatsApp, changer l'étape, ajouter une note et attribuer, tout sur un seul écran."
+        }
+      ],
+      "content": [
+        {
+          "title": "Tout ce que montre le site public",
+          "body": "Chaque carte est un type de contenu : universités, tarifs, questions et plus."
+        },
+        {
+          "title": "À vérifier",
+          "body": "Les tarifs et liens de visite non vérifiés depuis longtemps sont listés ici. Vérifiez-en un, puis marquez-le comme vérifié."
+        },
+        {
+          "title": "Images",
+          "body": "Voyez la part du budget d'images utilisée avant d'en ajouter."
+        }
+      ],
+      "insights": [
+        {
+          "title": "Comment va le travail",
+          "body": "L'entonnoir montre où les gens s'arrêtent. Les sources montrent d'où ils viennent."
+        },
+        {
+          "title": "Vos propres chiffres",
+          "body": "L'onglet Performance montre votre rapidité de réponse. Le propriétaire voit aussi chaque administrateur."
+        },
+        {
+          "title": "Paiements",
+          "body": "Les paiements de placement reçus des universités. Enregistrez-en un ou annulez une erreur avec un motif."
+        }
+      ]
     }
   },
   "site": {

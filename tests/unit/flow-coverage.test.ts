@@ -75,3 +75,53 @@ describe("S11.2: every click flow of section 16 has an end-to-end test", () => {
     }
   });
 });
+
+/**
+ * Version 2 (S13.6, architecture 21.17): the click flows of the refactor. Same rule as above: the headings are read from the current
+ * architecture, so a flow added to it without a test fails here, and a renamed or deleted test fails here instead of leaving a quiet gap.
+ * Part D (the landing page) joins in S13.7.
+ */
+const mapV2: Record<string, { file: string; title: string }[]> = {
+  "A2.1": [{ file: "s13-2-sign-up.spec.ts", title: "Create account" }],
+  "A2.2": [{ file: "s13-3-onboarding.spec.ts", title: "a student" }, { file: "s13-3-onboarding.spec.ts", title: "a parent" }],
+  "A2.3": [
+    { file: "s13-4-student-app.spec.ts", title: "the floating bar" },
+    { file: "s13-4-student-app.spec.ts", title: "Home" },
+    { file: "s13-4-student-app.spec.ts", title: "Universities" },
+    { file: "s13-4-student-app.spec.ts", title: "Help" },
+  ],
+  "A2.4": [{ file: "s13-5-notifications.spec.ts", title: "the student's Notifications" }],
+  "B2.1": [{ file: "s13-6-admin-hubs.spec.ts", title: "B2.1 Home" }, { file: "s13-6-admin-hubs.spec.ts", title: "the first-visit tour" }],
+  "B2.2": [{ file: "s13-6-admin-hubs.spec.ts", title: "B2.2 to B2.4 the hubs" }],
+  "B2.3": [{ file: "s13-6-admin-hubs.spec.ts", title: "B2.2 to B2.4 the hubs" }],
+  "B2.4": [{ file: "s13-6-admin-hubs.spec.ts", title: "B2.2 to B2.4 the hubs" }],
+  "B2.5": [{ file: "s13-6-admin-hubs.spec.ts", title: "B2.5 the floating bar" }, { file: "s13-5-notifications.spec.ts", title: "staff Notifications" }],
+};
+
+function flowsInArchitecture2(): string[] {
+  const text = readFileSync("system_architecture/system_architecture_2.md", "utf8");
+  const section = text.slice(text.indexOf("### 21.17 Page and click map"), text.indexOf("#### Part D: Public"));
+  return [...section.matchAll(/^##### ([AB]2\.\d)/gm)].map((m) => m[1] as string);
+}
+
+describe("S13.6: every click flow of the refactor (21.17) has an end-to-end test", () => {
+  const flows = flowsInArchitecture2();
+
+  it("finds the flows of both parts in the architecture", () => {
+    expect(flows.filter((f) => f.startsWith("A2.")).length).toBe(4);
+    expect(flows.filter((f) => f.startsWith("B2.")).length).toBe(5);
+  });
+
+  it("maps every flow, and maps nothing that is not a flow", () => {
+    expect(flows.filter((f) => !(f in mapV2))).toEqual([]);
+    expect(Object.keys(mapV2).filter((f) => !flows.includes(f))).toEqual([]);
+  });
+
+  it.each(Object.entries(mapV2))("%s is proven by a test that still exists", (_flow, proofs) => {
+    expect(proofs.length).toBeGreaterThan(0);
+    for (const { file, title } of proofs) {
+      const source = readFileSync(`${E2E}/${file}`, "utf8");
+      expect(source.includes(title), `${file} should contain "${title}"`).toBe(true);
+    }
+  });
+});

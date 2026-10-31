@@ -110,34 +110,42 @@ async function signIn(page: Page, role: "admin" | "owner" = "admin") {
 // ---- B1 ------------------------------------------------------------------------------------------------------------
 
 test.describe("B1 Overview", () => {
-  const overview = { unanswered: 7, overdue: 2, mine: 3, unassigned: 4, today: 5, pendingClaims: 1, openDataRequests: 2, funnel: STAGES.map((s, i) => ({ code: s.code, name: s.name, count: [4, 2, 0][i] })) };
+  // S13.6: the Overview is the staff Home (`GET admin/home`). The new flows are proven in s13-6-admin-hubs.spec.ts; these two keep the old promises:
+  // each number opens the list behind it, and an unreadable page says so and can be retried.
+  const home = (over: Record<string, unknown> = {}) => ({
+    period: "week",
+    role: "admin",
+    days: 7,
+    series: Array.from({ length: 7 }, (_, i) => ({ label: `2026-10-${String(15 + i)}`, value: i % 3 })),
+    totals: { newLeads: { value: 5, previous: 3 }, waiting: 7, overdue: 2, stageMoves: { value: 1, previous: 0 }, pendingClaims: 1, openDataRequests: 2, payments: null, onboarded: null },
+    activity: [],
+    ...over,
+  });
 
-  test("shows the counts, each tile opens its filtered list, and the funnel opens a stage", async ({ page }) => {
+  test("shows the counts, each number opens its filtered list, and what needs the admin is linked", async ({ page }) => {
     await signIn(page);
-    await page.route("**/api/v1/admin/overview", (route) => json(route, overview));
+    await page.route("**/api/v1/admin/home*", (route) => json(route, home()));
     await page.goto("/admin");
-    await expect(page.getByTestId("tile-unanswered")).toHaveText("7");
-    await expect(page.getByTestId("tile-overdue")).toHaveText("2");
-    await expect(page.getByRole("link", { name: /Overdue/ })).toHaveAttribute("href", "/admin/leads?view=overdue");
-    await expect(page.getByRole("link", { name: /Assigned to me/ })).toHaveAttribute("href", "/admin/leads?assigned=me");
-    await expect(page.getByRole("link", { name: /Unassigned/ })).toHaveAttribute("href", "/admin/leads?view=unassigned");
-    await expect(page.getByRole("link", { name: /Link requests/ })).toHaveAttribute("href", "/admin/leads/link-requests");
-    await expect(page.getByRole("link", { name: /Data requests/ }).last()).toHaveAttribute("href", "/admin/data-requests");
-    await expect(page.getByRole("link", { name: /Choose course/ })).toHaveAttribute("href", "/admin/leads?stage=choose_course");
+    await expect(page.getByTestId("tile-waiting")).toContainText("7");
+    await expect(page.getByTestId("tile-overdue")).toContainText("2");
+    await expect(page.getByTestId("tile-overdue")).toHaveAttribute("href", "/admin/leads?view=overdue");
+    await expect(page.getByTestId("tile-waiting")).toHaveAttribute("href", "/admin/leads?view=unanswered");
+    await expect(page.getByRole("link", { name: "1 link request" })).toHaveAttribute("href", "/admin/leads?view=link-requests");
+    await expect(page.getByRole("link", { name: "2 data requests" })).toHaveAttribute("href", "/admin/leads?view=data-requests");
     await axe(page);
   });
 
-  test("says so when there are no leads yet, and shows an error with a retry when the counts cannot be read", async ({ page }) => {
+  test("says so when there is nothing yet, and shows an error with a retry when the numbers cannot be read", async ({ page }) => {
     await signIn(page);
     let calls = 0;
-    await page.route("**/api/v1/admin/overview", (route) => {
+    await page.route("**/api/v1/admin/home*", (route) => {
       calls += 1;
-      return calls === 1 ? fail(route, 500, "INTERNAL") : json(route, { ...overview, funnel: overview.funnel.map((f) => ({ ...f, count: 0 })) });
+      return calls === 1 ? fail(route, 500, "INTERNAL") : json(route, home({ activity: [], series: Array.from({ length: 7 }, (_, i) => ({ label: `2026-10-${String(15 + i)}`, value: 0 })) }));
     });
     await page.goto("/admin");
     await expect(alerts(page)).toContainText("We could not load this page.");
     await page.getByRole("button", { name: "Try again" }).click();
-    await expect(page.getByText("No leads yet.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Nothing has happened yet" })).toBeVisible();
   });
 });
 
@@ -234,7 +242,7 @@ test.describe("B2 Leads list", () => {
     expect(seen.at(-1)?.searchParams.get("view")).toBe("unassigned");
     await page.getByRole("button", { name: "All", exact: true }).click();
     await expect(page.getByText("No leads match.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Link requests" })).toHaveAttribute("href", "/admin/leads/link-requests");
+    await expect(page.getByRole("link", { name: "Link requests" })).toHaveAttribute("href", "/admin/leads?view=link-requests");
   });
 
   test("shows an error with a retry, and a message for filters the server refuses", async ({ page }) => {
@@ -710,11 +718,11 @@ test.describe("the menu", () => {
     await signIn(page);
     await page.route(ONE_LEAD, (route) => json(route, detail()));
     await page.route("**/api/v1/admin/link-requests", (route) => json(route, { claims: [] }));
-    const menu = page.getByRole("navigation", { name: "Admin menu" });
+    const menu = page.getByRole("navigation", { name: "Main tabs" });
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await expect(menu.getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
-    await expect(menu.getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current", "page");
-    await page.goto("/admin/leads/link-requests");
+    await expect(menu.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current", "page");
+    await page.goto("/admin/leads?view=link-requests");
     await expect(menu.getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
   });
 });
