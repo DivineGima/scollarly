@@ -32,6 +32,8 @@ export function createAuthFacade(resolveSession: ResolveSession) {
   async function requireRole(headers: Headers, required: Role): Promise<Actor> {
     const actor = await checkSession(headers);
     if (!actor) throw new AuthError("UNAUTHENTICATED", "Sign in required.");
+    // A Google login that has not confirmed a Scollarly account has no powers anywhere (architecture 21.3, ADR-042).
+    if (!actor.accountConfirmed) throw new AuthError("ACCOUNT_NOT_CONFIRMED", "Create your account to continue.");
     if (!hasAtLeast(actor, required)) throw new AuthError("FORBIDDEN", "Not allowed.");
     return actor;
   }

@@ -31,11 +31,13 @@ async function axe(page: Page) {
 }
 
 test.describe("A9 sign in", () => {
-  test("has one Google button that is a plain link to /auth/start, the no-Google line, and passes axe", async ({ page }) => {
+  test("has one Google button that is a plain link to /auth/start, a way to create an account, the no-Google line, and passes axe", async ({ page }) => {
     await page.goto("/sign-in");
-    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-    const button = page.getByRole("link", { name: "Continue with Google" });
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+    await expect(page.getByText("This page is for people who already have an account.")).toBeVisible();
+    const button = page.getByRole("link", { name: "Sign in with Google" });
     await expect(button).toHaveAttribute("href", "/auth/start");
+    await expect(page.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up");
     await expect(page.getByText("No Google account? You can still apply and message us on WhatsApp.")).toBeVisible();
     await expect(alerts(page)).toHaveCount(0);
     await axe(page);
@@ -56,7 +58,7 @@ test.describe("A9 sign in", () => {
   test("tells an offline visitor that sign-in needs a connection", async ({ page, context }) => {
     await page.goto("/sign-in");
     await context.setOffline(true);
-    await expect(page.getByRole("status")).toHaveText("You need a connection to sign in.");
+    await expect(page.getByRole("status")).toHaveText("You need a connection to sign in or create an account.");
     await context.setOffline(false);
     await expect(page.getByRole("status")).toHaveCount(0);
   });

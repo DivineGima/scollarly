@@ -97,6 +97,13 @@ describe("account confirmation (ADR-042)", () => {
     expect((await confirmedAt("promote-1")).account_confirmed_at).not.toBeNull();
   });
 
+  it("confirms a staff row that is created as admin or owner, but not a student row", async () => {
+    await appUserRow(t, "staff-1", "admin");
+    await appUserRow(t, "student-new");
+    expect((await confirmedAt("staff-1")).account_confirmed_at).not.toBeNull();
+    expect((await confirmedAt("student-new")).account_confirmed_at).toBeNull();
+  });
+
   it("leaves an unconfirmed account unconfirmed when something else about it changes", async () => {
     await appUserRow(t, "plain-1");
     await t.run("update app_user set notifications_seen_at = now() where id = 'plain-1'");

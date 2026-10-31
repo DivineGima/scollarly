@@ -65,7 +65,8 @@ async function stepUpAt(session: Session, ageMs: number) {
 
 async function newUser(role: "student" | "admin" | "owner", email?: string, verified = true): Promise<Session> {
   const user = await t.signIn({ ...(email ? { email } : {}), verified });
-  await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
+  // An account that existed before version 2 is confirmed (migration 0013); a staff row is confirmed by the database itself.
+  await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, now())`);
   return user;
 }
 
@@ -293,7 +294,8 @@ describe("S2.3: sign-in landing and owner bootstrap", () => {
   it("gives the owner role only to the verified OWNER_EMAIL, only while no owner exists, and writes an audit row", async () => {
     // The owner already exists in this database, so a second person with the same email cannot become one.
     const impostor = await t.signIn({ email: "OWNER@example.test".replace("OWNER", "owner2") });
-    expect(await landing(impostor)).toBe("/me");
+    // A brand-new login with no account: not the owner, and not yet a Scollarly account either (S13.2).
+    expect(await landing(impostor)).toBe("/account/confirm");
     expect(await count(`select count(*)::int as n from app_user where role = 'owner'`)).toBe(1);
   });
 

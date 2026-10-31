@@ -9,6 +9,7 @@ import { authDataCalls, authMutations } from "@/modules/auth/endpoints";
 import { paymentDataCalls, paymentMutations } from "@/modules/payments/endpoints";
 import { settingsDataCalls, settingsMutations } from "@/modules/settings/endpoints";
 import { profileDataCalls, profileMutations } from "@/modules/profile/endpoints";
+import { accountMutations } from "@/modules/account/endpoints";
 import { studentDataCalls, studentMutations } from "@/modules/student/endpoints";
 import { teamDataCalls, teamMutations } from "@/modules/team/endpoints";
 import { createAuthFacade } from "@/server/auth/facade";
@@ -64,7 +65,7 @@ export function mutationDeps(env: CloudflareEnv): MutationDeps {
   return {
     checkSession: facadeFor(endpoint).checkSession,
     env: endpoint,
-    mutations: { ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
+    mutations: { ...accountMutations, ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
     // The caller is hashed with a daily salt at once; the raw address is never stored or logged (ADR-027).
     limit: async (operation, request, max, windowMs) =>
       limiter(await limiterKey({ route: operation, ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET), max, windowMs),

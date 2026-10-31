@@ -15,14 +15,16 @@ import type { EndpointEnv } from "./endpoint-env";
  * the operation declares; it is not middleware.
  */
 
-export const MUTATION_PATH = /^\/api\/v1\/(admin|me|auth|invites)\/([A-Za-z][A-Za-z0-9.]{0,63})$/;
+export const MUTATION_PATH = /^\/api\/v1\/(admin|me|auth|invites|account)\/([A-Za-z][A-Za-z0-9.]{0,63})$/;
 const MAX_BODY_BYTES = 8 * 1024;
 
 export type Access =
   /** Anyone, signed in or not. Needs `limit`, because there is no user to blame. */
   | { kind: "public" }
-  /** Any signed-in user. */
+  /** Any signed-in user with a confirmed Scollarly account. */
   | { kind: "signed-in" }
+  /** Any signed-in Google login, including one that has not confirmed an account yet (architecture 21.3): only `account/*` uses it. */
+  | { kind: "account" }
   /** The owner account whether or not it has passed 2FA yet: the 2FA enrol and verify operations themselves. */
   | { kind: "stored-owner" }
   /** At least this effective role (an owner without 2FA is a student), and optionally a 2FA check in the last 10 minutes. */
@@ -69,7 +71,7 @@ export function classifyMutation(method: string, url: URL): { area: string; oper
 
 export interface AccessDenied {
   status: 401 | 403;
-  code: "UNAUTHENTICATED" | "FORBIDDEN" | "STEP_UP_REQUIRED";
+  code: "UNAUTHENTICATED" | "FORBIDDEN" | "STEP_UP_REQUIRED" | "ACCOUNT_NOT_CONFIRMED";
   message: string;
 }
 
@@ -77,6 +79,9 @@ export interface AccessDenied {
 export function denyAccess(access: Access, actor: Actor | null, now: Date): AccessDenied | null {
   if (access.kind === "public") return null;
   if (!actor) return { status: 401, code: "UNAUTHENTICATED", message: "Sign in required." };
+  if (access.kind === "account") return null;
+  // Every other operation needs a confirmed account, whatever the role says (ADR-042).
+  if (!actor.accountConfirmed) return { status: 403, code: "ACCOUNT_NOT_CONFIRMED", message: "Create your account to continue." };
   switch (access.kind) {
     case "signed-in":
       return null;

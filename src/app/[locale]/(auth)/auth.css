@@ -111,3 +111,37 @@
   gap: var(--space-4);
   align-items: center;
 }
+
+/* Sign in versus Create account (architecture 21.3): the two choices stack, each a full-width thumb-sized target. */
+.auth-choices {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.auth-choices .auth-button {
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding-block: var(--space-3);
+  text-align: center;
+}
+
+.auth-button-sub {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.auth-choices-label {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+}
+
+.auth-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--color-accent);
+  font-weight: 600;
+}
