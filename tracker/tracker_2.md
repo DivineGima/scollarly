@@ -14,7 +14,7 @@ This tracker starts the refactor (PRD_2, architecture 2, essentials 2). It does 
 | Approved design document | `docs/designs/scollarly-v2-refactor.md` (approved by the owner 2026-10-31; spec review not run) |
 | Phase | Stages 0 to 9 and 12 of version 1 are complete and live (see tracker_1). Stages 10 and 11 are `in-progress` in tracker_1 and their three open modules are carried into S13.8. **The refactor documents are written; no refactor code exists yet.** |
 | Next stage | **Stage 13 (the refactor).** S13.1 is complete and merged (PR #46, Session 41). **S13.2 (sign in and create account) is next.** |
-| Blocked by | Nothing blocks the code. The owner still needs to add one sentence to `CLAUDE.md` Step 2 (flag F21). R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
+| Blocked by | Nothing blocks the code. R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -67,7 +67,11 @@ Claude Code: after reading this tracker, ask the owner each open check-in below 
 
 **CI result:** the first run failed three table-coverage tests (`schema-foundation` twice, the owner-export decision test once) because `student_profile` was missing from the exported `schema` object and from `EXPORT_TABLES`. Fixed in the same PR (the profile is in the owner's full export, as lead data already is); I had run only subsets of the integration suite locally, so the full suite (673 tests) is now run before every push. All six checks then passed and the owner asked for the merge on green: PR #46 merged 2026-10-31.
 
-**Not done / owner:** The course field and level reach the live database only when the seed is run against production (needs the owner's go-ahead). The throwaway Neon branch `test-s13-1-migration` still exists and costs nothing while idle; deleting it needs the owner's word. The `CLAUDE.md` Step 2 sentence (F21) is the owner's to add. No human item was marked done by Claude Code.
+**Not done / owner:** The course field and level reach the live database only when the seed is run against production (needs the owner's go-ahead). The throwaway Neon branch `test-s13-1-migration` still exists and costs nothing while idle; deleting it needs the owner's word. The `CLAUDE.md` Step 2 sentence (F21) was added at the owner's request after this entry (PR #47). No human item was marked done by Claude Code.
+
+### 2026-10-31: Session 42 (owner housekeeping before S13.2)
+
+At the owner's explicit word: (1) the Step 2 sentence was added to `CLAUDE.md` (flag F21 resolved, PR #47); (2) the course field and level were filled on the **live** database with one SQL update through the Neon tools, the same fill the seed performs (it only writes empty values): 77 of 77 programmes filled, totals checked per field and level; (3) the throwaway Neon branch `test-s13-1-migration` was deleted. Then module S13.2 was started.
 
 ## Flags (need the owner)
 
@@ -75,7 +79,7 @@ Open flags carried from tracker_1 (full text in its Flags table; only items trac
 
 | ID | Flag | Why it matters | Needed from owner |
 |---|---|---|---|
-| F21 | **Owner decided yes on 2026-10-31 (carry S10.2, S11.4, S11.6 into S13.8); the one sentence in `CLAUDE.md` Step 2 is still the owner's to add.** `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Open.** Recommendation: (a) accept that S10.2, S11.4 and S11.6 are carried into S13.8 and that tracker_2 closes Stages 10 and 11 of version 1 as "handed over", then add one sentence to `CLAUDE.md` Step 2 saying so; or (b) finish the three modules inside version 1 first. Decision R8. |
+| F21 | **Resolved 2026-10-31: the owner decided yes (carry S10.2, S11.4, S11.6 into S13.8) and asked Claude Code to add the sentence to `CLAUDE.md` Step 2, done on branch `docs/tracker-s13-1-complete` (PR #47).** `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Open.** Recommendation: (a) accept that S10.2, S11.4 and S11.6 are carried into S13.8 and that tracker_2 closes Stages 10 and 11 of version 1 as "handed over", then add one sentence to `CLAUDE.md` Step 2 saying so; or (b) finish the three modules inside version 1 first. Decision R8. |
 | F22 | Google's OAuth app is in Testing mode with the owner as the only test user (H8, H21). | Real students cannot sign up, so the first real onboarding cannot happen. | **Open.** Owner action R1: publish the OAuth app when ready. |
 | F23 | The design document and PRD_2's first draft said "new programme columns" and "no row until confirm"; the code shows otherwise (see Session 40). | The approved wording and the built behaviour differ slightly. | **Open for confirmation.** The architecture's amendment log lists the five points; the owner confirms or overrules each. |
 
@@ -147,7 +151,7 @@ Recorded only when the owner says so.
 | R5 | Legal check and text for a parent applying for a child, minors, and consent for automatic lead creation (extends H5) | Launch | Open |
 | R6 | Trust content for the landing page (E1 to E3) | Launch | Open |
 | R7 | Confirm Stage 13 and the S13.x numbering | Start of the stage | **Confirmed by the owner 2026-10-31.** |
-| R8 | Decide `CLAUDE.md` Step 2 (flag F21) | Start of the stage | **Decided yes 2026-10-31.** The sentence in `CLAUDE.md` is still to be added by the owner. |
+| R8 | Decide `CLAUDE.md` Step 2 (flag F21) | Start of the stage | **Decided yes 2026-10-31; the sentence was added to `CLAUDE.md` Step 2 at the owner's request (PR #47).** |
 | R9 | Merge the pull request that adds PRD_2, architecture 2, essentials 2, tracker_2 and the design document | Start of S13.1 | **Done: the owner merged PR #45 (2026-10-31).** |
 
 ### Carried from tracker_1 (open items only; full text and the done items are in tracker_1)
