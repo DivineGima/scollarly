@@ -151,11 +151,6 @@ export function LeadsPanel() {
               </button>
             </li>
           ))}
-          <li>
-            <a href="/admin/leads/link-requests" className="inline-flex min-h-11 items-center rounded-md px-3 font-semibold hover:bg-surface">
-              {t("tabs.linkRequests")}
-            </a>
-          </li>
         </ul>
       </nav>
 

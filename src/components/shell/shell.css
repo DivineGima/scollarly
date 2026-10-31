@@ -303,3 +303,37 @@
   background: transparent;
   color: var(--color-fg);
 }
+
+/* The sections of a hub (S13.6): plain links to the same cached shell with ?view=. The current one is filled. */
+.hub-sections {
+  margin: 0 0 var(--space-4);
+}
+
+.hub-sections ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.hub-sections a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target, 2.75rem);
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  color: var(--color-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hub-sections a[aria-current="page"] {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}

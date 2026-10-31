@@ -159,15 +159,25 @@ test.describe("staff Notifications", () => {
     await expect(items.nth(0)).toContainText("Ama Mensah (SC-ABCDE-FGHJK) is overdue for a reply.");
     await expect(items.nth(0).getByRole("link", { name: "Open lead" })).toHaveAttribute("href", "/admin/leads/11111111-1111-4111-8111-111111111111");
     await expect(items.nth(1)).toContainText("2 link requests are waiting.");
-    await expect(items.nth(1).getByRole("link", { name: "Open requests" })).toHaveAttribute("href", "/admin/leads/link-requests");
+    await expect(items.nth(1).getByRole("link", { name: "Open requests" })).toHaveAttribute("href", "/admin/leads?view=link-requests");
     await expect(items.nth(2)).toContainText("Payment of $1,500.00 recorded for Alpha University.");
     await axe(page);
   });
 
   test("is linked from the admin menu", async ({ page }) => {
     await page.route("**/api/v1/admin/session", (route) => json(route, { role: "admin", name: "Priya", email: "p@example.test", stepUpFresh: false }));
-    await page.route("**/api/v1/admin/overview*", (route) => json(route, { unanswered: 0, overdue: 0, mine: 0, unassigned: 0, today: 0, pendingClaims: 0, openDataRequests: 0, funnel: [] }));
+    await page.route("**/api/v1/admin/home*", (route) =>
+      json(route, {
+        period: "week",
+        role: "admin",
+        days: 7,
+        series: [],
+        totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null },
+        activity: [],
+      }),
+    );
     await page.goto("/admin");
-    await expect(page.getByRole("link", { name: "Notifications" })).toHaveAttribute("href", "/admin/notifications");
+    await page.getByRole("button", { name: "More" }).click();
+    await expect(page.getByRole("dialog", { name: "More" }).getByRole("link", { name: "Notifications" })).toHaveAttribute("href", "/admin/notifications");
   });
 });

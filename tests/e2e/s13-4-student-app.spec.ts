@@ -151,6 +151,7 @@ test.describe("Universities", () => {
   test("labels a university with no NAAC grade 'not stated', and lists it after the graded ones", async ({ page }) => {
     await stubPreferences(page, preferences({ courseFields: [] }));
     await page.goto("/me/universities");
+    await expect(page.getByTestId("naac").first()).toBeVisible();
     const grades = await page.getByTestId("naac").allInnerTexts();
     expect(grades.length).toBeGreaterThan(0);
     const firstMissing = grades.findIndex((g) => g.includes("not stated"));

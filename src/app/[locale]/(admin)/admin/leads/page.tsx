@@ -1,9 +1,9 @@
 import { setRequestLocale } from "next-intl/server";
-import { LeadsPanel } from "@/components/admin/leads-panel";
+import { LeadsHub } from "@/components/admin/hubs";
 
-// B2. A shell with no data: the list, its filters and its tabs are read in the browser after the page loads.
+// S13.6: the Leads hub. Sections: the list, the link requests, the data requests. A shell with no data: each section reads its own data.
 export default async function AdminLeadsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <LeadsPanel />;
+  return <LeadsHub />;
 }

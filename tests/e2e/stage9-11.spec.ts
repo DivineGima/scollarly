@@ -279,15 +279,23 @@ test.describe("C3 every admin's performance", () => {
   test("the owner's menu has Settings and Health and the admin's does not; both have Payments", async ({ page }) => {
     await as(page, "owner");
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
-    await page.goto("/admin/payments");
-    const nav = page.getByRole("navigation", { name: "Admin menu" });
-    for (const name of ["Payments", "Settings", "Health", "Analytics", "Content"]) await expect(nav.getByRole("link", { name })).toBeVisible();
+    await page.goto("/admin/insights?view=payments");
+    const tabs = page.getByRole("navigation", { name: "Sections" });
+    await expect(tabs.getByRole("link", { name: "Payments" })).toBeVisible();
+    await page.getByRole("button", { name: "More" }).click();
+    let sheet = page.getByRole("dialog", { name: "More" });
+    await expect(sheet.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(sheet.getByRole("link", { name: "Health" })).toBeVisible();
+    await page.keyboard.press("Escape");
+
     await page.unroute("**/api/v1/admin/session");
     await as(page, "admin");
-    await page.goto("/admin/payments");
-    await expect(page.getByRole("navigation", { name: "Admin menu" }).getByRole("link", { name: "Payments" })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Admin menu" }).getByRole("link", { name: "Settings" })).toHaveCount(0);
-    await expect(page.getByRole("navigation", { name: "Admin menu" }).getByRole("link", { name: "Health" })).toHaveCount(0);
+    await page.goto("/admin/insights?view=payments");
+    await expect(tabs.getByRole("link", { name: "Payments" })).toBeVisible();
+    await page.getByRole("button", { name: "More" }).click();
+    sheet = page.getByRole("dialog", { name: "More" });
+    await expect(sheet.getByRole("link", { name: "Settings" })).toHaveCount(0);
+    await expect(sheet.getByRole("link", { name: "Health" })).toHaveCount(0);
   });
 });
 

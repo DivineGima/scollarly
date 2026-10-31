@@ -296,20 +296,24 @@ async function asRole(page: Page, session: typeof OWNER | typeof ADMIN) {
 }
 
 test.describe("S2.6 the admin shell", () => {
-  test("shows an admin the lead screens, Profile and Sign out, and the owner everything", async ({ page }) => {
+  test("shows an admin the four tabs, and Profile and Sign out behind More; the owner gets the owner's pages there too", async ({ page }) => {
     await asRole(page, ADMIN);
-    await page.route("**/api/v1/admin/overview", (route) => json(route, { unanswered: 0, overdue: 0, mine: 0, unassigned: 0, today: 0, pendingClaims: 0, openDataRequests: 0, funnel: [] }));
+    await page.route("**/api/v1/admin/home*", (route) => json(route, { period: "week", role: "admin", days: 7, series: [], totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null }, activity: [] }));
+    await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
     await page.goto("/admin");
-    const menu = page.getByRole("navigation", { name: "Admin menu" });
-    await expect(menu.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
-    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Content", "Analytics", "Payments", "Data requests", "Notifications", "Profile", "Sign out"]);
-    await expect(page.getByText("Welcome, Priya.")).toBeVisible();
+    const bar = page.getByRole("navigation", { name: "Main tabs" });
+    await expect(bar.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    await expect(bar.getByRole("link")).toHaveText(["Home", "Leads", "Content", "Insights"]);
     await expect(page.getByText("priya@example.test")).toBeVisible();
+    await page.getByRole("button", { name: "More" }).click();
+    const sheet = page.getByRole("dialog", { name: "More" });
+    await expect(sheet.getByRole("link")).toHaveText(["Notifications", "Profile", "Sign out"]);
     await axe(page);
 
     await asRole(page, OWNER);
     await page.goto("/admin");
-    await expect(menu.getByRole("link")).toHaveText(["Overview", "Leads", "Content", "Analytics", "Payments", "Data requests", "Notifications", "Profile", "Team", "Audit log", "Security", "Settings", "Health", "Sign out"]);
+    await page.getByRole("button", { name: "More" }).click();
+    await expect(page.getByRole("dialog", { name: "More" }).getByRole("link")).toHaveText(["Notifications", "Profile", "Team", "Audit log", "Security", "Settings", "Health", "Sign out"]);
   });
 
   test("an admin who opens an owner page sees nothing of it", async ({ page }) => {
@@ -340,10 +344,20 @@ test.describe("S2.6 the admin shell", () => {
       calls += 1;
       return calls === 1 ? fail(route, 500, "INTERNAL") : json(route, ADMIN);
     });
+    await page.route("**/api/v1/admin/home*", (route) =>
+      json(route, {
+        period: "week",
+        role: "admin",
+        days: 7,
+        series: [],
+        totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null },
+        activity: [],
+      }),
+    );
     await page.goto("/admin");
     await expect(alerts(page)).toContainText("could not load this page");
     await page.getByRole("button", { name: "Try again" }).click();
-    await expect(page.getByText("Welcome, Priya.")).toBeVisible();
+    await expect(page.getByText("Hi Priya")).toBeVisible();
   });
 
   test("warns when the phone is offline", async ({ page, context }) => {

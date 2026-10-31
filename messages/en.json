@@ -179,7 +179,8 @@
       "signedOutOthers": "Signed out of {count} other sessions.",
       "signOut": "Sign out",
       "roleOwner": "Owner",
-      "roleAdmin": "Admin"
+      "roleAdmin": "Admin",
+      "purpose": "Your name and the details you sign in with."
     },
     "team": {
       "title": "Team",
@@ -212,7 +213,8 @@
       "errorEmail": "Enter a valid email address.",
       "errorAlreadyStaff": "That person is already on the team.",
       "errorConflict": "An invite was just created for that email. Reload the page.",
-      "errorGeneric": "Something went wrong. Please try again."
+      "errorGeneric": "Something went wrong. Please try again.",
+      "purpose": "Who can work in Scollarly, and what each person may do."
     },
     "audit": {
       "title": "Audit log",
@@ -273,7 +275,8 @@
       "download": "Download",
       "codesSaved": "I saved them",
       "signOutEverywhere": "Sign out everywhere else",
-      "signedOutEverywhere": "Signed out of {count} other sessions."
+      "signedOutEverywhere": "Signed out of {count} other sessions.",
+      "purpose": "Two-factor sign-in, and the devices signed in to your account."
     },
     "leads": {
       "title": "Leads",
@@ -1234,6 +1237,154 @@
         "cloudflare": "Cloudflare: Worker requests and errors",
         "github": "GitHub: Actions minutes and artifact storage"
       }
+    },
+    "skip": "Skip to the main content",
+    "home": {
+      "title": "Home",
+      "purpose": "Your day at a glance: what needs you, how the period is going, and what happened last.",
+      "welcome": "Hi {name}",
+      "period": {
+        "label": "Period",
+        "week": "This week",
+        "month": "This month"
+      },
+      "needs": {
+        "title": "Needs you today",
+        "nothing": "Nothing is waiting for you right now.",
+        "overdue": "{count, plural, one {# lead is overdue} other {# leads are overdue}}",
+        "waiting": "{count, plural, one {# lead is waiting for a reply} other {# leads are waiting for a reply}}",
+        "claims": "{count, plural, one {# link request} other {# link requests}}",
+        "data": "{count, plural, one {# data request} other {# data requests}}"
+      },
+      "tiles": {
+        "newLeads": "New leads",
+        "waiting": "Waiting for a reply",
+        "overdue": "Overdue",
+        "stageMoves": "Your stage moves",
+        "payments": "Payments received",
+        "onboarded": "Students onboarded"
+      },
+      "change": {
+        "now": "Right now",
+        "same": {
+          "week": "Same as last week",
+          "month": "Same as last month"
+        },
+        "up": {
+          "week": "Up {delta} on last week",
+          "month": "Up {delta} on last month"
+        },
+        "down": {
+          "week": "Down {delta} on last week",
+          "month": "Down {delta} on last month"
+        }
+      },
+      "chart": {
+        "caption": {
+          "week": "New leads each day this week",
+          "month": "New leads each day this month"
+        },
+        "day": "Day",
+        "leads": "New leads",
+        "empty": "No new leads in this period yet. When one arrives it will show here."
+      },
+      "activity": {
+        "title": "Latest activity",
+        "emptyTitle": "Nothing has happened yet",
+        "emptyNext": "New leads, replies and stage changes will show here.",
+        "emptyAction": "Open Leads",
+        "types": {
+          "created": "New lead {ref}",
+          "note": "A note was added to {ref}",
+          "stage_changed": "{ref} moved to a new stage",
+          "reply_logged": "A reply was logged on {ref}",
+          "assigned": "{ref} was assigned",
+          "admin_wa_opened": "WhatsApp was opened for {ref}",
+          "claimed": "{ref} was linked to a student account",
+          "merged": "{ref} was merged with another lead",
+          "duplicate_dismissed": "A duplicate of {ref} was dismissed",
+          "anonymised": "{ref} was erased at the student's request",
+          "other": "Something changed on {ref}"
+        }
+      },
+      "offline": "You are offline. These are the totals this phone kept.",
+      "lastUpdated": "Last updated {date}."
+    },
+    "hub": {
+      "loading": "Loading…",
+      "label": "Sections",
+      "leads": {
+        "leads": "Leads",
+        "linkRequests": "Link requests",
+        "dataRequests": "Data requests"
+      },
+      "content": {
+        "overview": "All content",
+        "stale": "Needs checking",
+        "media": "Images"
+      },
+      "insights": {
+        "results": "Results",
+        "payments": "Payments"
+      }
+    },
+    "tours": {
+      "home": [
+        {
+          "title": "Your day on one screen",
+          "body": "The box at the top says what needs you. Tap a number to open the list behind it."
+        },
+        {
+          "title": "This week or this month",
+          "body": "Switch the period. Each number compares with the period before it."
+        },
+        {
+          "title": "The round button",
+          "body": "It opens Notifications, your profile and, for the owner, Team, Security, Audit, Health and Settings."
+        }
+      ],
+      "leads": [
+        {
+          "title": "Everyone who asked",
+          "body": "The list shows every lead. Use the tabs above it to see overdue or unassigned ones."
+        },
+        {
+          "title": "Link requests and data requests",
+          "body": "Students ask you to link an application or to export or erase their data. Each has its own section."
+        },
+        {
+          "title": "Open a lead to act",
+          "body": "Message on WhatsApp, move the stage, add a note and assign it, all on one screen."
+        }
+      ],
+      "content": [
+        {
+          "title": "Everything the public site shows",
+          "body": "Each card is one kind of content: universities, fees, FAQs and more."
+        },
+        {
+          "title": "Needs checking",
+          "body": "Fees and tour links nobody has checked for a while are listed here. Check one, then mark it checked."
+        },
+        {
+          "title": "Images",
+          "body": "See how much of the picture budget is used before you upload more."
+        }
+      ],
+      "insights": [
+        {
+          "title": "How the work is going",
+          "body": "The funnel shows where people stop. Sources show where they come from."
+        },
+        {
+          "title": "Your own numbers",
+          "body": "The Performance tab shows how fast you reply. The owner also sees every admin."
+        },
+        {
+          "title": "Payments",
+          "body": "Placement payments received from universities. Record one or void a mistake with a reason."
+        }
+      ]
     }
   },
   "site": {

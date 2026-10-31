@@ -10,6 +10,7 @@ import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
 import { writeAudit } from "@/server/repositories/audit";
 import { mySessions, profileOf, revokeOtherSessions, setProfileName } from "@/server/repositories/identity";
+import { toursSeenOf } from "@/server/repositories/tours";
 import { createSecondFactorStore } from "@/server/repositories/second-factor";
 
 /**
@@ -78,7 +79,7 @@ export function profileDataCalls(env: EndpointEnv): Record<string, DataCall> {
     "admin/session": async (actor, call) => {
       const profile = call.token ? await profileOf(env.db, call.token) : null;
       if (!profile) throw new AuthError("UNAUTHENTICATED", "Sign in required.");
-      return { role: actor.role, name: profile.name, email: profile.email, stepUpFresh: isStepUpFresh(actor, env.now()) };
+      return { role: actor.role, name: profile.name, email: profile.email, stepUpFresh: isStepUpFresh(actor, env.now()), toursSeen: await toursSeenOf(env.db, actor), userId: actor.userId };
     },
 
     /** C6 step 1: 2FA status and active sessions (the current one is marked). Owner only. */

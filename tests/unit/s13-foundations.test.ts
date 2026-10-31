@@ -247,8 +247,8 @@ describe("the legacy admin addresses (21.5, ADR-049)", () => {
     expect(handleLegacyRedirect(new Request("https://example.test/admin/leads"))).toBeNull();
   });
 
-  it("is not wired into the Worker yet (S13.6 does that, with the hubs)", () => {
-    expect(readFileSync("worker/index.ts", "utf8")).not.toContain("legacy-redirects");
+  it("is wired into the Worker (S13.6 did that, with the hubs)", () => {
+    expect(readFileSync("worker/index.ts", "utf8")).toContain("legacy-redirects");
   });
 });
 

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { clearDashboardSnapshot } from "@/offline/dashboard-snapshot";
 import { clearKeptShells } from "@/offline/kept-shells";
 import { clearOnboardingOnDevice } from "@/offline/onboarding-draft";
 import { clearProgressSnapshot } from "@/offline/progress-snapshot";
@@ -21,6 +22,7 @@ export function SignOutRunner() {
     await clearProgressSnapshot();
     await clearOnboardingOnDevice();
     await clearKeptShells();
+    await clearDashboardSnapshot();
     try {
       const response = await fetch("/api/auth/sign-out", {
         method: "POST",

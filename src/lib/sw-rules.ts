@@ -29,11 +29,11 @@ export function isMediaImage(pathname: string): boolean {
 
 /**
  * The signed-in shells the service worker may keep and serve only when the network fails (architecture 21.11, ADR-047). A shell is the
- * data-free page of a signed-in route: the same HTML for everyone, nothing private in it. Only the student app's pages today; the staff
- * pages join them with the staff hubs (S13.6). The sign-in, sign-out and account pages, the questionnaire's API and every `/api/*`
+ * data-free page of a signed-in route: the same HTML for everyone, nothing private in it. The student app's pages, and the staff's four tabs
+ * with Notifications and Profile (S13.6). The sign-in, sign-out and account pages, the questionnaire's API and every `/api/*`
  * route are not shells and are never kept.
  */
-export const KEPT_SHELL = new RegExp(`^(?:/(?:${locales.join("|")}))?/me(?:/(?:universities|progress|help|notifications|profile|data|link-application|onboarding))?/?$`);
+export const KEPT_SHELL = new RegExp(`^(?:/(?:${locales.join("|")}))?/(?:me(?:/(?:universities|progress|help|notifications|profile|data|link-application|onboarding))?|admin(?:/(?:leads|content|insights|notifications|profile))?)/?$`);
 
 export function isKeptShell(pathname: string): boolean {
   return KEPT_SHELL.test(pathname);

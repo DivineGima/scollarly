@@ -1,5 +1,6 @@
 "use client";
 
+import { PageIntro } from "@/components/shell/page-intro";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { api, downloadTextFile } from "@/lib/client/api";
@@ -55,7 +56,7 @@ export function SecurityPanel() {
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <PageIntro title={t("title")} purpose={t("purpose")} />
       <DataStatus state={state} reload={reload} />
       {state.status === "ready" ? (
         <>

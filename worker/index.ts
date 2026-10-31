@@ -5,6 +5,7 @@
 import { applySecurityHeaders } from "../src/lib/security-headers";
 import { runScheduled } from "../src/server/edge/cron";
 import { handleAuthed } from "../src/server/edge/authed";
+import { handleLegacyRedirect } from "../src/server/edge/legacy-redirects";
 import { authedDeps, landingDeps, mutationDeps } from "../src/server/edge/authed-runtime";
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
 import { handleLanding } from "../src/server/edge/landing";
@@ -47,6 +48,10 @@ async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext
   const url = new URL(request.url);
   if (request.method === "POST" && url.pathname === LEADS_PATH) return handleLeadPost(request, env);
   if (request.method === "POST" && url.pathname === EVENTS_PATH) return handleEventsPost(request, env);
+
+  // Old admin addresses that became sections of a hub (architecture 21.5): a tiny map, before any session check, so a bookmark keeps working at no cost.
+  const moved = handleLegacyRedirect(request);
+  if (moved) return moved;
 
   const signIn = handleSignIn(request, env);
   if (signIn) return signIn;

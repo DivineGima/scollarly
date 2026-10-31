@@ -36,13 +36,13 @@ function actionOf(item: NotificationItem): { href: string; label: "openProgress"
     case "lead_waiting":
       return { href: `/admin/leads/${item.leadId ?? ""}`, label: "openLead" };
     case "link_requests":
-      return { href: "/admin/leads/link-requests", label: "openRequests" };
+      return { href: "/admin/leads?view=link-requests", label: "openRequests" };
     case "data_requests":
-      return { href: "/admin/data-requests", label: "openRequests" };
+      return { href: "/admin/leads?view=data-requests", label: "openRequests" };
     case "payment":
-      return { href: "/admin/payments", label: "openPayments" };
+      return { href: "/admin/insights?view=payments", label: "openPayments" };
     case "stale_content":
-      return { href: "/admin/content/stale", label: "openStale" };
+      return { href: "/admin/content?view=stale", label: "openStale" };
     case "storage":
       return { href: "/admin/health", label: "openHealth" };
   }

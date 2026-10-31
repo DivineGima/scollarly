@@ -129,14 +129,14 @@ describe("the first name", () => {
 });
 
 describe("what the service worker may keep (21.11, ADR-047)", () => {
-  it("keeps only the student app's own shells", () => {
-    for (const path of ["/me", "/me/", "/me/universities", "/me/progress", "/me/help", "/me/notifications", "/me/profile", "/me/data", "/me/link-application", "/me/onboarding", "/en/me", "/en/me/universities/"]) {
+  it("keeps only the signed-in app's own shells: the student's pages and the staff's four tabs, Notifications and Profile", () => {
+    for (const path of ["/me", "/me/", "/me/universities", "/me/progress", "/me/help", "/me/notifications", "/me/profile", "/me/data", "/me/link-application", "/me/onboarding", "/en/me", "/en/me/universities/", "/admin", "/admin/leads", "/admin/content", "/admin/insights", "/admin/notifications", "/admin/profile", "/en/admin/"]) {
       expect(isKeptShell(path), path).toBe(true);
     }
   });
 
   it("never keeps anything else signed-in: no API, no staff pages, no probes, no sign-in or account pages", () => {
-    for (const path of ["/api/v1/me/home", "/api/v1/me/onboarding", "/admin", "/admin/leads", "/me/phase0", "/me/unknown", "/me/universities/x", "/account/confirm", "/sign-in", "/sign-out", "/two-factor", "/universities", "/"]) {
+    for (const path of ["/api/v1/me/home", "/api/v1/me/onboarding", "/admin/leads/abc", "/admin/team", "/admin/audit", "/admin/security", "/admin/settings", "/admin/health", "/admin/payments", "/admin/phase0", "/me/phase0", "/me/unknown", "/me/universities/x", "/account/confirm", "/sign-in", "/sign-out", "/two-factor", "/universities", "/"]) {
       expect(isKeptShell(path), path).toBe(false);
     }
   });
