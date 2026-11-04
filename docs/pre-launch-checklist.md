@@ -79,6 +79,22 @@
 
 Three real people use the live app with **no help from you**: one student, one parent, and one admin (or the first person you will invite). Watch without speaking and note the first place each got lost. Send the notes to Claude Code, who records them in `tracker/tracker_2.md` (the "Watched test log" table). This needs R1 to be done, because the student and the parent need a Google account that can sign up. Claude Code cannot run this step.
 
+## E3. Version 3 checks (S14.8)
+
+Try these on the live site, on a phone, signed out and then signed in:
+
+- [ ] Signed out: the public pages open, but Apply, a WhatsApp button, the Contact button and the course finder button show the sign-in pop-up. No chat opens.
+- [ ] Create an account with an email and a password (8 characters or more). You land on the questionnaire, not on a dashboard. The last button says **Sign up**. After it you land on the app.
+- [ ] Sign out and sign in again with the same email and password. Wrong password: one plain sentence.
+- [ ] Sign in with Google too (the same checks).
+- [ ] **Staff sign in with Google only.** Do not give a staff member (or yourself) a password login. If a staff member is locked out, remove their password account in the Neon console (F30).
+- [ ] Campus tours page: each university with a video shows a preview picture; tapping it plays the video. Karnataka has no tour and is not listed. Nothing says "available on request".
+- [ ] No fee, fee range or "to be confirmed" text anywhere; the footer does not say "Free for students"; links have no underline except inside running text.
+- [ ] Privacy and Terms are complete and name Scollarly with gimafolabit@gmail.com (owner action R5: have them reviewed by a lawyer before launch).
+- [ ] Admin, Insights, Overview: the tiles, the five charts and the filters work; Download as CSV opens in a spreadsheet and has no names, numbers or emails.
+- [ ] Admin, Leads, Pipeline: move a lead to another step; it moves and the list shows the new step.
+- [ ] Google console (owner action R1): publish the OAuth app so people other than you can sign in with Google, and paste the Privacy and Terms addresses there.
+
 ## F. Sign-off (H11)
 
 When A to E are done: write "I sign off the pre-launch checklist" to Claude Code, with the date. It records your words in the tracker (H11). Until then Stage 11 stays `in-progress`.

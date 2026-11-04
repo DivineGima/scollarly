@@ -36,6 +36,12 @@
 - No "does this email exist" signal: a refused sign-up and a wrong sign-in each return one fixed answer. **Limits (as built, there is no account lockout):** 30 tries per 10 minutes per caller address and 8 tries per 15 minutes per email address (a salted hash, so no address is stored). Passwords are never logged or cached. **Trust rule (review fix, `src/server/auth/trusted-session.ts`):** Neon Auth creates a password account with an unverified email because we have no email sender. The facade and the lead endpoint trust an unverified session **for a student only**; an admin or the owner needs a verified email. The owner bootstrap, the invite acceptance and the email-based claims check the verified flag again inside their own SQL, and migration 0016 lets a password student's own lead link to their account. **Known exposure (tracker F30):** while email and password is on, Neon Auth's own public address also answers email routes, outside these Worker limits; and a person could register an unverified account with an email they do not own. Turning verification on (needs a sender) removes both before launch.
 - Reset is not built (no sender). The page text per PRD_3 F21.
 
+**As built, staff and password logins (flag F30, migration 0018).** Neon Auth's own sign-up address cannot be closed from our side, and a stranger can register a password account on an email that later belongs to staff. So the session query refuses the admin and owner roles when the account also holds a password login (a `credential` account in `neon_auth.account`): staff and the owner use Google only, and the rule sits in the database, so the direct Neon address cannot bypass it. Students are not affected. The residual (strangers creating student accounts at Neon's own address) reaches only their own data. Test: `tests/integration/f30-staff-no-password.test.ts`.
+
+**As built, the staff leads list (flag F32).** The page of leads, the team, the stage names and the universities are read in one round trip (`listLeadsPage`), not four, to keep the warm p95 under the 8 ms gate.
+
+**As built, applying the tours to the live database.** The manual `seed-content` workflow (main only) runs `scripts/seed.ts --tours-only` (the tour rows and their preview pictures only) and then `scripts/ops/archive-old-tours.mjs` (archives the earlier placeholder videos once their replacement is published; nothing is deleted).
+
 ### 22.4 Onboarding first (ADR-053)
 
 - `app_user.onboarding_done_at` (additive; backfilled from existing `student_profile` rows). `Actor.onboardingDone`.
