@@ -3,6 +3,7 @@
  *
  *   npx tsx scripts/seed.ts --dir data/seed --dry-run     check the files and the images, touch nothing
  *   npx tsx scripts/seed.ts --dir data/seed               import the images, then insert the rows
+ *   npx tsx scripts/seed.ts --dir data/seed --tours-only  only the campus tour rows and their preview pictures (S14.6)
  *
  * Environment for a real run (see docs/stage-1-runbook.md; nothing here is read from a file in the repository):
  *   MIGRATION_DATABASE_URL            the OWNER role's connection string, as the migrations use
@@ -23,6 +24,19 @@ import { createMediaStore } from "../src/server/media/store";
 import { findAssetIdBySha256, insertMediaAsset } from "../src/server/repositories/media";
 import { applySeed } from "../src/server/repositories/seed";
 import { toWebpWithinCap } from "./lib/image";
+
+const EMPTY_ROWS = {
+  universities: [],
+  programmes: [],
+  feeStructures: [],
+  campusExperiences: [],
+  officialResources: [],
+  faqs: [],
+  processSteps: [],
+  contentBlocks: [],
+  pageImages: [],
+  siteSettings: [],
+};
 
 function argValue(name: string): string | undefined {
   const at = process.argv.indexOf(name);
@@ -64,7 +78,9 @@ async function main(): Promise<void> {
     fail("the seed files are not valid.");
   }
   const bundle = parsed.data;
-  const images = imageFiles(bundle);
+  const toursOnly = process.argv.includes("--tours-only");
+  // `--tours-only` touches nothing but the campus tour rows and their preview pictures, so a content change elsewhere in the seed files is never applied by it.
+  const images = new Map([...imageFiles(bundle)].filter(([file]) => !toursOnly || file.startsWith("tour-thumbs/")));
   const missing = [...images.keys()].filter((file) => !existsSync(join(dir, file)));
   if (missing.length > 0) fail(`image files not found in ${dir}: ${missing.join(", ")}`);
 
@@ -106,7 +122,8 @@ async function main(): Promise<void> {
     console.log(`  image ${file}: ${result.status} (${result.bytes} bytes, ${result.width}x${result.height})`);
   }
 
-  const report = await applySeed(db, await buildSeedRows(bundle, mediaIds));
+  const built = await buildSeedRows(bundle, mediaIds);
+  const report = await applySeed(db, toursOnly ? { ...EMPTY_ROWS, campusExperiences: built.campusExperiences } : built);
   console.log("seed: rows inserted this run (a second run reports zeros):");
   for (const [table, count] of Object.entries(report)) console.log(`  ${table}: ${count}`);
 }

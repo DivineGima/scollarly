@@ -219,6 +219,7 @@
   }
 }
 .crm-filters label {
+  min-width: 0;
   display: grid;
   gap: var(--space-1);
   font-size: var(--text-sm, 0.875rem);
@@ -226,6 +227,9 @@
 }
 .crm-filters input,
 .crm-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   min-height: var(--touch-target, 2.75rem);
   padding: 0 var(--space-2);
   border: 1px solid var(--color-border);
@@ -255,6 +259,7 @@
 }
 .crm-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
 }
 @media (min-width: 48rem) {
@@ -263,6 +268,8 @@
   }
 }
 .crm-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg, 0.75rem);
@@ -297,7 +304,7 @@
 }
 .bar-chart-row {
   display: grid;
-  grid-template-columns: minmax(5rem, 9rem) 1fr auto;
+  grid-template-columns: minmax(4rem, 8rem) minmax(0, 1fr) auto;
   gap: var(--space-2);
   align-items: center;
 }
@@ -316,7 +323,7 @@
 }
 .bar-chart-value {
   font-weight: 700;
-  white-space: nowrap;
+  text-align: right;
 }
 .bar-chart-note {
   font-weight: 400;

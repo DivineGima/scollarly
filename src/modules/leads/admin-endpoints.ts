@@ -14,7 +14,7 @@ import {
   getLeadScreen,
   getOverviewCounts,
   listDuplicatePairs,
-  listLeadsAdmin,
+  listLeadsPage,
   listStageNames,
   listUniversityOptions,
   logAdminWhatsAppOpen,
@@ -101,22 +101,19 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
       if (!parsed.success) return invalid(newRequestId());
       const q = parsed.data;
       const now = env.now();
-      const [rows, people, stages, universities] = await Promise.all([
-        listLeadsAdmin(env.db, actor, {
-          view: q.view,
-          ...(q.stage ? { stage: q.stage } : {}),
-          ...(q.country ? { country: q.country } : {}),
-          ...(q.university ? { universityId: q.university } : {}),
-          ...(q.assigned ? { assigned: q.assigned } : {}),
-          ...(q.q ? { q: q.q } : {}),
-          ...(q.before ? { before: q.before } : {}),
-          limit: LEADS_PAGE_SIZE + 1,
-          now,
-        }),
-        staffPeople(env, actor),
-        listStageNames(env.db, actor),
-        listUniversityOptions(env.db, actor),
-      ]);
+      const listed = await listLeadsPage(env.db, actor, {
+        view: q.view,
+        ...(q.stage ? { stage: q.stage } : {}),
+        ...(q.country ? { country: q.country } : {}),
+        ...(q.university ? { universityId: q.university } : {}),
+        ...(q.assigned ? { assigned: q.assigned } : {}),
+        ...(q.q ? { q: q.q } : {}),
+        ...(q.before ? { before: q.before } : {}),
+        limit: LEADS_PAGE_SIZE + 1,
+        now,
+      });
+      const { rows, stages, universities } = listed;
+      const people = peopleOf(listed.team);
       const page = rows.slice(0, LEADS_PAGE_SIZE);
       const last = page[page.length - 1];
       return {
