@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TOUR_FRAME_ORIGINS } from "@/lib/tour-hosts";
 import { applySecurityHeaders, CSP, SECURITY_HEADERS, securityHeaderList } from "@/lib/security-headers";
 
 describe("security headers (architecture 13.1)", () => {
@@ -21,8 +22,9 @@ describe("security headers (architecture 13.1)", () => {
     const directives: Record<string, string[]> = Object.fromEntries(CSP.split("; ").map((d) => [d.split(" ")[0] ?? "", d.split(" ").slice(1)]));
     expect(directives["connect-src"]).toEqual(["'self'"]);
     expect(directives["img-src"]).toEqual(["'self'", "data:", "blob:"]);
-    // `https:` is for the tapped 360 tour frame: staff enter any https tour address (the seeded tours are on other hosts), and a list of hosts would block them.
-    expect(directives["frame-src"]).toEqual(expect.arrayContaining(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com", "https:"]));
+    // Only YouTube's privacy domain, Turnstile and the listed 360 tour hosts may be framed (tracker F31): no bare `https:` any more.
+    expect(directives["frame-src"]).toEqual(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com", ...TOUR_FRAME_ORIGINS]);
+    expect(directives["frame-src"]).not.toContain("https:");
     expect(directives["frame-src"]).not.toContain("http:");
     expect(directives["frame-src"]).not.toContain("*");
     expect(directives["frame-ancestors"]).toEqual(["'none'"]);

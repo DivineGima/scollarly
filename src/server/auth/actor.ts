@@ -27,6 +27,8 @@ export interface ResolvedSession {
    * `app_user.account_confirmed_at`; an absent value (older test resolvers) counts as confirmed.
    */
   accountConfirmed?: boolean;
+  /** Whether a student has finished onboarding (architecture 22.4, ADR-053). An absent value (older test resolvers) counts as done. */
+  onboardingDone?: boolean;
 }
 
 export const STEP_UP_WINDOW_MS = 10 * 60 * 1000; // architecture 9.3 step 5 [Mine, confirm]
@@ -48,13 +50,23 @@ export interface ActorData {
    * such an actor; only the `account` area and sign-out work (S13.2).
    */
   accountConfirmed: boolean;
+  /** True once a student has finished onboarding. Staff never need it (`needsOnboarding` asks only student-role accounts). */
+  onboardingDone: boolean;
 }
 
 export type Actor = Readonly<ActorData> & { readonly [actorBrand]: true };
 
 /** `accountConfirmed` defaults to true so callers that build an actor for a confirmed user (tests, background jobs) stay short. */
-export function mintActor(data: Omit<ActorData, "accountConfirmed"> & { accountConfirmed?: boolean }): Actor {
-  return Object.freeze({ ...data, accountConfirmed: data.accountConfirmed ?? true }) as Actor;
+export function mintActor(data: Omit<ActorData, "accountConfirmed" | "onboardingDone"> & { accountConfirmed?: boolean; onboardingDone?: boolean }): Actor {
+  return Object.freeze({ ...data, accountConfirmed: data.accountConfirmed ?? true, onboardingDone: data.onboardingDone ?? true }) as Actor;
+}
+
+/**
+ * A student who has not finished onboarding may use only the questionnaire (PRD_3 F15, ADR-053). Staff and the owner are never asked: this
+ * looks at the stored role, so an owner who has not passed 2FA yet (treated as a student for powers) is still not sent to a questionnaire.
+ */
+export function needsOnboarding(actor: Pick<ActorData, "storedRole" | "onboardingDone">): boolean {
+  return actor.storedRole === "student" && !actor.onboardingDone;
 }
 
 export function isRole(value: unknown): value is Role {

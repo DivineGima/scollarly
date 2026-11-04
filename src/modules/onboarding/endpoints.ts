@@ -40,6 +40,7 @@ export const onboardingMutations: Record<string, Mutation> = {
   /** Finishes onboarding: one idempotent write that makes the profile and exactly one lead (the key is the header `Idempotency-Key`). */
   "me/onboarding": {
     access: { kind: "signed-in" },
+    beforeOnboarding: true,
     async handle({ actor, env, body, request, requestId }) {
       const outcome = await completeOnboarding(
         {

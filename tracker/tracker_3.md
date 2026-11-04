@@ -11,9 +11,9 @@ This tracker starts version 3 (PRD_3, architecture 3, essentials 3). `tracker_2.
 | Current PRD | `PRD_3.md` (2026-11-04, full copy: part A amendments, part B the whole of PRD_2) |
 | Current architecture | `system_architecture_3.md` (2026-11-04, derived from `PRD_3.md`; section 22 wins over older text) |
 | Essentials file | `essentials/system_architecture_essential_3.md` (Stage 14, one stage) |
-| Phase | Stage 13 modules S13.1 to S13.6 complete; S13.7 to S13.9 built and deployed but `in-progress` (owner-paced items, carried into S14.8). **Stage 14: S14.1 to S14.4 merged (PR #59, #62) and the review fixes in PR for branch `fix/s14-review`; S14.5 to S14.8 not started. Nothing of Stage 14 is deployed yet.** |
-| Next module | S14.5 (onboarding first), then S14.6, S14.7, S14.8. First deploy S14.1 to S14.4 and try real email sign-up and sign-in on the live site (no test covers real Neon Auth). |
-| Blocked by | Nothing blocks the code. F30 (below) is an owner decision before launch. |
+| Phase | Stage 13 modules S13.1 to S13.6 complete; S13.7 to S13.9 built and deployed but `in-progress` (owner-paced items, carried into S14.8). **Stage 14: S14.1 to S14.4 merged and deployed (2026-11-04). S14.5 to S14.8 are built and tested on branch `release/s14-8` (one pull request: it holds the work of PR #65, #66 and #67 plus the fixes below). Deployed status is recorded in the session log once the deploy has run.** |
+| Next module | After the deploy: the owner tries the live site (sign-up, onboarding, tours, CRM). Then the owner-paced items carried in S14.8. |
+| Blocked by | Nothing blocks the code. |
 
 ## Start-of-task check results (CLAUDE.md steps 1 to 7), 2026-11-04
 
@@ -40,10 +40,10 @@ This tracker starts version 3 (PRD_3, architecture 3, essentials 3). `tracker_2.
 | S14.2 | Privacy and Terms | complete in code (merged in #62); owner legal review R5 still open | Session 2 |
 | S14.3 | Account-first actions | complete (merged in #62, CI green); onboarding return after sign-up lands in S14.5 | Session 2 |
 | S14.4 | Email and password | complete in code (merged in #62); enabled in Neon Auth; **not deployed and not yet tried against real Neon Auth**; the review found the facade rejected unverified emails (fixed in `fix/s14-review`) | Session 3 |
-| S14.5 | Onboarding first | not started | |
-| S14.6 | Real tours | not started | |
-| S14.7 | CRM charts, board, filters, export | not started | |
-| S14.8 | QA, deploy and carry-over | not started | |
+| S14.5 | Onboarding first | complete in code and tests (migration 0017); in the release pull request | Session 4 |
+| S14.6 | Real tours | complete in code and tests (8 verified videos, frame policy limited to known hosts); tour seed is applied to production by the `seed-content` workflow | Session 4 |
+| S14.7 | CRM charts, board, filters, export | complete in code and tests (unit 19, integration 15, browser 8) | Session 4 |
+| S14.8 | QA, deploy and carry-over | in-progress: traceability test, checklist, F30 and F32 repairs, seed workflow done; deploy and live CPU run pending; the owner-paced carried items stay `in-progress` | Session 4 |
 
 Carried and still `in-progress` (owner-paced, see tracker_2): S13.7, S13.8, S13.9, S10.2, S11.4, S11.6.
 
@@ -61,6 +61,10 @@ Built on branches stacked in order (PR #59 S14.1, PR #60 S14.2, S14.3 and S14.4 
 
 Created this tracker at the owner's request (it had not been created when the v3 documents were merged). The v3 documents are in place (PRs #56 and #57); `CLAUDE.md` Step 2 points to version 3. Next: plan and build S14.1 to S14.4.
 
+### 2026-11-04: Session 4 (S14.5 to S14.8)
+
+Built against essentials 3 and architecture 3 (PRD_3). S14.5 onboarding first (migration 0017), S14.6 real tours (8 verified videos, frame policy), S14.7 CRM (overview, pipeline board, filters, CSV export). S14.8: one release branch holding all three; the leads list now runs in one database round trip (F32); F30 repaired with migration 0018 (staff and the owner cannot hold a session on an account that has a password login; checked that the owner has none); a small phone-width overflow in the CRM charts found by CI was fixed; `seed-content` workflow added (manual, `main` only) to put the tour videos and preview pictures on the live database and archive the earlier placeholder videos; traceability test `tests/unit/s14-8-traceability.test.ts` maps F15, F18, F20, F21, F22, F23 and the fee removal to tests; the pre-launch checklist has a new section E3. Open: deploy, the live CPU run (new rows crm, pipeline, crm-export; leads list), and the owner's own tests.
+
 ## Flags (need the owner)
 
 | # | Flag | Status |
@@ -70,8 +74,9 @@ Created this tracker at the owner's request (it had not been created when the v3
 | F22 | Google's OAuth app is in Testing mode with the owner as the only test user. | **Open (owner action R1)** |
 | F25 | The onboarding consent text is the placeholder `draft-1`. | **Open (owner action R5)** |
 | F27 | Email and password: Neon Auth may force email verification that needs a sender (no paid service allowed). | **Gate G1 checked 2026-11-04: passes.** The Neon Auth project (`aged-recipe-72220939`, production) supports email and password on the plan we use. It is **switched off today** (`email_password.enabled: false`) and verification is not required (`verify_email_on_sign_up: false`), so no email sender is needed. Neon also lists a shared sender (`auth@mail.myneon.app`), but it is for testing, not production. **Owner decided 2026-11-04 ("yes enable"):** email and password switched on in the production Neon Auth settings by Claude Code with `neon neon-auth config email-password update --enabled true --require-email-verification false` (verification off, no verification emails; before, it required verification but sent none, which would have locked new users out). Accepted consequence: a person can sign up with an email they do not own. To undo: `--enabled false`. **Resolved** (code live only after the next deploy). |
-| F30 | Email and password is on in Neon Auth with verification off. (a) Neon Auth's own public address also answers email routes, outside our Worker limits. (b) A person can create an account with an email they do not own; if that email later belongs to an invited admin who signs in with Google, Neon may link the two accounts. | **Open (owner decision before launch).** Mitigations built: unverified emails are trusted for students only, staff and owner need a verified email in the SQL as well, per-address and per-email limits. Removing the risk needs email verification, which needs an email sender (a paid or shared service). Until then, do not invite staff on an email address a stranger could have registered first, and check Neon's account-linking setting. |
-| F31 | The page security policy allows any https address as a frame on every page (`frame-src ... https:`), older than Stage 14. Architecture 22.6 says only the tours route. | **Open; belongs to S14.6** (tours): drop `https:`, keep the YouTube privacy domain and Turnstile, decide how 360 tours are framed. |
+| F30 | Email and password is on in Neon Auth with verification off. (a) Neon Auth's own public address answers email routes outside our Worker limits. (b) A stranger can register a password account on someone else's email; if that email later belongs to staff who sign in with Google, Neon may link the two. | **Repaired in code 2026-11-04 (owner asked for a repair with the tools we have).** Migration `0018_staff_no_password_login.sql`: a session whose account holds a password login (`credential` account in Neon Auth) is never resolved for the admin or owner role, so the linked-account takeover gets no staff session; staff and the owner use Google only. Checked on production: the owner has no password login. Test: `tests/integration/f30-staff-no-password.test.ts`. Students may still use unverified password accounts (they only reach their own data). **Residual, accepted:** (a) cannot be closed from our side without an email sender (Neon's shared sender is not meant for production); a stranger can still create student accounts directly at Neon, which are limited to their own data. `allow_localhost` is on in the Neon Auth settings and cannot be changed with the tools we have; recorded for the owner. If a staff member is ever locked out by this rule, the owner removes the password account in the Neon console. |
+| F31 | The page security policy allowed any https address as a frame on every page. | **Resolved in S14.6**: `frame-src` lists the YouTube privacy domain, Turnstile and the two seeded 360 tour hosts only (`src/lib/tour-hosts.ts`). |
+| F32 | The staff leads list measured a warm p95 of 9 and 19 ms (gate 8) on the deploy run of 2026-11-04. It ran four database round trips (the page, the team, the stages, the universities). | **Repaired in code 2026-11-04**: one round trip (`listLeadsPage`, same statements and row level security). **To be confirmed by the CPU measurement after the deploy;** if it still fails, it is reported here, not hidden. |
 | F28 | `CLAUDE.md` Step 2 pointed at essentials 2. | **Resolved 2026-11-04** (owner said yes). |
 | F29 | PRD_3 and architecture 3 were amendment texts. | **Resolved 2026-11-04** (full copies made). |
 

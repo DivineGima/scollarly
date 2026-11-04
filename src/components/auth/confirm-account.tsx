@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { isCourseField, type CourseField } from "@/lib/courses";
 import type { ProfileRelationship } from "@/lib/constants";
 import { api } from "@/lib/client/api";
+import { safeNext } from "@/modules/gate/next";
 
 type Problem = "offline" | "failed" | "signedOut" | null;
 
@@ -18,16 +19,18 @@ export function ConfirmAccount() {
   const [busy, setBusy] = useState<ProfileRelationship | null>(null);
   const [problem, setProblem] = useState<Problem>(null);
   const [course, setCourse] = useState<CourseField | null>(null);
+  const [next, setNext] = useState<string | null>(null);
 
   useEffect(() => {
     const value = new URLSearchParams(window.location.search).get("course");
     setCourse(isCourseField(value) ? value : null);
+    setNext(safeNext(new URLSearchParams(window.location.search).get("next")));
   }, []);
 
   async function create(as: ProfileRelationship) {
     setBusy(as);
     setProblem(null);
-    const result = await api<{ next: string }>("POST", "/api/v1/account/confirm", { as, ...(course ? { course } : {}) });
+    const result = await api<{ next: string }>("POST", "/api/v1/account/confirm", { as, ...(course ? { course } : {}), ...(next ? { next } : {}) });
     if (result.ok) {
       window.location.assign(result.data.next);
       return;

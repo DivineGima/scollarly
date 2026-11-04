@@ -126,19 +126,39 @@ export function leadListConditions(actor: Pick<Actor, "userId">, filters: LeadLi
 }
 
 /** Newest first; the Overdue view is oldest due first (B2 step 4). `limit` is capped so a screen can never ask for the whole table. */
+const leadListQuery = (db: Db, actor: Actor, filters: LeadListFilters) =>
+  db
+    .select(listColumns)
+    .from(lead)
+    .where(and(...leadListConditions(actor, filters)))
+    .orderBy(...(filters.view === "overdue" ? [asc(lead.slaDueAt), asc(lead.id)] : [desc(lead.receivedAt), desc(lead.id)]))
+    .limit(Math.min(Math.max(Math.trunc(filters.limit), 1), 201));
+
 export async function listLeadsAdmin(db: Db, actor: Actor, filters: LeadListFilters): Promise<LeadListRow[]> {
-  const limit = Math.min(Math.max(Math.trunc(filters.limit), 1), 201);
-  const [rows] = await runAs(
+  const [rows] = await runAs(db, actor, leadListQuery(db, actor, filters));
+  return rows;
+}
+
+/**
+ * The staff leads list and everything its filters need (B2) in ONE round trip: the page of leads, the team, the stage names and the
+ * universities. They were four separate round trips; each one costs the Worker CPU of a database call, which pushed the warm p95 past the
+ * 8 ms gate (tracker F32). Same statements, same row level security, one batch.
+ */
+export async function listLeadsPage(db: Db, actor: Actor, filters: LeadListFilters) {
+  const [rows, team, stages, universities] = await runAs(
     db,
     actor,
-    db
-      .select(listColumns)
-      .from(lead)
-      .where(and(...leadListConditions(actor, filters)))
-      .orderBy(...(filters.view === "overdue" ? [asc(lead.slaDueAt), asc(lead.id)] : [desc(lead.receivedAt), desc(lead.id)]))
-      .limit(limit),
+    leadListQuery(db, actor, filters),
+    teamQuery(db),
+    db.select().from(pipelineStage).orderBy(asc(pipelineStage.position)),
+    db.select({ id: university.id, name: university.name }).from(university).orderBy(asc(university.name)),
   );
-  return rows;
+  return {
+    rows,
+    team: teamMembersOf(team),
+    stages: stages.map((r) => ({ code: r.code, position: r.position, name: r.name as Record<string, string> })),
+    universities,
+  };
 }
 
 export interface OverviewCounts {

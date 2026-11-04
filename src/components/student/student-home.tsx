@@ -114,16 +114,6 @@ function HomeBody({ catalogue, view, retry }: { catalogue: readonly CatalogueEnt
         </p>
       ) : null}
 
-      {view.onboarded ? null : (
-        <div className="me-card" data-testid="finish-profile">
-          <h2>{t("finishProfile.title")}</h2>
-          <p>{t("finishProfile.body")}</p>
-          <a className="me-button" href="/me/onboarding">
-            {t("finishProfile.button")}
-          </a>
-        </div>
-      )}
-
       <div className="me-card" data-testid="stage-card">
         <h2>{t("stageTitle")}</h2>
         {stageName ? (

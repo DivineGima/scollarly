@@ -11,6 +11,7 @@ import type { SendResult } from "./send";
  *   the server refuses the details  -> `rejected`: nothing is queued; the caller shows the fields
  *   too many attempts or numbers    -> `limited`: nothing is queued; the caller shows a plain message
  *   no account or session expired   -> `sign_in_required`: nothing is queued; the caller shows the sign-in pop-up (PRD_3 F20)
+ *   a student who has not finished onboarding -> `onboarding_required`: nothing is queued; the caller sends the person to the questionnaire (ADR-053)
  *   the browser cannot save at all  -> `save_failed`: the caller shows "Couldn't save" with a copy button
  *
  * A slow attempt is not abandoned: if the server answers after the 4 seconds, the lead is removed from the queue then, and
@@ -23,6 +24,7 @@ export type SubmitResult =
   | { kind: "rejected"; fields: Record<string, string>; code: string }
   | { kind: "limited"; reason: "number_limit" | "rate"; retryAfterSeconds: number }
   | { kind: "sign_in_required" }
+  | { kind: "onboarding_required" }
   | { kind: "save_failed" };
 
 export interface SubmitDeps extends Pick<SyncDeps, "update" | "remove" | "now" | "getToken" | "onSent"> {
@@ -93,6 +95,10 @@ export async function submitLead(deps: SubmitDeps, draft: LeadDraft): Promise<Su
       if (first.status === 401) {
         await deps.remove(item.key).catch(() => undefined);
         return { kind: "sign_in_required" };
+      }
+      if (first.status === 403 && first.code === "ONBOARDING_REQUIRED") {
+        await deps.remove(item.key).catch(() => undefined);
+        return { kind: "onboarding_required" };
       }
       return { kind: "queued", ref: item.ref, key: item.key, reason: "failed" };
   }

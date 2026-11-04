@@ -3,6 +3,7 @@ import { jsonResponse } from "@/lib/http";
 import { COURSE_FIELDS } from "@/lib/courses";
 import { PROFILE_RELATIONSHIPS } from "@/lib/constants";
 import { onboardingPath } from "@/modules/auth/intent";
+import { safeNext } from "@/modules/gate/next";
 import type { Actor } from "@/server/auth/actor";
 import { contextOf } from "@/server/db/rls";
 import type { Mutation } from "@/server/edge/mutations";
@@ -16,6 +17,8 @@ import { confirmAccount } from "@/server/repositories/account";
 const confirmBody = z.strictObject({
   as: z.enum(PROFILE_RELATIONSHIPS).optional(),
   course: z.enum(COURSE_FIELDS).optional(),
+  /** The public page the person tapped an action on; checked again by `safeNext`, and dropped when it is not an allowed address (PRD_3 F20). */
+  next: z.string().max(200).optional(),
 });
 
 export const accountMutations: Record<string, Mutation> = {
@@ -27,7 +30,7 @@ export const accountMutations: Record<string, Mutation> = {
       if (!parsed.ok) return parsed.response;
       const me = actor as Actor;
       const created = await confirmAccount(env.db, contextOf({ userId: me.userId, role: "student" }));
-      return jsonResponse({ confirmed: true, created, next: onboardingPath(parsed.value.as ?? "student", parsed.value.course ?? null) });
+      return jsonResponse({ confirmed: true, created, next: onboardingPath(parsed.value.as ?? "student", parsed.value.course ?? null, true, safeNext(parsed.value.next)) });
     },
   },
 };

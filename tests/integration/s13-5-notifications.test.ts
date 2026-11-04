@@ -35,7 +35,7 @@ const mutations = { ...accountMutations, ...onboardingMutations, ...notification
 
 async function account(role: "student" | "admin" | "owner" = "student"): Promise<SignedInUser> {
   const user = await t.signIn();
-  await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at`);
+  await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(user.userId)}, ${q(role)}, now(), now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at, onboarding_done_at = excluded.onboarding_done_at`);
   return user;
 }
 

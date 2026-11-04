@@ -71,15 +71,15 @@ describe("Create account", () => {
     expect(await landing(parent, "?intent=sign-up&as=parent&course=law")).toBe("/me/onboarding?as=parent&course=law");
     expect(await confirmedAt(parent)).not.toBeNull();
     expect(await auditCount(parent)).toBe(1);
-    // Signing in later is an ordinary sign in.
-    expect(await landing(parent)).toBe("/me");
+    // Signing in later, before the questionnaire is finished, goes back to the questionnaire (S14.5, ADR-053).
+    expect(await landing(parent)).toBe("/me/onboarding?as=student");
     expect(await auditCount(parent)).toBe(1);
   });
 
   it("does nothing new for a person who already has an account", async () => {
     const person = await t.signIn();
     await landing(person, "?intent=sign-up");
-    expect(await landing(person, "?intent=sign-up&as=parent")).toBe("/me");
+    expect(await landing(person, "?intent=sign-up&as=parent")).toBe("/me/onboarding?as=parent");
     expect(await auditCount(person)).toBe(1);
   });
 });
@@ -116,6 +116,11 @@ describe("what an unconfirmed login can call", () => {
     expect(await second.json()).toEqual({ confirmed: true, created: false, next: "/me/onboarding?as=student" });
     expect(await auditCount(person)).toBe(1);
 
+    // Confirmed, but the questionnaire comes first: the student area stays closed until it is finished (S14.5, ADR-053).
+    const early = await call("/api/v1/me/probe", person);
+    expect(early.status).toBe(403);
+    expect(((await early.json()) as { error: { code: string } }).error.code).toBe("ONBOARDING_REQUIRED");
+    await t.run(`update app_user set onboarding_done_at = now() where id = ${q(person.userId)}`);
     expect((await call("/api/v1/me/probe", person)).status).toBe(200);
   });
 

@@ -1,7 +1,7 @@
 import { errorResponse, isSameOrigin, jsonResponse, newRequestId, readJsonBody } from "@/lib/http";
 import { createLead, type CreateLeadOutcome } from "@/modules/leads/service";
 import { readSessionToken } from "@/server/auth/cookie";
-import { isTrustedSession } from "@/server/auth/trusted-session";
+import { isTrustedSession, sessionNeedsOnboarding } from "@/server/auth/trusted-session";
 import { resolveSession } from "@/server/repositories/session-lookup";
 import { getDb } from "@/server/db/runtime";
 import { insertLead } from "@/server/repositories/lead-intake";
@@ -63,6 +63,10 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
     }
     if (!session || !isTrustedSession(session)) return errorResponse(401, "UNAUTHENTICATED", "Sign in or create an account to continue.", requestId);
     if (!session.accountConfirmed) return errorResponse(403, "ACCOUNT_NOT_CONFIRMED", "Finish creating your account to continue.", requestId);
+    // A student applies after the questionnaire, never instead of it (PRD_3 F15, ADR-053).
+    if (sessionNeedsOnboarding(session)) {
+      return errorResponse(403, "ONBOARDING_REQUIRED", "Finish your sign-up to continue.", requestId);
+    }
   }
   const outcome = await createLead(
     {

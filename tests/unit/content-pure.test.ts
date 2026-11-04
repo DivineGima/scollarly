@@ -136,7 +136,8 @@ describe("builders apply the publish rules a second time", () => {
       experiences: [
         experience({ id: "v-ok", youtubeId: "5ddvpNEqpec" }),
         experience({ id: "v-bad", youtubeId: "nope" }),
-        experience({ id: "t-ok", kind: "tour360", url: "https://tour.example/" }),
+        experience({ id: "t-ok", kind: "tour360", url: "https://www.iviewd.com/cu2/" }),
+        experience({ id: "t-other-host", kind: "tour360", url: "https://tour.example/" }),
         experience({ id: "t-http", kind: "tour360", url: "http://tour.example/" }),
         experience({ id: "t-js", kind: "tour360", url: "javascript:alert(1)" }),
         experience({ id: "g-ok", kind: "gallery", url: "https://gallery.example/" }),

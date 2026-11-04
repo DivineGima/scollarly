@@ -86,6 +86,11 @@ export function useLeadFlow({ siteKey, numberE164 }: { siteKey: string; numberE1
           setState({ phase: "idle" });
           requestGate(`${location.pathname}${location.search}`);
           return;
+        case "onboarding_required":
+          // A student who has not finished the questionnaire applies after it: send them there and bring them back to this page.
+          window.location.assign(`/me/onboarding?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`);
+          setState({ phase: "idle" });
+          return;
         case "save_failed":
           setState({ phase: "save_failed" });
           return;

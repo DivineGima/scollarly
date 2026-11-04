@@ -5,6 +5,7 @@ import { contentDataCalls, contentMutations } from "@/modules/content-admin/endp
 import { exportMutations } from "@/modules/export/endpoints";
 import { healthDataCalls } from "@/modules/health/endpoints";
 import { leadDataCalls, leadMutations } from "@/modules/leads/admin-endpoints";
+import { crmDataCalls } from "@/modules/crm/endpoints";
 import { authDataCalls, authMutations } from "@/modules/auth/endpoints";
 import { paymentDataCalls, paymentMutations } from "@/modules/payments/endpoints";
 import { settingsDataCalls, settingsMutations } from "@/modules/settings/endpoints";
@@ -54,6 +55,7 @@ export function authedDeps(env: CloudflareEnv, rest: Pick<AuthedDeps, "cache" | 
       ...leadDataCalls(endpoint),
       ...contentDataCalls(endpoint),
       ...analyticsDataCalls(endpoint),
+      ...crmDataCalls(endpoint),
       ...studentDataCalls(endpoint),
       ...onboardingDataCalls(endpoint),
       ...notificationDataCalls(endpoint),

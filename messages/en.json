@@ -1373,7 +1373,8 @@
       "leads": {
         "leads": "Leads",
         "linkRequests": "Link requests",
-        "dataRequests": "Data requests"
+        "dataRequests": "Data requests",
+        "pipeline": "Pipeline"
       },
       "content": {
         "overview": "All content",
@@ -1382,7 +1383,8 @@
       },
       "insights": {
         "results": "Results",
-        "payments": "Payments"
+        "payments": "Payments",
+        "overview": "Overview"
       }
     },
     "tours": {
@@ -1442,6 +1444,99 @@
           "body": "Placement payments received from universities. Record one or void a mistake with a reason."
         }
       ]
+    },
+    "crm": {
+      "title": "CRM overview",
+      "purpose": "How many leads came in, how fast you answered, and where they are in the process. Change the filters to look at one country, one source or just yours.",
+      "range": "Leads received from {from} to {to} (West Africa time).",
+      "other": "Other",
+      "unknownSource": "Not recorded",
+      "empty": "Nothing to show for these filters.",
+      "export": "Download as CSV",
+      "exportNote": "The file has references, dates, stages, countries and timing only. It has no names, numbers or emails. It is limited to 5,000 leads and every download is recorded.",
+      "filters": {
+        "label": "Filters",
+        "from": "From",
+        "to": "To",
+        "country": "Country",
+        "source": "Where it came from",
+        "assigned": "Assigned to",
+        "all": "All",
+        "assignedAll": "Everyone",
+        "assignedMe": "Me",
+        "assignedUnassigned": "Nobody yet",
+        "apply": "Show"
+      },
+      "tiles": {
+        "leads": "New leads",
+        "answered": "Answered",
+        "answeredOf": "{answered} of {leads} leads",
+        "response": "Average first reply",
+        "overdue": "Overdue",
+        "overdueNote": "Not answered in time, still open",
+        "arrived": "Arrived in India",
+        "arrivedOf": "{arrived} of {leads} leads"
+      },
+      "change": {
+        "up": "Up {percent}% on the period before",
+        "down": "Down {percent}% on the period before",
+        "same": "Same as the period before",
+        "noBase": "{delta} on the period before (it had none)"
+      },
+      "response": {
+        "none": "No replies yet",
+        "minutes": "{value} min",
+        "hours": "{value} h",
+        "days": "{value} days"
+      },
+      "charts": {
+        "perDay": "Leads per day",
+        "perDayExplain": "Each point is the number of leads that came in that day.",
+        "perDayCaption": "Leads received per day",
+        "stages": "Where leads are now",
+        "stagesExplain": "Each slice is the leads that are at that step today.",
+        "stagesCaption": "Leads by current stage",
+        "totalLabel": "leads",
+        "funnel": "How far leads get",
+        "funnelExplain": "Each bar is the leads that reached that step or went past it. The percentage is how many of the step before made it.",
+        "funnelCaption": "Leads that reached each stage",
+        "ofPrevious": "{percent}% of the step before",
+        "countries": "Where students are from",
+        "countriesExplain": "The countries with the most leads. The rest are grouped as Other.",
+        "countriesCaption": "Leads by country",
+        "sources": "Where leads come from",
+        "sourcesExplain": "The pages and buttons that led to the most leads.",
+        "sourcesCaption": "Leads by source",
+        "admins": "Each adviser",
+        "adminsExplain": "Leads each adviser has, with how many they answered and how many are overdue. Only the owner sees this.",
+        "adminsCaption": "Leads assigned to each adviser",
+        "adminNote": "{answered} answered, {overdue} overdue"
+      },
+      "columns": {
+        "name": "Name",
+        "count": "Leads",
+        "day": "Day",
+        "stage": "Stage",
+        "reached": "Reached",
+        "country": "Country",
+        "source": "Source",
+        "admin": "Adviser",
+        "assigned": "Assigned leads"
+      },
+      "board": {
+        "title": "Pipeline",
+        "purpose": "Every open lead in a column for its step. Use Move to to change a lead's step. The date filter does not apply here.",
+        "emptyColumn": "No leads here.",
+        "noName": "No name given",
+        "overdue": "Overdue",
+        "unassigned": "Nobody yet",
+        "moveTo": "Move to...",
+        "moveLabel": "Move lead {ref} to another step",
+        "more": "{count} more in the leads list",
+        "stale": "Someone changed that lead first. The board has been refreshed.",
+        "failed": "That did not save. Try again.",
+        "offline": "You need a connection to move a lead."
+      }
     }
   },
   "site": {
@@ -1520,8 +1615,7 @@
     "metaDescription": "Videos and 360° tours of partner campuses. Nothing loads until you tap.",
     "title": "Campus tours",
     "intro": "See the campuses before you decide. Videos and tours load only when you tap them, so they use no data until then.",
-    "empty": "Campus tours will appear here once the universities are added.",
-    "onRequest": "Available on request."
+    "empty": "Campus tours will appear here once the universities are added."
   },
   "process": {
     "metaTitle": "How it works",
@@ -2065,7 +2159,7 @@
     "fixErrors": "Please fix the highlighted answers to continue.",
     "back": "Back",
     "next": "Next",
-    "finish": "Finish",
+    "finish": "Sign up",
     "sending": "Sending…",
     "countries": {
       "CM": "Cameroon",
@@ -2144,7 +2238,8 @@
       "title": "Thank you, you are all set",
       "body": "An adviser will message you on WhatsApp soon.",
       "ref": "Your reference: {ref}",
-      "go": "Go to my page"
+      "go": "Go to my page",
+      "goBack": "Continue"
     },
     "already": {
       "title": "You have already finished",

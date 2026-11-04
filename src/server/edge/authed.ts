@@ -1,6 +1,6 @@
 import { errorResponse, jsonResponse, newRequestId } from "@/lib/http";
 import { logError } from "@/server/log";
-import { type Actor, AuthError, hasAtLeast, type Role } from "@/server/auth/actor";
+import { type Actor, AuthError, hasAtLeast, needsOnboarding, type Role } from "@/server/auth/actor";
 import { readSessionToken } from "@/server/auth/cookie";
 import { isStorablePage, toEdgeCopy } from "./fast-path";
 
@@ -46,6 +46,14 @@ const CONTENT_SHELL = /^(\/(?:en\/)?admin\/content\/[a-z]+)\/(?:[0-9a-f]{8}-[0-9
 export function canonicalShellPath(pathname: string): string {
   const match = RECORD_SHELL.exec(pathname) ?? CONTENT_SHELL.exec(pathname);
   return match ? `${match[1]}/${RECORD_SHELL_PLACEHOLDER}` : pathname;
+}
+
+/** The student questionnaire and the one call it reads (PRD_3 F15, ADR-053): everything else in `/me` waits until onboarding is finished. */
+export const ONBOARDING_SHELL = "/me/onboarding";
+const BEFORE_ONBOARDING_CALLS: ReadonlySet<string> = new Set(["me/onboarding-state"]);
+
+export function isOnboardingShell(pathname: string): boolean {
+  return /^\/(?:en\/)?me\/onboarding\/?$/.test(pathname);
 }
 
 export type AuthedRoute = { kind: "shell"; area: Area } | { kind: "api"; area: Area; name: string };
@@ -101,13 +109,23 @@ export async function handleAuthed(request: Request, makeDeps: () => AuthedDeps)
   // The `account` area is the one place a Google login without a confirmed Scollarly account may go (architecture 21.3, ADR-042).
   const allowed = actor !== null && hasAtLeast(actor, AREA_ROLE[route.area]) && (route.area === "account" || actor.accountConfirmed);
 
-  if (route.kind === "shell") return allowed ? serveShell(request, url, deps) : notFound();
+  if (route.kind === "shell") {
+    if (!allowed) return notFound();
+    // A student who has not finished onboarding sees only the questionnaire: any other screen of the app goes there (ADR-053).
+    if (route.area === "me" && actor && needsOnboarding(actor) && !isOnboardingShell(url.pathname)) {
+      return new Response(null, { status: 302, headers: { Location: new URL(ONBOARDING_SHELL, url.origin).toString(), "Cache-Control": "no-store" } });
+    }
+    return serveShell(request, url, deps);
+  }
 
   if (!actor) return errorResponse(401, "UNAUTHENTICATED", "Sign in required.", requestId);
   if (!allowed) {
     return actor.accountConfirmed
       ? errorResponse(403, "FORBIDDEN", "Not allowed.", requestId)
       : errorResponse(403, "ACCOUNT_NOT_CONFIRMED", "Create your account to continue.", requestId);
+  }
+  if (route.area === "me" && needsOnboarding(actor) && !BEFORE_ONBOARDING_CALLS.has(`${route.area}/${route.name}`)) {
+    return errorResponse(403, "ONBOARDING_REQUIRED", "Finish your sign-up to continue.", requestId);
   }
   try {
     const call = deps.api[`${route.area}/${route.name}`] as DataCall;

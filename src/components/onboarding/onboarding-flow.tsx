@@ -4,8 +4,10 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SIGNED_IN_FRAGMENT } from "@/lib/client/signed-in-hint";
 import { generateRef } from "@/lib/ref";
 import { randomUuid } from "@/lib/uuid";
+import { safeNext } from "@/modules/gate/next";
 import { buildOnboardingPayload, courseFromSearch, type OnboardingValues } from "@/modules/onboarding/payload";
 import { firstIncompleteStep, progressOf, STEPS_FOR, type StepKey, validateStep } from "@/modules/onboarding/questions";
 import { type AnswerErrors, relationshipOf } from "@/modules/onboarding/validate";
@@ -36,6 +38,28 @@ type Phase =
 
 const SAVE_DELAY_MS = 300;
 
+/** Where to go when the questionnaire is finished: the public page the person tapped an action on (PRD_3 F20, checked by `safeNext`), or null for their own page. */
+function useAfterOnboarding(): string | null {
+  const [after, setAfter] = useState<string | null>(null);
+  useEffect(() => {
+    setAfter(safeNext(new URLSearchParams(window.location.search).get("next")));
+  }, []);
+  return after;
+}
+
+function AfterLink({ after }: { after: string | null }) {
+  const t = useTranslations("onboarding");
+  return after ? (
+    <a className="me-button" href={`${after}${SIGNED_IN_FRAGMENT}`} data-testid="after-onboarding">
+      {t("sent.goBack")}
+    </a>
+  ) : (
+    <a className="me-button" href="/me" data-testid="after-onboarding">
+      {t("sent.go")}
+    </a>
+  );
+}
+
 /**
  * The questionnaire for a new student or parent (architecture 21.6, ADR-043). One screen per question group; the answers are kept on
  * the phone after every change and nothing is sent until the last screen. Finishing puts one item in the lead queue
@@ -45,6 +69,7 @@ const SAVE_DELAY_MS = 300;
 export function OnboardingFlow() {
   const t = useTranslations("onboarding");
   const { state, reload } = useMeData<OnboardingState>("/api/v1/me/onboarding-state");
+  const after = useAfterOnboarding();
 
   if (state.status !== "ready") return <MeStatus state={state} reload={reload} />;
   if (state.data.onboarded) {
@@ -53,9 +78,7 @@ export function OnboardingFlow() {
         <h1 id="ob-done-title">{t("already.title")}</h1>
         <p>{t("already.body")}</p>
         {state.data.ref ? <p className="ob-ref">{t("sent.ref", { ref: state.data.ref })}</p> : null}
-        <a className="me-button" href="/me">
-          {t("sent.go")}
-        </a>
+        <AfterLink after={after} />
       </section>
     );
   }
@@ -69,6 +92,7 @@ function Questionnaire({ userId }: { userId: string }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [errors, setErrors] = useState<AnswerErrors>({});
   const [now] = useState(() => new Date());
+  const after = useAfterOnboarding();
   const heading = useRef<HTMLHeadingElement | null>(null);
   const loaded = useRef(false);
   const syncing = useRef(false);
@@ -229,9 +253,7 @@ function Questionnaire({ userId }: { userId: string }) {
         </h1>
         <p>{t("sent.body")}</p>
         {phase.ref ? <p className="ob-ref">{t("sent.ref", { ref: phase.ref })}</p> : null}
-        <a className="me-button" href="/me">
-          {t("sent.go")}
-        </a>
+        <AfterLink after={after} />
       </section>
     );
   }
