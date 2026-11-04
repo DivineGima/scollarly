@@ -40,7 +40,7 @@ Built by this file: section 22 (all of it). Rules obeyed, not rebuilt: sections 
 | S14.5 | Onboarding first | 22.4 migration, `Actor.onboardingDone`, refusals, landing table, no-tabs onboarding, "Sign up" button, card removed. | Decision table, refusals, e2e lock. |
 | S14.6 | Real tours | 22.6 data, thumbnails, videos found with sources, listing filter, click-to-load player, CSP for the route. Owner reviews the list. | Unit filter, e2e no request before tap. |
 | S14.7 | CRM charts, board, filters, export | 22.8 functions, chart components, board, filters, CSV export with audit. | Unit chart maths, integration role scoping and export audit, e2e on phone viewport, new CPU rows. |
-| S14.8 | QA and deploy | Traceability update, checklist update, CPU measurement run, tracker update. | Full CI; the deploy workflow's CPU rows pass. |
+| S14.8 | QA, deploy and carry-over | Carries the owner-paced items still open from Stage 13 (S13.7 real-phone icon check, S13.8, S13.9 watched test and sign-offs) and from Stages 10 and 11 (S10.2, S11.4, S11.6), which stay `in-progress` until the owner says they are done. Traceability update, checklist update, CPU measurement run, tracker update. | Full CI; the deploy workflow's CPU rows pass. |
 
 ## Tests (summary)
 

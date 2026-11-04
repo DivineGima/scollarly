@@ -30,6 +30,8 @@ Look in `/essentials/` for files matching `^system_architecture_essential_\d+\.m
 
 Owner decision, 2026-10-31 (tracker flag F21): the version 2 refactor is one stage in `system_architecture_essential_2.md`. Stages 10 and 11 of `system_architecture_essential_1.md` are closed as handed over: their open modules S10.2, S11.4 and S11.6 are carried into module S13.8 of essentials 2, so essentials 1 is history and is not chosen here. While Stage 13 is incomplete in the latest tracker, the essentials file is `system_architecture_essential_2.md`.
 
+Owner decision, 2026-11-04 (tracker flag F28): version 3 (PRD_3, `system_architecture_3.md`, `system_architecture_essential_3.md`, one stage: Stage 14) supersedes the version 2 text. The modules of Stage 13 that still wait for the owner's own actions (S13.7, S13.8, S13.9, and S10.2, S11.4, S11.6) are carried into module S14.8 of essentials 3, so essentials 2 is history and is not chosen here. While Stage 14 is incomplete in the latest tracker, the essentials file is `system_architecture_essential_3.md`, the current architecture is `system_architecture_3.md` and the current PRD is `PRD_3.md`.
+
 ### Step 3: Resolve the current architecture version
 
 Within `/system_architecture/` only, match files against `^system_architecture_\d+\.md$` (the character right after the underscore must be a digit). Extract the trailing integer from each and take the highest as current. This pattern deliberately excludes `system_architecture_essential_N.md`, which lives in `/essentials/` and must never count as an architecture version. If names do not parse cleanly (non-numeric suffix, gaps, duplicates), halt and flag. Read the current architecture file. Consult older versions only to resolve a conflict.
