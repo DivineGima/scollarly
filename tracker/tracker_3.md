@@ -36,10 +36,10 @@ This tracker starts version 3 (PRD_3, architecture 3, essentials 3). `tracker_2.
 
 | ID | Module | Status | Last session |
 |---|---|---|---|
-| S14.1 | Quick fixes (fees, underlines, footer text) | in-progress (PR #59) | Session 2 |
-| S14.2 | Privacy and Terms | in-progress (PR #60) | Session 2 |
-| S14.3 | Account-first actions | in-progress | Session 2 |
-| S14.4 | Email and password | in-progress (code done, live switch-on waits for the owner) | Session 2 |
+| S14.1 | Quick fixes (fees, underlines, footer text) | complete (merged in #59 and #62, CI green) | Session 2 |
+| S14.2 | Privacy and Terms | complete in code (merged in #62); owner legal review R5 still open | Session 2 |
+| S14.3 | Account-first actions | complete (merged in #62, CI green); onboarding return after sign-up lands in S14.5 | Session 2 |
+| S14.4 | Email and password | complete in code (merged in #62); enabled in Neon Auth; not deployed or tried against real Neon Auth yet | Session 2 |
 | S14.5 | Onboarding first | not started | |
 | S14.6 | Real tours | not started | |
 | S14.7 | CRM charts, board, filters, export | not started | |
@@ -65,7 +65,7 @@ Created this tracker at the owner's request (it had not been created when the v3
 | F9, F10 | Domain `scollarly.co.in` and its .IN verification (outside the code). | **Open** (carried, see tracker_2) |
 | F22 | Google's OAuth app is in Testing mode with the owner as the only test user. | **Open (owner action R1)** |
 | F25 | The onboarding consent text is the placeholder `draft-1`. | **Open (owner action R5)** |
-| F27 | Email and password: Neon Auth may force email verification that needs a sender (no paid service allowed). | **Gate G1 checked 2026-11-04: passes.** The Neon Auth project (`aged-recipe-72220939`, production) supports email and password on the plan we use. It is **switched off today** (`email_password.enabled: false`) and verification is not required (`verify_email_on_sign_up: false`), so no email sender is needed. Neon also lists a shared sender (`auth@mail.myneon.app`), but it is for testing, not production. **Owner decision needed before the live switch-on:** (1) turn email and password on in the Neon Auth settings; (2) accept that without verification a person can sign up with an email they do not own. Claude Code does not change the live Neon Auth settings without the owner's word. |
+| F27 | Email and password: Neon Auth may force email verification that needs a sender (no paid service allowed). | **Gate G1 checked 2026-11-04: passes.** The Neon Auth project (`aged-recipe-72220939`, production) supports email and password on the plan we use. It is **switched off today** (`email_password.enabled: false`) and verification is not required (`verify_email_on_sign_up: false`), so no email sender is needed. Neon also lists a shared sender (`auth@mail.myneon.app`), but it is for testing, not production. **Owner decided 2026-11-04 ("yes enable"):** email and password switched on in the production Neon Auth settings by Claude Code with `neon neon-auth config email-password update --enabled true --require-email-verification false` (verification off, no verification emails; before, it required verification but sent none, which would have locked new users out). Accepted consequence: a person can sign up with an email they do not own. To undo: `--enabled false`. **Resolved** (code live only after the next deploy). |
 | F28 | `CLAUDE.md` Step 2 pointed at essentials 2. | **Resolved 2026-11-04** (owner said yes). |
 | F29 | PRD_3 and architecture 3 were amendment texts. | **Resolved 2026-11-04** (full copies made). |
 
