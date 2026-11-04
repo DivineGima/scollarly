@@ -86,6 +86,18 @@ describe("S14.4: the Worker function", () => {
     expect(proxy).not.toHaveBeenCalled();
   });
 
+  it("uses a try of the email budget only when the answer is refused (a stranger cannot lock a student out with good traffic)", async () => {
+    proxy.mockResolvedValue(new Response("{}", { status: 200 }));
+    await handlePasswordAuth(post("/api/auth/sign-in/email", { email: "ama@x.com", password: "pw" }), env);
+    const emailCalls = () => limiter.mock.calls.filter((c) => c[0] === "email-key");
+    expect(emailCalls().map((c) => c[3])).toEqual([0]);
+    limiter.mockClear();
+    proxy.mockResolvedValue(new Response("{}", { status: 401 }));
+    const refused = await handlePasswordAuth(post("/api/auth/sign-in/email", { email: "ama@x.com", password: "pw" }), env);
+    expect(refused?.status).toBe(401);
+    expect(emailCalls().map((c) => c[3])).toEqual([0, 1]);
+  });
+
   it("does not forward the visitor cookie to Neon Auth", async () => {
     proxy.mockResolvedValue(new Response("{}", { status: 200 }));
     await handlePasswordAuth(post("/api/auth/sign-in/email", { email: "a@b.co", password: "pw" }, { origin: "https://scollarly.test", cookie: "__Secure-neon-auth.session_token=other" }), env);

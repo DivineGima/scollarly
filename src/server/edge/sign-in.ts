@@ -1,6 +1,7 @@
 import { intentParams, readIntent } from "@/modules/auth/intent";
 import { INVITE_TOKEN_PATTERN } from "@/modules/auth/service";
 import { completeSignIn, configFromEnv, startGoogleSignIn } from "@/server/auth/session";
+import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
 import { LANDING_PATH } from "./landing";
 
 /**
@@ -25,8 +26,22 @@ function inviteOf(url: URL): string | null {
   return invite !== null && INVITE_TOKEN_PATTERN.test(invite) ? invite : null;
 }
 
+/** Per caller address. Each start costs a Neon Auth call, so a loop of them is limited like every other open entry point. High enough for a carrier address shared by many phones. */
+const START_LIMIT = 60;
+const START_WINDOW_MS = 10 * 60_000;
+
+type SignInEnv = Pick<CloudflareEnv, "NEON_AUTH_BASE_URL" | "NEON_AUTH_COOKIE_SECRET" | "RATE_LIMITER" | "RATE_LIMIT_SECRET">;
+
+async function startLimited(request: Request, env: SignInEnv, next: string): Promise<Response> {
+  const key = await limiterKey({ route: "auth-start", ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET);
+  const decision = await createDurableObjectLimiter(env.RATE_LIMITER)(key, START_LIMIT, START_WINDOW_MS);
+  // Over the limit: the person lands on the sign-in page with its usual "not available right now" sentence, not on a bare error.
+  if (!decision.allowed) return new Response(null, { status: 302, headers: { Location: new URL("/sign-in?error=unavailable", request.url).toString(), "Cache-Control": "no-store" } });
+  return startGoogleSignIn(request, configFromEnv(env), next);
+}
+
 /** Returns a response for the two sign-in paths, or null for any other request. */
-export function handleSignIn(request: Request, env: Pick<CloudflareEnv, "NEON_AUTH_BASE_URL" | "NEON_AUTH_COOKIE_SECRET">): Promise<Response> | null {
+export function handleSignIn(request: Request, env: SignInEnv): Promise<Response> | null {
   if (request.method !== "GET") return null;
   const url = new URL(request.url);
   const invite = inviteOf(url);
@@ -34,7 +49,7 @@ export function handleSignIn(request: Request, env: Pick<CloudflareEnv, "NEON_AU
   if (invite) params.set("invite", invite);
   const query = params.toString();
   const carry = (path: string) => (query ? `${path}?${query}` : path);
-  if (url.pathname === SIGN_IN_START_PATH) return startGoogleSignIn(request, configFromEnv(env), carry(SIGN_IN_RETURN_PATH));
+  if (url.pathname === SIGN_IN_START_PATH) return startLimited(request, env, carry(SIGN_IN_RETURN_PATH));
   if (url.pathname === SIGN_IN_RETURN_PATH) return completeSignIn(request, configFromEnv(env), carry(SIGNED_IN_LANDING_PATH));
   return null;
 }

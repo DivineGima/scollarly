@@ -19,12 +19,16 @@ export interface LimitDecision {
   retryAfterSeconds: number;
 }
 
-/** Fixed window counter. Returns the decision and the state to persist. */
+/**
+ * Fixed window counter. Returns the decision and the state to persist. `cost` is how many tries this call uses: 1 normally, 0 to only look
+ * (is the budget already spent?) without using any, so a caller can count failures only.
+ */
 export function consume(
   state: WindowState | undefined,
   now: number,
   limit: number,
   windowMs: number,
+  cost: 0 | 1 = 1,
 ): { decision: LimitDecision; state: WindowState } {
   const current = state && state.resetAt > now ? state : { count: 0, resetAt: now + windowMs };
   if (current.count >= limit) {
@@ -33,7 +37,7 @@ export function consume(
       state: current,
     };
   }
-  const next = { count: current.count + 1, resetAt: current.resetAt };
+  const next = { count: current.count + cost, resetAt: current.resetAt };
   return { decision: { allowed: true, remaining: limit - next.count, retryAfterSeconds: 0 }, state: next };
 }
 
@@ -49,14 +53,27 @@ export async function limiterKey(parts: { route: string; ip: string | null }, se
 
 /** The Durable Object stub shape used for RPC. */
 export interface LimiterStub {
-  hit(limit: number, windowMs: number): Promise<LimitDecision>;
+  hit(limit: number, windowMs: number, cost?: 0 | 1): Promise<LimitDecision>;
 }
 
-export type Limiter = (key: string, limit: number, windowMs: number) => Promise<LimitDecision>;
+export type Limiter = (key: string, limit: number, windowMs: number, cost?: 0 | 1) => Promise<LimitDecision>;
 
+/** What every caller sees when the limiter itself cannot answer (quota spent, Durable Object error): no, try again shortly. */
+const LIMITER_DOWN_RETRY_SECONDS = 30;
+
+/**
+ * A limiter that never throws. If the Durable Object fails, the answer is "not allowed, retry in 30 seconds", which every caller already
+ * turns into its normal 429 with `Retry-After`. Before this, the error left the Worker entry and the visitor got a bare error page with no
+ * JSON and no security headers. It fails closed on purpose: these limits protect sign-in and the lead form.
+ */
 export function createDurableObjectLimiter(namespace: DurableObjectNamespace): Limiter {
-  return async (key, limit, windowMs) => {
-    const stub = namespace.get(namespace.idFromName(key)) as unknown as LimiterStub;
-    return stub.hit(limit, windowMs);
+  return async (key, limit, windowMs, cost = 1) => {
+    try {
+      const stub = namespace.get(namespace.idFromName(key)) as unknown as LimiterStub;
+      return await stub.hit(limit, windowMs, cost);
+    } catch {
+      console.error(JSON.stringify({ event: "rate_limiter_unavailable" }));
+      return { allowed: false, remaining: 0, retryAfterSeconds: LIMITER_DOWN_RETRY_SECONDS };
+    }
   };
 }

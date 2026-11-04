@@ -108,6 +108,15 @@ describe("enrolment", () => {
     expect(s.totp.get("owner-1")?.confirmed).toBe(false);
   });
 
+  it("refuses a second confirmation: a code can no longer issue new recovery codes after enrolment is confirmed", async () => {
+    const s = setup();
+    const { secret, recoveryCodes } = await enrolled(s);
+    const again = await s.factor.confirmEnrolment("owner-1", "sess-1", s.codeFor(secret, s.clock.now));
+    expect(again).toBe("not_enrolled");
+    // The first set of recovery codes still works: nothing was replaced.
+    expect(await s.factor.verifyRecoveryCode("owner-1", "sess-1", recoveryCodes[0] ?? "")).toBe("ok");
+  });
+
   it("refuses to start a second enrolment over a confirmed secret", async () => {
     const s = setup();
     await enrolled(s);

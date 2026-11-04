@@ -61,7 +61,12 @@ describe("the intent (21.3)", () => {
 });
 
 describe("the sign-in steps carry the intent (F14)", () => {
-  const env = { NEON_AUTH_BASE_URL: "https://auth.example/neondb/auth", NEON_AUTH_COOKIE_SECRET: "s".repeat(32) } as CloudflareEnv;
+  const env = {
+    NEON_AUTH_BASE_URL: "https://auth.example/neondb/auth",
+    NEON_AUTH_COOKIE_SECRET: "s".repeat(32),
+    RATE_LIMITER: { idFromName: (k: string) => k, get: () => ({ hit: async () => ({ allowed: true, remaining: 9, retryAfterSeconds: 0 }) }) },
+    RATE_LIMIT_SECRET: "r",
+  } as unknown as CloudflareEnv;
   const get = (path: string) => new Request(`https://scollarly.example${path}`);
 
   beforeEach(() => {

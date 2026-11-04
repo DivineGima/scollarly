@@ -132,6 +132,15 @@ describe("ingestImage (FR-18)", () => {
     expect(deps.insert).not.toHaveBeenCalled();
   });
 
+  it("refuses a picture whose declared size is over 4096 pixels on a side, before anything is stored", async () => {
+    const { deps } = fakeDeps();
+    const tooWide = await flatWebp(4097, 10);
+    await expect(ingestImage(deps, { bytes: tooWide, kind: "photo" })).rejects.toMatchObject({ code: "TOO_LARGE" });
+    expect(deps.store.put).not.toHaveBeenCalled();
+    expect(deps.insert).not.toHaveBeenCalled();
+    expect((await ingestImage(fakeDeps().deps, { bytes: await flatWebp(4096, 10), kind: "photo" })).width).toBe(4096);
+  });
+
   it("holds a logo to 50 KB and a photo to 300 KB", async () => {
     expect(IMAGE_CAPS.logo).toBe(50 * 1024);
     expect(IMAGE_CAPS.photo).toBe(300 * 1024);

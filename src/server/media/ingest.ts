@@ -16,6 +16,9 @@ import type { MediaStore } from "./store";
 /** Size caps in bytes by `media_asset.kind` (shared with the browser, which shrinks pictures to fit them). */
 export { IMAGE_CAPS, type ImageKind };
 
+/** The longest side of a stored picture. A tiny file can declare a huge size; a phone would have to decode all of it (about 1 GB at 16383 by 16383). */
+export const MAX_IMAGE_SIDE = 4096;
+
 export type IngestErrorCode = "EMPTY" | "NOT_WEBP" | "TOO_LARGE";
 
 export class IngestError extends Error {
@@ -97,6 +100,9 @@ export async function ingestImage(deps: IngestDeps, input: { bytes: Uint8Array; 
   if (bytes.byteLength === 0) throw new IngestError("EMPTY", "The image is empty.");
   const size = parseWebp(bytes);
   if (!size) throw new IngestError("NOT_WEBP", "The file is not a complete WebP image.");
+  if (size.width > MAX_IMAGE_SIDE || size.height > MAX_IMAGE_SIDE) {
+    throw new IngestError("TOO_LARGE", `The image is ${size.width} by ${size.height} pixels; the longest side may be at most ${MAX_IMAGE_SIDE}.`);
+  }
   if (bytes.byteLength > IMAGE_CAPS[kind]) {
     throw new IngestError("TOO_LARGE", `The image is ${bytes.byteLength} bytes; a ${kind} may be at most ${IMAGE_CAPS[kind]}.`);
   }
