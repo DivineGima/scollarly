@@ -22,7 +22,7 @@ function withEmail(text: string, email: string) {
  */
 export function LegalSections({ intro, updated, sections, email }: { intro: string; updated: string; sections: LegalSection[]; email: string }) {
   return (
-    <>
+    <div className="legal">
       <p className="muted">{updated}</p>
       <p>{intro}</p>
       {sections.map((section, index) => (
@@ -35,6 +35,6 @@ export function LegalSections({ intro, updated, sections, email }: { intro: stri
           </ul>
         </section>
       ))}
-    </>
+    </div>
   );
 }

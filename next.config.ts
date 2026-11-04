@@ -34,6 +34,13 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return { beforeFiles: localeRewrites(), afterFiles: [], fallback: [] };
   },
+  // Fees are no longer shown anywhere (PRD_3, ADR-054). The Worker entry answers this first on the live site; this keeps it true for any request that reaches Next.js.
+  async redirects() {
+    return [
+      { source: "/fees", destination: "/universities", permanent: true },
+      { source: "/en/fees", destination: "/en/universities", permanent: true },
+    ];
+  },
   // Architecture 13.1. The Worker entry adds the same headers to every response, including the ones that never reach Next.js.
   async headers() {
     return [{ source: "/:path*", headers: securityHeaderList() }];

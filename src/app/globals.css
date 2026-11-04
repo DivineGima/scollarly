@@ -84,7 +84,10 @@ a:focus-visible {
   text-decoration: underline;
 }
 
-.prose a {
+.prose a,
+.auth-card p a,
+.legal a,
+.notice a {
   text-decoration: underline;
 }
 

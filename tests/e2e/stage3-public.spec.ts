@@ -72,21 +72,10 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
 });
 
 test.describe("FR-2: fees", () => {
-  test("a confirmed fee shows its range, currency and last-updated date, with the disclaimer", async ({ page }) => {
-    await page.goto("/universities/alpha-university");
-    const text = await bodyText(page);
-    expect(text).toContain("USD 3,000 – 6,000");
-    expect(text).toContain("tuition per year");
-    expect(text).toContain("Last updated 2026-06-12");
-    expect(text).toContain("Fees are set by the university and can change.");
-    expect(text).not.toMatch(/\b(USD|INR) 0\b/);
-  });
-
-  test("an unconfirmed fee shows 'Fees to be confirmed' and a WhatsApp call to action, never 0 or a blank", async ({ page }) => {
+  test("a university page offers a WhatsApp call to action built from the one helper, and shows no fee", async ({ page }) => {
     await page.goto("/universities/beta-university");
     const text = await bodyText(page);
-    expect(text).toContain("Fees to be confirmed");
-    expect(text).not.toMatch(/\b(USD|INR) 0\b/);
+    expect(text).not.toContain("Fees to be confirmed");
     const whatsapp = page.getByRole("link", { name: "Ask about this university on WhatsApp" }).first();
     await expect(whatsapp).toBeVisible();
     // The address comes from the number in site_setting (here the fixture's), through the one helper (FR-4).

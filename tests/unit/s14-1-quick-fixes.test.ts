@@ -39,9 +39,9 @@ describe("S14.1: fees are gone from the public site (PRD_3, ADR-054)", () => {
 
 describe("S14.1: links are not underlined until hover or focus", () => {
   const css = read("src/app/globals.css");
-  it("sets no underline on links, adds one on hover and focus and keeps it in long text", () => {
+  it("sets no underline on links, adds one on hover and focus and keeps it in running text", () => {
     expect(css).toMatch(/\na \{[^}]*text-decoration: none;/);
     expect(css).toMatch(/a:hover,\na:focus-visible \{\s*text-decoration: underline;/);
-    expect(css).toMatch(/\.prose a \{\s*text-decoration: underline;/);
+    expect(css).toMatch(/\.prose a,[\s\S]*?\.auth-card p a,[\s\S]*?\.legal a,[\s\S]*?\{\s*text-decoration: underline;/);
   });
 });
