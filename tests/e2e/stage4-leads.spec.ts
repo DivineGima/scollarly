@@ -31,6 +31,8 @@ const TURNSTILE_STUB = `window.turnstile = { render: function (el, o) { setTimeo
 
 async function install(context: BrowserContext): Promise<FakeServer> {
   const server: FakeServer = { leads: [], posts: [], events: [], failNext: 0, failStatus: 503, delayMs: 0 };
+  // These tests are about a signed-in student: the browser has the hint that makes the account gate step aside (PRD_3 F20).
+  await context.addInitScript(() => window.localStorage.setItem("scollarly:signed-in", "1"));
 
   await context.route("https://challenges.cloudflare.com/**", (route) => route.fulfill({ status: 200, contentType: "application/javascript", body: TURNSTILE_STUB }));
   await context.route("https://wa.me/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>whatsapp</body></html>" }));

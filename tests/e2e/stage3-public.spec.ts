@@ -90,7 +90,7 @@ test.describe("FR-2: fees", () => {
     const whatsapp = page.getByRole("link", { name: "Ask about this university on WhatsApp" }).first();
     await expect(whatsapp).toBeVisible();
     // The address comes from the number in site_setting (here the fixture's), through the one helper (FR-4).
-    await expect(whatsapp).toHaveAttribute("href", "https://wa.me/14155550100");
+    await expect(whatsapp).toHaveAttribute("data-gate-href", "https://wa.me/14155550100");
   });
 
   test("fees are not shown anywhere and /fees moves to the universities list", async ({ page }) => {

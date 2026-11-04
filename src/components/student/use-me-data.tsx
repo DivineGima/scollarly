@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/client/api";
+import { clearSignedIn, markSignedIn } from "@/lib/client/signed-in-hint";
 
 export type MeState<T> = { status: "loading" } | { status: "ready"; data: T } | { status: "error"; httpStatus: number; offline: boolean };
 
@@ -21,9 +22,15 @@ export function useMeData<T>(path: string | null): { state: MeState<T>; reload: 
     setState({ status: "loading" });
     void api<T>("GET", path).then((result) => {
       if (!live) return;
-      if (result.ok) setState({ status: "ready", data: result.data });
+      if (result.ok) {
+        markSignedIn();
+        setState({ status: "ready", data: result.data });
+      }
       else {
-        if (result.status === 401) window.location.replace("/sign-in");
+        if (result.status === 401) {
+          clearSignedIn();
+          window.location.replace("/sign-in");
+        }
         setState({ status: "error", httpStatus: result.status, offline: result.status === 0 });
       }
     });

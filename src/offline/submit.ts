@@ -10,6 +10,7 @@ import type { SendResult } from "./send";
  *   offline, slow (over 4 s), failed -> `queued`: the lead stays in the queue; the caller opens WhatsApp anyway
  *   the server refuses the details  -> `rejected`: nothing is queued; the caller shows the fields
  *   too many attempts or numbers    -> `limited`: nothing is queued; the caller shows a plain message
+ *   no account or session expired   -> `sign_in_required`: nothing is queued; the caller shows the sign-in pop-up (PRD_3 F20)
  *   the browser cannot save at all  -> `save_failed`: the caller shows "Couldn't save" with a copy button
  *
  * A slow attempt is not abandoned: if the server answers after the 4 seconds, the lead is removed from the queue then, and
@@ -21,6 +22,7 @@ export type SubmitResult =
   | { kind: "queued"; ref: string; key: string; reason: "offline" | "slow" | "failed" }
   | { kind: "rejected"; fields: Record<string, string>; code: string }
   | { kind: "limited"; reason: "number_limit" | "rate"; retryAfterSeconds: number }
+  | { kind: "sign_in_required" }
   | { kind: "save_failed" };
 
 export interface SubmitDeps extends Pick<SyncDeps, "update" | "remove" | "now" | "getToken" | "onSent"> {
@@ -87,6 +89,11 @@ export async function submitLead(deps: SubmitDeps, draft: LeadDraft): Promise<Su
       await deps.remove(item.key).catch(() => undefined);
       return { kind: "limited", reason: first.reason, retryAfterSeconds: first.retryAfterSeconds };
     case "retry":
+      // The server refused because nobody is signed in. Queuing would only fail again, so the lead is dropped and the person signs in.
+      if (first.status === 401) {
+        await deps.remove(item.key).catch(() => undefined);
+        return { kind: "sign_in_required" };
+      }
       return { kind: "queued", ref: item.ref, key: item.key, reason: "failed" };
   }
 }

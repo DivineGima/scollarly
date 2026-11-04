@@ -49,7 +49,7 @@
       "title": "Content de vous revoir",
       "intro": "Connectez-vous pour suivre votre dossier, ou pour travailler dans l'équipe Scollarly. Cette page est pour les personnes qui ont déjà un compte.",
       "google": "Se connecter avec Google",
-      "noGoogle": "Pas de compte Google ? Vous pouvez quand même postuler et nous écrire sur WhatsApp.",
+      "noGoogle": "Un problème pour vous connecter ? Écrivez-nous depuis la page Contact.",
       "offline": "Vous avez besoin d'une connexion pour vous connecter ou créer un compte.",
       "errorCancelled": "La connexion a été annulée. Rien n'a été modifié.",
       "errorFailed": "Nous n'avons pas pu vous connecter. Veuillez réessayer.",
@@ -107,7 +107,7 @@
       "google": "Continuer avec Google",
       "haveAccount": "Vous avez déjà un compte ?",
       "signIn": "Se connecter",
-      "noGoogle": "Pas de compte Google ? Vous pouvez quand même postuler et nous écrire sur WhatsApp."
+      "noGoogle": "Un problème pour vous connecter ? Écrivez-nous depuis la page Contact."
     },
     "confirm": {
       "title": "Aucun compte trouvé",
@@ -2223,5 +2223,12 @@
       "openStale": "Ouvrir la liste",
       "openHealth": "Ouvrir la santé du système"
     }
+  },
+  "gate": {
+    "title": "Créez un compte ou connectez-vous",
+    "intro": "Pour postuler, nous contacter ou discuter avec nous sur WhatsApp, il vous faut un compte Scollarly gratuit. Cela prend une minute, et tout ce que vous faites est gardé sur votre page.",
+    "signUp": "S'inscrire",
+    "signIn": "Se connecter",
+    "close": "Pas maintenant"
   }
 }

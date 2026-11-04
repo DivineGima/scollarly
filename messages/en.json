@@ -49,7 +49,7 @@
       "title": "Welcome back",
       "intro": "Sign in to follow your application, or to work as Scollarly staff. This page is for people who already have an account.",
       "google": "Sign in with Google",
-      "noGoogle": "No Google account? You can still apply and message us on WhatsApp.",
+      "noGoogle": "Having trouble signing in? Write to us from the Contact page.",
       "offline": "You need a connection to sign in or create an account.",
       "errorCancelled": "Sign-in was cancelled. Nothing was changed.",
       "errorFailed": "We could not sign you in. Please try again.",
@@ -107,7 +107,7 @@
       "google": "Continue with Google",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
-      "noGoogle": "No Google account? You can still apply and message us on WhatsApp."
+      "noGoogle": "Having trouble signing in? Write to us from the Contact page."
     },
     "confirm": {
       "title": "No account found",
@@ -2223,5 +2223,12 @@
       "openStale": "Open the list",
       "openHealth": "Open Health"
     }
+  },
+  "gate": {
+    "title": "Create an account or sign in",
+    "intro": "To apply, contact us or chat with us on WhatsApp, you need a free Scollarly account. It takes a minute, and everything you do is saved on your own page.",
+    "signUp": "Sign up",
+    "signIn": "Sign in",
+    "close": "Not now"
   }
 }

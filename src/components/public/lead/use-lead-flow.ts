@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { clearSignedIn } from "@/lib/client/signed-in-hint";
 import { pageGroupOf } from "@/lib/page-group";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { flushEvents, trackEvent } from "@/offline/events";
 import { realSubmitDeps } from "@/offline/real-deps";
 import { submitLead, type SubmitResult } from "@/offline/submit";
 import { preloadTurnstile } from "@/offline/turnstile";
+import { requestGate } from "../gate/gate-events";
 
 /**
  * The send-first flow shared by the quick form and the apply form (ADR-031, architecture 16 A5). The form gives it a
@@ -77,6 +79,12 @@ export function useLeadFlow({ siteKey, numberE164 }: { siteKey: string; numberE1
           return;
         case "limited":
           setState({ phase: "limited", reason: result.reason, waUrl: buildWhatsAppUrl(numberE164) });
+          return;
+        case "sign_in_required":
+          // The session ended (or never existed): forget the hint and ask the person to sign in, then come back to this page.
+          clearSignedIn();
+          setState({ phase: "idle" });
+          requestGate(`${location.pathname}${location.search}`);
           return;
         case "save_failed":
           setState({ phase: "save_failed" });

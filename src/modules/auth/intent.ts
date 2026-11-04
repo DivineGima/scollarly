@@ -1,5 +1,6 @@
 import { isCourseField, type CourseField } from "@/lib/courses";
 import { PROFILE_RELATIONSHIPS, type ProfileRelationship } from "@/lib/constants";
+import { safeNext } from "@/modules/gate/next";
 
 /**
  * Sign in versus Create account (architecture 21.3, ADR-042). The intent rides along the whole Google trip in the query string
@@ -18,9 +19,11 @@ export interface AuthIntent {
   as: ProfileRelationship | null;
   /** A course picked on the landing page, carried into the study-plan step (F13, F15). */
   course: CourseField | null;
+  /** The public page the person tapped an action on, checked by `safeNext` (PRD_3 F20). They return there after signing in. */
+  next: string | null;
 }
 
-export const DEFAULT_INTENT: AuthIntent = { intent: "sign-in", as: null, course: null };
+export const DEFAULT_INTENT: AuthIntent = { intent: "sign-in", as: null, course: null, next: null };
 
 /** Anything that is not exactly a known value is dropped, never passed on. */
 export function readIntent(url: URL): AuthIntent {
@@ -31,15 +34,17 @@ export function readIntent(url: URL): AuthIntent {
     intent,
     as: (PROFILE_RELATIONSHIPS as readonly string[]).includes(as ?? "") ? (as as ProfileRelationship) : null,
     course: isCourseField(course) ? course : null,
+    next: safeNext(url.searchParams.get("next")),
   };
 }
 
-/** The query string that carries an intent on. Empty for the plain sign-in default, so existing links do not change. */
+/** The query string that carries an intent on. Empty for the plain sign-in default with no `next`, so existing links do not change. */
 export function intentParams(value: AuthIntent): URLSearchParams {
   const params = new URLSearchParams();
   if (value.intent === "sign-up") params.set("intent", "sign-up");
   if (value.intent === "sign-up" && value.as) params.set("as", value.as);
   if (value.intent === "sign-up" && value.course) params.set("course", value.course);
+  if (value.next) params.set("next", value.next);
   return params;
 }
 
@@ -49,10 +54,11 @@ export function intentParams(value: AuthIntent): URLSearchParams {
  */
 export const ONBOARDING_READY = true;
 
-export function onboardingPath(as: ProfileRelationship, course: CourseField | null, ready: boolean = ONBOARDING_READY): string {
+export function onboardingPath(as: ProfileRelationship, course: CourseField | null, ready: boolean = ONBOARDING_READY, next: string | null = null): string {
   if (!ready) return "/me";
   const params = new URLSearchParams({ as });
   if (course) params.set("course", course);
+  if (next) params.set("next", next);
   return `/me/onboarding?${params.toString()}`;
 }
 
@@ -68,6 +74,6 @@ export interface UnconfirmedLanding {
 /** Where a Google login with no confirmed Scollarly account goes next. A confirmed account never reaches this: it goes to its role's home. */
 export function unconfirmedLanding(value: AuthIntent, ready: boolean = ONBOARDING_READY): UnconfirmedLanding {
   const as = value.as ?? "student";
-  if (value.intent === "sign-up") return { confirmNow: true, path: onboardingPath(as, value.course, ready), as };
-  return { confirmNow: false, path: CONFIRM_PATH, as };
+  if (value.intent === "sign-up") return { confirmNow: true, path: onboardingPath(as, value.course, ready, value.next), as };
+  return { confirmNow: false, path: value.next ? `${CONFIRM_PATH}?next=${encodeURIComponent(value.next)}` : CONFIRM_PATH, as };
 }

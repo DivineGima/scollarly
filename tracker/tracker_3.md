@@ -72,7 +72,7 @@ Rows measured for version 2 are in tracker_2 and all passed. New rows for Stage 
 | Row | Warm p50 | Warm p95 | Worst | Cut | Gate | Run |
 |---|---|---|---|---|---|---|
 | Password sign-up and sign-in (S14.4) | | | | | | |
-| Gated refusals (`SIGN_IN_REQUIRED`, `ONBOARDING_REQUIRED`) (S14.3, S14.5) | | | | | | |
+| Gated refusals (`UNAUTHENTICATED`, `ONBOARDING_REQUIRED`) (S14.3, S14.5) | | | | | | |
 | `GET admin/pipeline`, `GET admin/export.csv` (S14.7) | | | | | | |
 | `/fees` 301 redirect (S14.1) | | | | | | |
 

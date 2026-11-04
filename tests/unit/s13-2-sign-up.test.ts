@@ -30,31 +30,31 @@ const urlOf = (path: string) => new URL(`https://scollarly.example${path}`);
 describe("the intent (21.3)", () => {
   it("defaults to sign in, and reads Create account with who and which course", () => {
     expect(readIntent(urlOf("/auth/start"))).toEqual(DEFAULT_INTENT);
-    expect(readIntent(urlOf("/auth/start?intent=sign-up&as=parent&course=law"))).toEqual({ intent: "sign-up", as: "parent", course: "law" });
-    expect(readIntent(urlOf("/auth/start?intent=sign-up"))).toEqual({ intent: "sign-up", as: null, course: null });
+    expect(readIntent(urlOf("/auth/start?intent=sign-up&as=parent&course=law"))).toEqual({ intent: "sign-up", as: "parent", course: "law", next: null });
+    expect(readIntent(urlOf("/auth/start?intent=sign-up"))).toEqual({ intent: "sign-up", as: null, course: null, next: null });
   });
 
   it("drops anything it does not know, instead of passing it on", () => {
     expect(readIntent(urlOf("/auth/start?intent=admin&as=owner&course=astrology"))).toEqual(DEFAULT_INTENT);
-    expect(readIntent(urlOf("/auth/start?intent=sign-up&as=guardian&course=%3Cscript%3E"))).toEqual({ intent: "sign-up", as: null, course: null });
+    expect(readIntent(urlOf("/auth/start?intent=sign-up&as=guardian&course=%3Cscript%3E"))).toEqual({ intent: "sign-up", as: null, course: null, next: null });
   });
 
   it("carries nothing extra for a plain sign in, so existing links do not change", () => {
     expect(intentParams(DEFAULT_INTENT).toString()).toBe("");
-    expect(intentParams({ intent: "sign-in", as: "parent", course: "law" }).toString()).toBe("");
-    expect(intentParams({ intent: "sign-up", as: "student", course: "law" }).toString()).toBe("intent=sign-up&as=student&course=law");
+    expect(intentParams({ intent: "sign-in", as: "parent", course: "law", next: null }).toString()).toBe("");
+    expect(intentParams({ intent: "sign-up", as: "student", course: "law", next: null }).toString()).toBe("intent=sign-up&as=student&course=law");
   });
 
   it("sends Sign in to the confirm screen and Create account straight on to onboarding", () => {
     expect(ONBOARDING_READY).toBe(true);
     expect(unconfirmedLanding(DEFAULT_INTENT)).toEqual({ confirmNow: false, path: CONFIRM_PATH, as: "student" });
-    expect(unconfirmedLanding({ intent: "sign-up", as: "parent", course: null })).toEqual({ confirmNow: true, path: "/me/onboarding?as=parent", as: "parent" });
+    expect(unconfirmedLanding({ intent: "sign-up", as: "parent", course: null, next: null })).toEqual({ confirmNow: true, path: "/me/onboarding?as=parent", as: "parent" });
   });
 
   it("goes to the student home instead while onboarding is switched off, and carries who and which course when it is on", () => {
-    expect(unconfirmedLanding({ intent: "sign-up", as: "parent", course: null }, false)).toEqual({ confirmNow: true, path: "/me", as: "parent" });
-    expect(unconfirmedLanding({ intent: "sign-up", as: "parent", course: "law" }, true)).toEqual({ confirmNow: true, path: "/me/onboarding?as=parent&course=law", as: "parent" });
-    expect(unconfirmedLanding({ intent: "sign-up", as: null, course: null }, true).path).toBe("/me/onboarding?as=student");
+    expect(unconfirmedLanding({ intent: "sign-up", as: "parent", course: null, next: null }, false)).toEqual({ confirmNow: true, path: "/me", as: "parent" });
+    expect(unconfirmedLanding({ intent: "sign-up", as: "parent", course: "law", next: null }, true)).toEqual({ confirmNow: true, path: "/me/onboarding?as=parent&course=law", as: "parent" });
+    expect(unconfirmedLanding({ intent: "sign-up", as: null, course: null, next: null }, true).path).toBe("/me/onboarding?as=student");
     expect(onboardingPath("student", null, false)).toBe("/me");
   });
 });

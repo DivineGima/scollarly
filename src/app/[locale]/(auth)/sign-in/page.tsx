@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { NextAwareLink } from "@/components/auth/next-aware-link";
 import { SignInNotice } from "@/components/auth/sign-in-notice";
 
 // A2.1 (architecture 21.17): "Welcome back", one Google button for people who already have an account, and a clear way to create one.
@@ -20,14 +21,12 @@ export default async function SignInPage({ params }: { params: Promise<{ locale:
       <p>{t("intro")}</p>
       <SignInNotice />
       {/* A full navigation to a Worker route, not a page: <Link> would prefetch it and try a client-side transition. */}
-      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-      <a className="auth-button" href="/auth/start">
+      <NextAwareLink className="auth-button" href="/auth/start">
         {t("google")}
-      </a>
+      </NextAwareLink>
       <p className="auth-muted">
         {t("newHere")}{" "}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/sign-up">{t("createAccount")}</a>
+        <NextAwareLink href="/sign-up">{t("createAccount")}</NextAwareLink>
       </p>
       <p className="auth-muted">{t("noGoogle")}</p>
     </main>

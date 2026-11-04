@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { authHref } from "@/modules/gate/next";
 import { readSite } from "@/modules/content/read";
 import { PageLink } from "./page-link";
 
@@ -15,9 +16,10 @@ export interface WhatsAppContext {
  * Every "Chat on WhatsApp" button (architecture 16 A1 step 3, A3 step 6). The address comes from the one helper
  * (`lib/whatsapp`) with the number in `site_setting`, never from code (FR-4).
  *
- * Without JavaScript this is a plain link into the chat. With JavaScript the quick form island (Stage 4, ADR-030) catches
- * the tap through the `data-wa-chat` attributes, collects name, number and country, saves the lead and then opens the
- * same chat with the reference. When no number is set yet, the button leads to the contact page instead of nowhere.
+ * A chat needs an account (PRD_3 F20, ADR-051). The link in the page is therefore a link to Sign in that returns to this page; the
+ * real chat address sits in `data-gate-href` and is used only after the gate script sees a signed-in person. Then the quick form island
+ * (Stage 4, ADR-030) catches the tap through the `data-wa-chat` attributes, collects name, number and country, saves the lead and
+ * opens the same chat with the reference. When no number is set yet, the button leads to the contact page instead of nowhere.
  */
 export async function WhatsAppButton({
   context,
@@ -41,9 +43,12 @@ export async function WhatsAppButton({
   }
   return (
     <a
-      href={href}
+      href={authHref("/sign-in", context.page)}
       className={className}
       rel="noopener"
+      data-gate="chat"
+      data-gate-href={href}
+      data-gate-next={context.page}
       data-wa-chat=""
       data-wa-page={context.page}
       data-wa-university-id={context.universityId}

@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import type { CourseField } from "@/lib/courses";
 import { findUniversitiesByCourse, signUpHrefForCourse } from "@/modules/content/course-finder";
+import { authHref } from "@/modules/gate/next";
 import type { CatalogueEntry } from "@/modules/student/ordering";
 
 export interface CourseFinderLabels {
@@ -69,7 +70,7 @@ export function CourseFinder({
           <>
             <p data-testid="finder-none">{labels.none}</p>
             <p className="cta-row">
-              <a className="btn btn-whatsapp" href={whatsappHref} rel="noopener" data-wa-chat="" data-wa-page="/" data-testid="finder-whatsapp">
+              <a className="btn btn-whatsapp" href={authHref("/sign-in", "/")} rel="noopener" data-gate="chat" data-gate-href={whatsappHref} data-gate-next="/" data-wa-chat="" data-wa-page="/" data-testid="finder-whatsapp">
                 {labels.whatsapp}
               </a>
             </p>
@@ -94,7 +95,7 @@ export function CourseFinder({
         )}
       </div>
       <p className="cta-row">
-        <a className="btn btn-primary" href={signUpHrefForCourse(field)} data-testid="finder-cta">
+        <a className="btn btn-primary" href={signUpHrefForCourse(field)} data-gate="course" data-gate-href="/apply" data-gate-next={`/?course=${field}`} data-testid="finder-cta">
           {labels.cta}
         </a>
       </p>
