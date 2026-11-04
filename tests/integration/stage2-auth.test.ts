@@ -66,7 +66,7 @@ async function stepUpAt(session: Session, ageMs: number) {
 async function newUser(role: "student" | "admin" | "owner", email?: string, verified = true): Promise<Session> {
   const user = await t.signIn({ ...(email ? { email } : {}), verified });
   // An account that existed before version 2 is confirmed (migration 0013); a staff row is confirmed by the database itself.
-  await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, now())`);
+  await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(user.userId)}, ${q(role)}, now(), now())`);
   return user;
 }
 

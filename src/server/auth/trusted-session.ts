@@ -11,3 +11,12 @@
 export function isTrustedSession(session: { emailVerified: boolean; role: string }): boolean {
   return session.emailVerified || session.role === "student";
 }
+
+/**
+ * Whether a student must finish onboarding before applying (PRD_3 F15, ADR-053). The same question `needsOnboarding` asks of an `Actor`
+ * (`actor.ts`), for the lead endpoint, which holds a session and loads nothing else. An unknown stored role counts as a student, as it
+ * does everywhere else.
+ */
+export function sessionNeedsOnboarding(session: { role: string; onboardingDone?: boolean }): boolean {
+  return session.role !== "admin" && session.role !== "owner" && session.onboardingDone === false;
+}

@@ -1,6 +1,6 @@
 import { SIGNED_IN_FRAGMENT } from "@/lib/client/signed-in-hint";
 import { newRequestId } from "@/lib/http";
-import { readIntent, unconfirmedLanding } from "@/modules/auth/intent";
+import { onboardingPath, readIntent, unconfirmedLanding } from "@/modules/auth/intent";
 import { INVITE_TOKEN_PATTERN, landingPathFor } from "@/modules/auth/service";
 import { hashInviteToken } from "@/modules/team/service";
 import type { Actor } from "@/server/auth/actor";
@@ -72,8 +72,13 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
       return redirect(request, next.path);
     }
 
+    // A student who has not finished onboarding goes to the questionnaire and nowhere else, whichever button they used (PRD_3 F15, ADR-053).
+    // The page they came from rides along and is where they go when they finish.
+    const intent = readIntent(new URL(request.url));
+    if (storedRole === "student" && !actor.onboardingDone) return redirect(request, onboardingPath(intent.as ?? "student", intent.course, true, intent.next));
+
     // A student who tapped an action on a public page goes back to that page (PRD_3 F20). Staff always go to their own home.
-    const back = readIntent(new URL(request.url)).next;
+    const back = intent.next;
     if (storedRole === "student" && back) return redirect(request, `${back}${SIGNED_IN_FRAGMENT}`);
 
     let twoFactorEnrolled = false;

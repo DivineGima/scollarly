@@ -31,6 +31,8 @@ export function useMeData<T>(path: string | null): { state: MeState<T>; reload: 
           clearSignedIn();
           window.location.replace("/sign-in");
         }
+        // A student who has not finished the questionnaire sees nothing else (ADR-053).
+        if (result.status === 403 && result.code === "ONBOARDING_REQUIRED") window.location.replace("/me/onboarding");
         setState({ status: "error", httpStatus: result.status, offline: result.status === 0 });
       }
     });

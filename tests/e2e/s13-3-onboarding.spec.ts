@@ -93,7 +93,7 @@ test.describe("a student", () => {
     await axe(page);
 
     await consent(page).check();
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "Thank you, you are all set" })).toBeVisible();
     await expect(page.getByText("Your reference: SC-ABCDE-FGHJK")).toBeVisible();
     await expect(page.getByRole("link", { name: "Go to my page" })).toHaveAttribute("href", "/me");
@@ -125,7 +125,7 @@ test.describe("a student", () => {
     const server = await stub(page);
     await page.goto("/me/onboarding?as=student");
     await reachConsent(page);
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByText("Please tick the box to continue.")).toBeVisible();
     expect(server.posts).toHaveLength(0);
   });
@@ -208,7 +208,7 @@ test.describe("a parent", () => {
     await page.getByLabel("Your WhatsApp number").fill("6 71 23 45 67");
     await page.getByRole("button", { name: "Next" }).click();
     await consent(page).check();
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "Thank you, you are all set" })).toBeVisible();
     expect(server.posts[0]?.postDataJSON()).toMatchObject({ relationship: "parent", applicant_name: "Chidi Eze", applicant_country: "NG", contact_name: "Ngozi Eze", contact_country: "CM", contact_whatsapp: "6 71 23 45 67" });
   });
@@ -244,7 +244,7 @@ test.describe("without a connection, and without a session", () => {
     await consent(page).check();
 
     await setConnection(context, server, false);
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible();
     await expect(page.getByText(/You are offline/)).toBeVisible();
     expect(server.posts).toHaveLength(0);
@@ -261,7 +261,7 @@ test.describe("without a connection, and without a session", () => {
     await reachConsent(page);
     await consent(page).check();
     await setConnection(context, server, false);
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible();
     // The phone is back online but the server is still unreachable, so the answers must still be waiting after a reload.
     await context.setOffline(false);
@@ -283,7 +283,7 @@ PAGE: ${await describePage(page)}`);
     await page.goto("/me/onboarding?as=student");
     await reachConsent(page);
     await consent(page).check();
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "Saved on this phone" })).toBeVisible();
     await expect(page.getByText("Your session ended. Sign in to send your answers.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
@@ -295,7 +295,7 @@ PAGE: ${await describePage(page)}`);
     await page.goto("/me/onboarding?as=student");
     await reachConsent(page);
     await consent(page).check();
-    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "We could not send your answers" })).toBeVisible();
     await page.getByRole("button", { name: "Review my answers" }).click();
     await expect(page.getByText("Step 1 of 4")).toBeVisible();

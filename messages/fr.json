@@ -2065,7 +2065,7 @@
     "fixErrors": "Veuillez corriger les réponses signalées pour continuer.",
     "back": "Retour",
     "next": "Suivant",
-    "finish": "Terminer",
+    "finish": "S'inscrire",
     "sending": "Envoi…",
     "countries": {
       "CM": "Cameroun",
@@ -2144,7 +2144,8 @@
       "title": "Merci, c'est fait",
       "body": "Un conseiller vous écrira bientôt sur WhatsApp.",
       "ref": "Votre référence : {ref}",
-      "go": "Aller à ma page"
+      "go": "Aller à ma page",
+      "goBack": "Continuer"
     },
     "already": {
       "title": "Vous avez déjà terminé",

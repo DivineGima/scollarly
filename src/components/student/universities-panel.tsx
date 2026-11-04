@@ -85,14 +85,6 @@ function Body({ catalogue, initial, onboarded, offline, retry }: { catalogue: re
           ) : null}
         </p>
       ) : null}
-      {onboarded ? null : (
-        <p className="me-notice" data-testid="finish-profile">
-          {t("finishProfile")}{" "}
-          <a className="me-button me-button-quiet" href="/me/onboarding">
-            {t("finishButton")}
-          </a>
-        </p>
-      )}
       {offered.length > 0 ? (
         <fieldset className="course-chips">
           <legend>{t("yourCourses")}</legend>

@@ -83,9 +83,12 @@ const profilesOf = (user: SignedInUser) => count(`select count(*)::int as n from
 describe("finishing onboarding", () => {
   it("makes one lead, linked to the account, and one profile, with an audit row that holds ids only", async () => {
     const user = await account();
+    const doneAt = async () => ((await t.run(`select onboarding_done_at from app_user where id = ${q(user.userId)}`)) as { onboarding_done_at: unknown }[])[0]?.onboarding_done_at;
+    expect(await doneAt()).toBeNull(); // the student area is closed to them until now (S14.5, ADR-053)
     const values = student();
     const response = await post(user, bodyOf(values));
     expect(response.status).toBe(201);
+    expect(await doneAt()).not.toBeNull(); // recorded by the one function that finishes onboarding, through the profile row
     const { ref } = (await response.json()) as { ref: string };
 
     const [lead] = (await t.run(`select ref, intake_kind, name, whatsapp_e164, country_code, qualification_type, user_id, stage_code, source, results from lead where user_id = ${q(user.userId)}`)) as Record<string, unknown>[];

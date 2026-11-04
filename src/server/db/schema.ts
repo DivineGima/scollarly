@@ -85,6 +85,8 @@ export const appUser = pgTable(
      * bootstrap and an accepted invite. Migration 0013 backfills every existing row to its `created_at`.
      */
     accountConfirmedAt: tz("account_confirmed_at"),
+    /** When a student finished onboarding (architecture 22.4, ADR-053). Set by a trigger on `student_profile`; a student without it sees only the questionnaire. */
+    onboardingDoneAt: tz("onboarding_done_at"),
     /** The one "last seen" time behind the unread dot (architecture 21.8, ADR-045). Changed only by `app_mark_notifications_seen()`. */
     notificationsSeenAt: tz("notifications_seen_at"),
     /** Tab keys whose first-visit tour was shown (architecture 21.10). Changed only by `app_mark_tour_seen()`. */

@@ -100,13 +100,13 @@ test.describe("Home", () => {
     await axe(page);
   });
 
-  test("a person who has not finished onboarding is asked to, and is not greeted with answers they never gave", async ({ page }) => {
-    await stubHome(page, home({ onboarded: false, firstName: null, courseFields: [], lead: null }));
+  test("a person who has not finished onboarding is sent to the questionnaire, not shown a dashboard (S14.5)", async ({ page }) => {
+    await page.route("**/api/v1/me/home", (route) => route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ error: { code: "ONBOARDING_REQUIRED", message: "x" }, request_id: "r" }) }));
+    await page.route("**/api/v1/me/onboarding-state", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ userId: "u1", onboarded: false, ref: null }) }));
     await page.goto("/me");
-    await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
-    await expect(page.getByTestId("finish-profile").getByRole("link", { name: "Continue" })).toHaveAttribute("href", "/me/onboarding");
-    await expect(page.getByTestId("stage-card")).toContainText("We are matching your application");
-    await expect(page.getByTestId("for-you")).toContainText("Best NAAC grade first");
+    await expect(page).toHaveURL(/\/me\/onboarding$/);
+    await expect(page.getByTestId("finish-profile")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
   });
 
   test("says what went wrong, and offers a retry, when the data cannot be read", async ({ page }) => {
@@ -158,11 +158,11 @@ test.describe("Universities", () => {
     if (firstMissing >= 0) expect(grades.slice(firstMissing).every((g) => g.includes("not stated"))).toBe(true);
   });
 
-  test("a person who has not finished is told, and still sees the list by NAAC grade", async ({ page }) => {
-    await stubPreferences(page, preferences({ onboarded: false, firstName: null, courseFields: [] }));
+  test("the university list also sends a person who has not finished to the questionnaire (S14.5)", async ({ page }) => {
+    await page.route("**/api/v1/me/preferences", (route) => route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ error: { code: "ONBOARDING_REQUIRED", message: "x" }, request_id: "r" }) }));
+    await page.route("**/api/v1/me/onboarding-state", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ userId: "u1", onboarded: false, ref: null }) }));
     await page.goto("/me/universities");
-    await expect(page.getByTestId("finish-profile")).toContainText("Finish your profile");
-    await expect(page.getByTestId("university").first()).toBeVisible();
+    await expect(page).toHaveURL(/\/me\/onboarding$/);
   });
 });
 

@@ -1,6 +1,6 @@
 import { errorResponse, errorResponseFor, isSameOrigin, newRequestId, readCappedBytes, readJsonBody } from "@/lib/http";
 import { logError } from "@/server/log";
-import { type Actor, AuthError, hasAtLeast, isStepUpFresh, type Role } from "@/server/auth/actor";
+import { type Actor, AuthError, hasAtLeast, isStepUpFresh, needsOnboarding, type Role } from "@/server/auth/actor";
 import { readSessionToken } from "@/server/auth/cookie";
 import type { LimitDecision } from "@/server/security/rate-limit";
 import type { EndpointEnv } from "./endpoint-env";
@@ -52,6 +52,8 @@ export interface Mutation {
    * a few hundred kilobytes and an unauthenticated caller must not make the Worker read it. The details go in the query string.
    */
   binary?: { maxBytes: number };
+  /** A `me` operation a student may call before onboarding is finished (only the one that finishes it). Every other `me` operation is refused until then (ADR-053). */
+  beforeOnboarding?: boolean;
   handle: (call: MutationCall) => Promise<Response>;
 }
 
@@ -129,6 +131,9 @@ export async function handleMutation(request: Request, makeDeps: () => MutationD
     const actor = mutation.access.kind === "public" ? null : await deps.checkSession(request.headers);
     const denied = denyAccess(mutation.access, actor, deps.env.now());
     if (denied) return errorResponse(denied.status, denied.code, denied.message, requestId);
+    if (route.area === "me" && actor && needsOnboarding(actor) && !mutation.beforeOnboarding) {
+      return errorResponse(403, "ONBOARDING_REQUIRED", "Finish your sign-up to continue.", requestId);
+    }
 
     let bytes: Uint8Array | null = null;
     if (mutation.binary) {

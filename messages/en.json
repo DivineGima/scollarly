@@ -2065,7 +2065,7 @@
     "fixErrors": "Please fix the highlighted answers to continue.",
     "back": "Back",
     "next": "Next",
-    "finish": "Finish",
+    "finish": "Sign up",
     "sending": "Sending…",
     "countries": {
       "CM": "Cameroon",
@@ -2144,7 +2144,8 @@
       "title": "Thank you, you are all set",
       "body": "An adviser will message you on WhatsApp soon.",
       "ref": "Your reference: {ref}",
-      "go": "Go to my page"
+      "go": "Go to my page",
+      "goBack": "Continue"
     },
     "already": {
       "title": "You have already finished",
