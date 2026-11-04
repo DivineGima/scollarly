@@ -337,3 +337,15 @@
   background: var(--color-accent);
   color: var(--color-accent-fg);
 }
+
+/* The small logo shown while a signed-in screen's data loads (S13.7, architecture 21.12): a plain image in the cached shell, no script and no timer. */
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.loading-mark {
+  width: 2rem;
+  height: auto;
+  opacity: 0.7;
+}

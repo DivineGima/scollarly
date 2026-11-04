@@ -24,6 +24,8 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="container bar">
         <PageLink href="/" className="brand">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a small static logo from our own files; the image optimiser is not used on this platform */}
+          <img className="brand-mark" src="/brand/logo.svg" width={28} height={25} alt="" />
           {t("name")}
         </PageLink>
         <div className="bar-actions">

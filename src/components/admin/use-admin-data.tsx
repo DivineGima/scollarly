@@ -42,7 +42,14 @@ export function useAdminData<T>(path: string | null): { state: DataState<T>; rel
 /** Shows the loading and error states of a data call; renders nothing for a ready state, so the caller renders its own. */
 export function DataStatus({ state, reload }: { state: DataState<unknown>; reload: () => void }) {
   const t = useTranslations("admin.common");
-  if (state.status === "loading") return <p role="status">{t("loading")}</p>;
+  if (state.status === "loading")
+    return (
+      <p role="status" className="loading-line">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small static logo from our own files; the image optimiser is not used on this platform */}
+        <img className="loading-mark" src="/brand/logo.svg" width={32} height={29} alt="" />
+        {t("loading")}
+      </p>
+    );
   if (state.status === "error") {
     return (
       <div role="alert" className="rounded-md border border-danger p-4 text-danger">

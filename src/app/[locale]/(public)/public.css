@@ -805,3 +805,68 @@ body:has(.site) {
 .turnstile-box {
   min-height: 0;
 }
+
+/* Landing page (S13.7): the course finder and the logo strip. Existing tokens only; no new colour. */
+.finder {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.finder h2 {
+  margin: 0;
+}
+.finder label {
+  font-weight: 600;
+}
+.finder select {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-fg-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font: inherit;
+}
+.finder-result p {
+  margin: var(--space-2) 0;
+}
+.finder-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.finder-list li {
+  display: grid;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+.logo-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.logo-strip .logo {
+  height: 2.5rem;
+}
+/* The black logo beside the name in the site header (S13.7). The size is reserved by the width and height attributes, so nothing shifts. */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.brand-mark {
+  width: 1.75rem;
+  height: auto;
+}

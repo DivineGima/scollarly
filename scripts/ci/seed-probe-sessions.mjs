@@ -25,6 +25,8 @@ if (!process.env.DATABASE_URL) {
 const EMAIL_PATTERN = "s010-probe-%@scollarly.invalid";
 /** Fresh students for the onboarding CPU row; the measurement script uses as many as it sends requests. */
 const ONBOARDING_PROBES = 55;
+/** Pending accounts (a login that has not confirmed yet) for the `POST account/confirm` CPU row; each request needs its own. */
+const PENDING_PROBES = 55;
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
@@ -89,6 +91,17 @@ try {
       await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now())`, [token, userId]);
       await client.query("insert into public.app_user (id, role, account_confirmed_at) values ($1, 'student', now()) on conflict (id) do nothing", [userId]);
       sessions.onboarding.push({ token, userId });
+    }
+    // S13.2: pending accounts, as the session function leaves a first-time Google login (no confirmed time), for `POST account/confirm`.
+    sessions.pending = [];
+    for (let i = 0; i < PENDING_PROBES; i += 1) {
+      const email = `s010-probe-pending-${i}-${randomBytes(4).toString("hex")}@scollarly.invalid`;
+      const token = randomBytes(24).toString("hex").slice(0, 32);
+      const user = await client.query(`insert into neon_auth."user" (name, email, "emailVerified") values ($1, $2, true) returning id::text as id`, [`S010 probe pending ${i}`, email]);
+      const userId = user.rows[0].id;
+      await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now())`, [token, userId]);
+      await client.query("insert into public.app_user (id, role, account_confirmed_at) values ($1, 'student', null) on conflict (id) do nothing", [userId]);
+      sessions.pending.push({ token, userId });
     }
     mkdirSync("scripts/.generated", { recursive: true });
     writeFileSync("scripts/.generated/probe-sessions.json", JSON.stringify(sessions));

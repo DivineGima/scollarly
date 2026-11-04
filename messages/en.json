@@ -16,7 +16,22 @@
     "servicesHeading": "What we do for you",
     "faqHeading": "Questions students ask",
     "faqGeneral": "General",
-    "allFaq": "See all questions"
+    "allFaq": "See all questions",
+    "finder": {
+      "heading": "Find universities for your course",
+      "label": "Course",
+      "choose": "Choose a course…",
+      "prompt": "Pick a course to see which universities offer it.",
+      "countOne": "{count} university offers this course",
+      "countOther": "{count} universities offer this course",
+      "none": "No university lists this course yet. Message us on WhatsApp and we will suggest one that fits.",
+      "cta": "Create your free account",
+      "ctaHint": "We keep your course, so your list is ready when you finish signing up.",
+      "naac": "NAAC {grade}",
+      "naacMissing": "NAAC grade not stated",
+      "open": "See {name}"
+    },
+    "logosHeading": "Universities you can apply to"
   },
   "offline": {
     "title": "You are offline",

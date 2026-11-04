@@ -4,8 +4,13 @@ import type { Metadata, Viewport } from "next";
 import { isLocale, locales } from "@/i18n/config";
 import "../globals.css";
 
-export const metadata: Metadata = { title: "Scollarly", description: "Study in India from Africa." };
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#1d4ed8" };
+export const metadata: Metadata = {
+  title: "Scollarly",
+  description: "Study in India from Africa.",
+  // The tab icon (`src/app/icon.svg`) is picked up by Next.js itself; these two are the older browsers' and the iPhone home screen's (S13.7).
+  icons: { shortcut: "/favicon.ico", apple: "/icons/apple-touch-icon.png" },
+};
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#1F3BFF" };
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));

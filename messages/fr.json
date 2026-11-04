@@ -16,7 +16,22 @@
     "servicesHeading": "Ce que nous faisons pour vous",
     "faqHeading": "Les questions des étudiants",
     "faqGeneral": "Général",
-    "allFaq": "Voir toutes les questions"
+    "allFaq": "Voir toutes les questions",
+    "finder": {
+      "heading": "Trouvez des universités pour votre cours",
+      "label": "Cours",
+      "choose": "Choisissez un cours…",
+      "prompt": "Choisissez un cours pour voir quelles universités le proposent.",
+      "countOne": "{count} université propose ce cours",
+      "countOther": "{count} universités proposent ce cours",
+      "none": "Aucune université ne propose encore ce cours. Écrivez-nous sur WhatsApp et nous vous en proposerons une qui convient.",
+      "cta": "Créer mon compte gratuit",
+      "ctaHint": "Nous gardons votre cours : votre liste est prête quand vous avez fini de vous inscrire.",
+      "naac": "NAAC {grade}",
+      "naacMissing": "Note NAAC non indiquée",
+      "open": "Voir {name}"
+    },
+    "logosHeading": "Universités où vous pouvez postuler"
   },
   "offline": {
     "title": "Vous êtes hors ligne",

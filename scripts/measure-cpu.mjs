@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,lead,media,media-miss").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,account-confirm,me-home,me-notifications,admin-home,admin-notifications,admin-tour,legacy-redirect,lead,media,media-miss").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, media: 8, "media-miss": 8 };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, "account-confirm": 8, "me-home": 8, "me-notifications": 8, "admin-home": 8, "admin-notifications": 8, "admin-tour": 8, "legacy-redirect": 8, media: 8, "media-miss": 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -175,6 +175,22 @@ try {
     // trip). Recording and voiding are single-statement writes of an already measured shape. The owner-only Settings and Health reads have no
     // scenario: the measurement has no owner session (it needs a second factor), so they are watched in Workers Logs after the deploy.
     rows.push(await scenario("Staff payments: ledger rows, totals by university and month, universities and the team", "payments", () => call("/api/v1/admin/payments", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/payments")));
+    // S13.6 (tracker flag F26): the staff hubs' own calls, each one call per screen (architecture 21.13). Matched by exact address because the
+    // calls take no marker. The tour mark is a tiny write of a fixed shape; it repeats safely, so one admin can send all of them.
+    rows.push(await scenario("Staff Home: up to four aggregate reads in one transaction (week)", "admin-home", () => call("/api/v1/admin/home?period=week", staff), samples, 150, (url) => url.includes("/api/v1/admin/home")));
+    rows.push(await scenario("Staff notifications: derived items for the caller", "admin-notifications", () => call("/api/v1/admin/notifications", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/notifications")));
+    rows.push(
+      await scenario(
+        "Staff tour mark: one function call",
+        "admin-tour",
+        () => call("/api/v1/admin/tour.seen", { method: "POST", headers: { "content-type": "application/json", origin: base, "idempotency-key": crypto.randomUUID(), cookie: cookieOf("admin") }, body: JSON.stringify({ tab: "home" }) }),
+        samples,
+        150,
+        (url) => url.endsWith("/api/v1/admin/tour.seen"),
+      ),
+    );
+    // The legacy redirect runs in the Worker entry before the session check, so it needs no cookie. The marker rides in the query, which the redirect keeps.
+    rows.push(await scenario("Legacy admin address: 301 from the Worker entry", "legacy-redirect", (m) => call(`/admin/payments?${m}`)));
     const seedLead = async (overrides = {}) => {
       const body = probeLead({ name: "Measure Probe", ...overrides });
       try {
@@ -288,6 +304,28 @@ try {
     rows.push(await scenario("Student /me progress: own lead, stages, claims and the WhatsApp setting", "student-progress", () => call("/api/v1/me/progress", as("student")), samples, 150, (url) => url.endsWith("/api/v1/me/progress")));
     rows.push(await scenario("Student screen, data: session query, then one query under row level security", "student-data", (m) => call(`/api/v1/me/phase0?${m}`, as("student"))));
 
+    // S13.2 (tracker flag F26): confirming an account is one function call. Each request is a different pending account (no confirmed time yet),
+    // so every one takes the creating path, not the cheap replay. Gate: at most 8 ms warm (architecture 21.13).
+    const pending = sessions.pending ?? [];
+    if (pending.length > 0) {
+      rows.push(
+        await scenario(
+          "Account confirm POST: one function call on a pending account",
+          "account-confirm",
+          (m, i) => {
+            const who = pending[i % pending.length];
+            return call(`/api/v1/account/confirm?${m}`, {
+              method: "POST",
+              headers: { "content-type": "application/json", origin: base, "idempotency-key": crypto.randomUUID(), cookie: `__Secure-neon-auth.session_token=${who.token}.c2lnbmF0dXJl` },
+              body: JSON.stringify({}),
+            });
+          },
+          Math.min(50, pending.length),
+          200,
+        ),
+      );
+    }
+
     // S13.3: finishing onboarding is one database function (migration 0014). Each request is a different freshly made student, so every one
     // takes the creating path (lead, claim, profile, audit), not the cheap replay. Gate: at most 8 ms warm (architecture 21.13).
     const onboarders = sessions.onboarding ?? [];
@@ -326,7 +364,13 @@ try {
         ),
       );
     }
-  } else if ([...only].some((k) => /^(admin|student)-/.test(k))) {
+    // S13.4 and S13.5 (tracker flag F26): the student's Home and notifications, measured as a student who has finished onboarding (so a
+    // profile and a lead exist, the heavier path). If the onboarding scenario did not run, this is the first onboarding probe user with no lead.
+    const homeStudent = (sessions.onboarding ?? [])[0] ?? sessions.student;
+    const homeCookie = `__Secure-neon-auth.session_token=${homeStudent.token}.c2lnbmF0dXJl`;
+    rows.push(await scenario("Student Home: profile, lead stage and count in one call", "me-home", () => call("/api/v1/me/home", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/home")));
+    rows.push(await scenario("Student notifications: derived items for the caller", "me-notifications", () => call("/api/v1/me/notifications", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/notifications")));
+  } else if ([...only].some((k) => /^(admin|student|me|account)-/.test(k))) {
     console.error("No --sessions file: the staff and student scenarios were skipped.");
   }
 

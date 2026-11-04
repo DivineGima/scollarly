@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { CourseFinder, type CourseFinderLabels } from "@/components/public/course-finder";
+import { COURSE_FIELDS } from "@/lib/courses";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { MediaImage } from "@/components/public/media-image";
 import { Paragraphs } from "@/components/public/copy";
 import { PageLink } from "@/components/public/page-link";
@@ -7,6 +10,7 @@ import { FaqList } from "@/components/public/steps";
 import { Testimonials, TrustStats } from "@/components/public/trust";
 import { UniversityCard } from "@/components/public/university-card";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { toCourseCatalogue } from "@/modules/content/course-catalogue";
 import { readCatalogue, readPageImages, readSite, readTrust } from "@/modules/content/read";
 import { pageMetadata } from "@/components/public/page-metadata";
 
@@ -23,11 +27,23 @@ const WHY = ["free", "real", "support", "risk"] as const;
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, { universities }, site, trust, pageImages] = await Promise.all([getTranslations("home"), readCatalogue(), readSite(), readTrust(), readPageImages()]);
+  const [t, courses, tWhatsApp, snapshot, site, trust, pageImages] = await Promise.all([getTranslations("home"), getTranslations("courses"), getTranslations("site.whatsapp"), readCatalogue(), readSite(), readTrust(), readPageImages()]);
+  const { universities } = snapshot;
   const { blocks } = site;
   const steps = site.processSteps.filter((s) => s.kind === "application");
   const featured = universities.slice(0, 6);
   const heroPhoto = pageImages["home.hero"];
+  // The course finder (F13): the public catalogue is the same for everyone, so it is safe in this cached page. It lists every course on the
+  // owner's list; one no university offers yet answers with a message and WhatsApp (FR-31). With no university at all, the finder is left out.
+  const catalogue = toCourseCatalogue(snapshot);
+  const showFinder = catalogue.length > 0;
+  const whatsappHref = buildWhatsAppUrl(site.contact.whatsappE164) ?? "/contact";
+  const finderLabels = Object.fromEntries(
+    (["heading", "label", "choose", "prompt", "countOne", "countOther", "none", "cta", "ctaHint", "naac", "naacMissing", "open"] as const).map((key) => [key, t(`finder.${key}`)]),
+  ) as unknown as CourseFinderLabels;
+  finderLabels.whatsapp = tWhatsApp("chat");
+  const courseNames = Object.fromEntries(COURSE_FIELDS.map((field) => [field, courses(field)]));
+  const logoUniversities = universities.filter((university) => university.logo);
 
   return (
     <>
@@ -49,6 +65,23 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         ) : null}
       </section>
+
+      {showFinder ? <CourseFinder catalogue={catalogue} fields={COURSE_FIELDS} courseNames={courseNames} labels={finderLabels} whatsappHref={whatsappHref} /> : null}
+
+      {logoUniversities.length > 0 ? (
+        <section aria-labelledby="logos-heading" className="section">
+          <h2 id="logos-heading">{t("logosHeading")}</h2>
+          <ul className="logo-strip">
+            {logoUniversities.map((university) => (
+              <li key={university.id}>
+                <PageLink href={`/universities/${university.slug}`}>
+                  <MediaImage media={{ ...university.logo!, alt: university.logo!.alt || university.name }} className="logo" />
+                </PageLink>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <TrustStats stats={trust.stats} />
 

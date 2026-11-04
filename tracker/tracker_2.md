@@ -13,8 +13,8 @@ This tracker starts the refactor (PRD_2, architecture 2, essentials 2). It does 
 | Essentials file for the next stage | `essentials/system_architecture_essential_2.md` (Stage 13, one stage) |
 | Approved design document | `docs/designs/scollarly-v2-refactor.md` (approved by the owner 2026-10-31; spec review not run) |
 | Phase | Stages 0 to 9 and 12 of version 1 are complete and live (see tracker_1). Stages 10 and 11 are `in-progress` in tracker_1 and their three open modules are carried into S13.8. **S13.1 to S13.6 of the refactor are merged. Migrations 0013, 0014 and 0015 are deployed to production as of this session's deploy run.** |
-| Next stage | **Stage 13 (the refactor).** S13.1 to S13.6 are complete and merged (PR #46, #48, #49, #50, #51, #52). **S13.7 (landing page and brand) has not been asked for and has not started.** |
-| Blocked by | Nothing blocks the code. R1 (publish Google's OAuth app) blocks the first real onboarding, not the build. |
+| Next stage | **Stage 13 (the refactor).** S13.1 to S13.6 are complete and merged (PR #46, #48, #49, #50, #51, #52). **S13.7, S13.8 and S13.9 are `in-progress` (Sessions 49 and 50, 2026-11-04):** the landing page, course finder, logo, icon set and manifest, the CPU scenarios, the checklist and quota review, the traceability map and the QA sweep are built; the real-phone icon check, the watched test and the owner's sign-offs are human actions, and each module closes when its pull request is green in CI. |
+| Blocked by | Nothing blocks the code. R1 (publish Google's OAuth app) blocks the first real onboarding and the watched test. |
 
 ## Standing owner check-ins (ask the owner at the start of every session)
 
@@ -121,18 +121,56 @@ At the owner's explicit word: (1) the Step 2 sentence was added to `CLAUDE.md` (
 
 **Done at the owner's word ("Run the deploy and write tracker update"):** triggered `stage0-deploy.yml` (workflow_dispatch) on `main` after PR #52, run https://github.com/DivineGima/scollarly/actions/runs/41227691246. **Succeeded in 27m36s.** Migrations 0014 and 0015 applied to the live Neon database (0013 was already live from an earlier session), the Worker rebuilt and deployed to `scollarly.gimafolabit.workers.dev`, secrets set, `/api/v1/health` answered 200, and the CPU measurement ran (30 lead samples). Every measured scenario passed its gate; see the CPU rows table. The 57 throwaway probe users and 67 probe leads the measurement created were removed at the end of the run, as always. **Flag F26** records that S13.4 to S13.6's own new calls have no scenario in the measurement script yet, so their CPU rows stay unmeasured rather than guessed.
 
+### 2026-11-04: Session 50 (S13.7 logo, icons, manifest; F23 and F24 closed)
+
+**Built against:** essentials, architecture and PRD all version 2, on the same branch as Session 49.
+
+**Done:** the supplied image was traced into `public/brand/logo.svg` (black) and `logo-white.svg` by contour tracing of the image's pixels, not by hand (three shapes, about 550 bytes of path, 98.7% pixel overlap with the supplied black mark; the small remainder is edge anti-aliasing). `scripts/make-icons.mjs` was rewritten to build `icon-192`, `icon-512`, `maskable-512` (mark inside the safe zone), `apple-touch-icon` (180), `favicon.ico` (16, 32, 48) and `src/app/icon.svg` from the white logo on `#1F3BFF`, and the outputs were looked at. `manifest.ts` and the page head use `#1F3BFF` for `background_color` and `theme_color`, so the installed app's launch screen is the icon on the brand blue (no script, no delay). The black logo is in the site header; a small logo shows in the loading state of every signed-in screen (a plain image in the cached shell, no timer). 14 new unit tests (`s13-7-brand.test.ts`) read the committed files: vector content, icon sizes and colours, the safe zone, the ICO structure, the manifest, and where the logo is used. FR-30 is now mapped (below).
+
+**Owner to do (R4):** look at the traced logo and the icons (the supplied image was the source, so they should match), then install the app on a real Android phone and check the icon and launch screen, because no tool here can show that. Not marked done.
+
+**Owner answers:** F23 yes, F24 yes (Flags).
+
+### 2026-11-04: Session 49 (S13.7 landing page, S13.8 carry-over, S13.9 QA; flags reviewed)
+
+**Built against:** essentials `system_architecture_essential_2.md`, architecture `system_architecture_2.md`, PRD `PRD_2.md`, all version 2 (N = 2 everywhere). Branch `feat/s13-7-8-9-landing-and-qa`.
+
+**Owner answers recorded (2026-11-04):** the logo image is not in the repository, so the owner designed it with an AI tool from a prompt Claude Code wrote and sent the image in the chat (black mark on white, white mark on `#1F3BFF`); it was traced in Session 50 (below). F23 and F24: the owner said **yes** (both resolved). H24 (Neon compute hours): **keep the link to the Neon console**, no Neon API key and no new secret. F5 and F6: the owner accepted Claude Code's reading of both (see Flags). F8: the owner chose not to change GitHub settings.
+
+**S13.7 built:** the landing page `/` now has the course finder (the page's only script: `src/components/public/course-finder.tsx`, pure rules in `src/modules/content/course-finder.ts`). It lists the owner's twelve courses; choosing one shows the universities that offer it (best NAAC grade first, then A to Z), a course nobody lists yet answers with a message and a WhatsApp link from the one helper (FR-31), and "Create your free account" goes to `/sign-up?course=<course>` (a value that is not on the list carries nothing). A strip of university logos (from our own storage, only for universities that have one) sits below it. The existing hero, process, FAQ teaser and confirmed-only trust blocks are unchanged; the existing install bar already offers install to returning visitors, so no second prompt was added. English and French strings added. `/sign-in` and `/sign-up` were added to the Lighthouse CI list.
+**S13.7 brand part:** built in Session 50 once the image arrived (below).
+
+**S13.8 built:** (1) flag F26: `scripts/measure-cpu.mjs` now has scenarios for `account/confirm`, `me/home`, `me/notifications`, `admin/home`, `admin/notifications`, `admin/tour.seen` and the legacy redirect, and `scripts/ci/seed-probe-sessions.mjs` makes 55 pending accounts for the confirm scenario; a unit test keeps the script honest. **The rows are still unmeasured: they are filled by the next deploy-and-measure run.** (2) `docs/pre-launch-checklist.md` extended with R1, R4, R5, R6, F8, the version 2 screens, the watched test and a parent flow. (3) `docs/quota-review.md` has a version 2 re-run with the 2026-10-31 measured CPU figures. (4) S10.2: H24 decided as above.
+**S13.8 not done (owner or deploy):** the three modules stay `in-progress`: S10.2 and S11.4 until this pull request's CI is green and the next deploy fills the new CPU rows and the Worker size figure; S11.6 until the owner ticks the checklist and signs off (H11).
+
+**S13.9 built:** `tests/unit/s13-9-traceability.test.ts` maps FR-19 to FR-32 to named tests and fails if one is renamed or deleted (table below); `tests/e2e/s13-9-qa.spec.ts` checks the landing page, Sign in and Sign up at 360 px and 1280 px (one h1, no sideways scroll, axe), reduced motion, and keyboard-only use of the finder; `scripts/smoke.mjs` now checks the version 2 shells, data calls and every legacy redirect. **Smoke run against production: 55 of 55 passed** (visitor level only). The old smoke list expected 404 for `/admin/payments`, which the Worker has redirected since S13.6; it now expects the 301.
+**S13.9 not done (human):** the watched test with three real people, the real-phone icon and splash check, and the sign-in smoke test for each role. Claude Code cannot run these; nothing is recorded as done.
+
+**Tests:** unit 916 passed (934 after Session 50); `tsc --noEmit` clean; `eslint` reports no error (one existing warning in `leads-panel.tsx`, an unused disable comment from S13.6, left alone because it is outside this change and CI does not fail on warnings); Playwright for the landing page and QA files 17 of 17 on a production build; `npm run check:bundle` passes (landing page about 103 KB gzip against the 118 KB ceiling). Integration tests were not changed and not re-run. CI on the pull request is the record for the full suites.
+
+**Found:** the pre-hub smoke expectations were stale (above). The essentials text calls for an "install prompt" on the landing page; one already exists site-wide, so none was duplicated. The FR-31 wording ("a course with no university shows a message and WhatsApp") is why the finder lists all twelve courses rather than only the offered ones.
+
 ## Flags (need the owner)
 
-Open flags carried from tracker_1 (full text in its Flags table; only items tracker_1 showed as Open when this file was written): **F5** (`CLAUDE.md` "no physical deletes" versus the ADR-029 carve-outs), **F6** (`server/db` imports Drizzle), **F8** (branch protection on a private repository), **F9 and F10** (the domain `scollarly.co.in` and the .IN verification, launch only). Check tracker_1 for any other flag.
+Flags carried from tracker_1 (full text in its Flags table). Status on 2026-11-04:
+
+| ID | Status | Detail |
+|---|---|---|
+| F5 | **Resolved by the owner, 2026-11-04** | The owner accepted that the three carve-outs of ADR-029 (erasure, raw event purge after rollup, expired auth rows) stand beside "no physical deletes in v1". `CLAUDE.md` is the owner's file and was not edited; the owner may add the wording to it. |
+| F6 | **Resolved by the owner, 2026-11-04** | The owner accepted that `src/server/db` counts as the repository layer's internals (architecture section 5), so Drizzle stays there and in `server/repositories`. The ESLint rule and the source-scan test already enforce exactly that. |
+| F8 | **Open (owner chose no change, 2026-11-04)** | The repository is public today, so GitHub would allow a branch rule on `main`; the owner chose not to change GitHub settings. Protection stays discipline-only. If H20 makes the repository private again, GitHub Free will refuse the rule. Not recorded as an accepted risk because the owner did not say so. |
+| F9, F10 | **Open (outside the code)** | The domain `scollarly.co.in` is locked at GoDaddy until the .IN verification is accepted. Launch only. |
+
+Check tracker_1 for any other flag.
 
 | ID | Flag | Why it matters | Needed from owner |
 |---|---|---|---|
-| F21 | **Resolved 2026-10-31: the owner decided yes (carry S10.2, S11.4, S11.6 into S13.8) and asked Claude Code to add the sentence to `CLAUDE.md` Step 2, done on branch `docs/tracker-s13-1-complete` (PR #47).** `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Open.** Recommendation: (a) accept that S10.2, S11.4 and S11.6 are carried into S13.8 and that tracker_2 closes Stages 10 and 11 of version 1 as "handed over", then add one sentence to `CLAUDE.md` Step 2 saying so; or (b) finish the three modules inside version 1 first. Decision R8. |
-| F22 | Google's OAuth app is in Testing mode with the owner as the only test user (H8, H21). | Real students cannot sign up, so the first real onboarding cannot happen. | **Open.** Owner action R1: publish the OAuth app when ready. |
-| F23 | The design document and PRD_2's first draft said "new programme columns" and "no row until confirm"; the code shows otherwise (see Session 40). | The approved wording and the built behaviour differ slightly. | **Open for confirmation.** The architecture's amendment log lists the five points; the owner confirms or overrules each. |
-| F24 | S13.6 built no new `GET admin/insights?view=` call (the existing analytics, performance and payments calls are reused) and did not build the bar/progress-bar chart components named in the design, since the analytics screen already has its own bars. | The built screen differs slightly from the original design document's wording. | **Open for confirmation.** See the architecture amendment appended in S13.6 (system_architecture_2.md). |
+| F21 | **Resolved 2026-10-31: the owner decided yes (carry S10.2, S11.4, S11.6 into S13.8) and asked Claude Code to add the sentence to `CLAUDE.md` Step 2, done on branch `docs/tracker-s13-1-complete` (PR #47).** `CLAUDE.md` Step 2 says to take the lowest-numbered essentials file that still has an incomplete stage. `system_architecture_essential_1.md` still has Stages 10 and 11 `in-progress` in tracker_1 (modules S10.2, S11.4, S11.6), so the sequence would start from essentials 1, then halt at Step 4 because essentials 1 cites architecture 1 while the current architecture is 2. | Without a decision the start-of-task sequence stops before any Stage 13 work. Claude Code does not edit `CLAUDE.md` (the owner's file). | **Resolved 2026-10-31** (decision R8, option a). |
+| F22 | Google's OAuth app is in Testing mode with the owner as the only test user (H8, H21). | Real students cannot sign up, so the first real onboarding cannot happen. | **Open (owner action R1).** Publishing the Google app is the owner's step in the Google console; Claude Code cannot do it or mark it done. |
+| F23 | The design document and PRD_2's first draft said "new programme columns" and "no row until confirm"; the code shows otherwise (see Session 40). | The approved wording and the built behaviour differ slightly. | **Resolved by the owner, 2026-11-04: "yes"** to the five points of the architecture's amendment log. |
+| F24 | S13.6 built no new `GET admin/insights?view=` call (the existing analytics, performance and payments calls are reused) and did not build the bar/progress-bar chart components named in the design, since the analytics screen already has its own bars. | The built screen differs slightly from the original design document's wording. | **Resolved by the owner, 2026-11-04: "yes"** to the built screen differing from the design wording as described in the S13.6 amendment (system_architecture_2.md). |
 | F25 | The onboarding consent text is the placeholder `draft-1`, not real legal text. | Real students should not see placeholder consent wording at launch. | **Open.** Covered by owner action R5. |
-| F26 | `scripts/measure-cpu.mjs` was never extended with scenarios for the S13.4, S13.5 and S13.6 calls (`me/home`, `me/notifications`, `admin/notifications`, `admin/home`, `admin/tour.seen`, the legacy redirect). Architecture 21.13 and the working rules ask for a measured CPU row on every new function; these rows are still blank after a real deploy and measurement run, not because the run failed but because no scenario exists for them. | The CPU gate (8 ms warm p95) is unverified for these calls in production. | **Open.** Recommendation: add scenarios for these calls to `scripts/measure-cpu.mjs` (ideally alongside S13.7, before the next deploy) rather than carrying the gap further. |
+| F26 | `scripts/measure-cpu.mjs` was never extended with scenarios for the S13.4, S13.5 and S13.6 calls (`me/home`, `me/notifications`, `admin/notifications`, `admin/home`, `admin/tour.seen`, the legacy redirect). Architecture 21.13 and the working rules ask for a measured CPU row on every new function; these rows are still blank after a real deploy and measurement run, not because the run failed but because no scenario exists for them. | The CPU gate (8 ms warm p95) is unverified for these calls in production. | **Open until measured.** Session 49 added a scenario for every one of these calls (`measure-cpu.mjs`, `seed-probe-sessions.mjs`, tested by `tests/unit/s13-8-cpu-scenarios.test.ts`). The flag closes when a deploy-and-measure run fills the CPU rows and each passes the gate, or the failing row comes to the owner. |
 
 ## Stage status
 
@@ -143,7 +181,7 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | 0 to 9, 12 | Version 1 stages | see tracker_1 | **complete** (as recorded in tracker_1; not re-opened by the refactor) |
 | 10 | Owner pages and operations (version 1) | S10.1 to S10.4 | in-progress (S10.1, S10.3, S10.4 complete; **S10.2 carried into S13.8**) |
 | 11 | Hardening and launch readiness (version 1) | S11.1 to S11.8 | in-progress (**S11.4 and S11.6 carried into S13.8**; the rest complete) |
-| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 to S13.6 complete; S13.7 to S13.9 not started) |
+| 13 | Refactor (one stage, essentials 2) | S13.1 to S13.9 | in-progress (S13.1 to S13.6 complete; S13.7 to S13.9 in-progress, see the registry) |
 
 ## Module registry (Stage 13)
 
@@ -155,32 +193,47 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 | S13.4 | Student app (tabs, Home, Universities ordering, offline copy) | complete (2026-10-31: PR #50 merged, CI green) |
 | S13.5 | Notifications | complete (2026-10-31: PR #51 merged, CI green; migration 0015) |
 | S13.6 | Admin and owner hubs and CRM dashboards | complete (2026-10-31: PR #52 merged, all 5 CI checks green; unit 849, integration 735, Playwright 274/276) |
-| S13.7 | Landing page and brand | - (not started; not yet asked for) |
-| S13.8 | Carry-over from Stages 10 and 11 (S10.2, S11.4, S11.6) | - (carried items are `in-progress` in tracker_1) |
-| S13.9 | Watched test and QA | - |
+| S13.7 | Landing page and brand | in-progress (2026-11-04: landing page, course finder, logo strip, traced logo, icon set, manifest and loading logo built and tested; open: green CI on the pull request and the owner's real-phone icon check, R4) |
+| S13.8 | Carry-over from Stages 10 and 11 (S10.2, S11.4, S11.6) | in-progress (2026-11-04: CPU scenarios, checklist and quota re-run written, H24 decided; waits for CI and the next deploy's measurements, and for the owner's checklist and sign-off H11) |
+| S13.9 | Watched test and QA | in-progress (2026-11-04: traceability map, QA sweep and smoke script built; the watched test and the role sign-in checks are human actions) |
 
 ## CPU rows to record (architecture 21.13; fill in at each measurement)
 
-Measured by `scripts/measure-cpu.mjs` against `scollarly.gimafolabit.workers.dev` in the deploy run of 2026-10-31 (https://github.com/DivineGima/scollarly/actions/runs/41227691246, 30 lead samples). `scripts/measure-cpu.mjs` only has a scenario for `POST me/onboarding` (added in S13.3); S13.4, S13.5 and S13.6 did not add scenarios for their own new calls, so those rows are genuinely unmeasured, not merely blank. See flag F26.
+Measured by `scripts/measure-cpu.mjs` against `scollarly.gimafolabit.workers.dev` in the deploy run of 2026-10-31 (https://github.com/DivineGima/scollarly/actions/runs/41227691246, 30 lead samples). That run only had a scenario for `POST me/onboarding`. Session 49 added scenarios for the other new calls (see flag F26); the rows below stay blank until the next deploy-and-measure run, and are never filled by estimate.
 
 | Row | Warm p50 | Warm p95 | Worst | Cut at limit | Gate (p95 at most 8 ms, none cut) | Run |
 |---|---|---|---|---|---|---|
 | `POST me/onboarding` (one function: lead, profile, audit row) | 3 ms | 5 ms | 7 ms | 0 | **PASS** | 2026-10-31, run 41227691246 |
-| `GET me/home` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| `GET me/notifications` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| `GET admin/notifications` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| `POST account/confirm` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| `GET admin/home` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| `GET admin/insights` (funnel, sources, performance, payments) | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`**; these are the existing analytics/performance/payments calls, already covered under their Stage 9-11 scenario names (`analytics`, `payments`) | — |
-| `POST admin/tour.seen` | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| Legacy redirect | — | — | — | — | **not measured: no scenario in `measure-cpu.mjs`** | — |
-| Landing page (cache hit) | — | — | — | — | not applicable yet (S13.7 has not started) | — |
+| `GET me/home` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| `GET me/notifications` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| `GET admin/notifications` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| `POST account/confirm` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| `GET admin/home` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| `GET admin/insights` (funnel, sources, performance, payments) | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy**; these are the existing analytics/performance/payments calls, already covered under their Stage 9-11 scenario names (`analytics`, `payments`) | — |
+| `POST admin/tour.seen` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| Legacy redirect | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
+| Landing page (cache hit) | — | — | — | — | measured with the public-page row after the next deploy (same gate, 5 ms) | — |
 
 ## Traceability (to be filled at S13.9): FR-19 to FR-32 mapped to passing tests
 
-| FR | Test | Status |
+Mapped 2026-11-04 in `tests/unit/s13-9-traceability.test.ts`, which fails if a named test is renamed or removed. "Passing" is the CI result of the pull request that merges this map; the local run on 2026-11-04 had the unit suite at 916 of 916 and the landing page and QA specs at 17 of 17.
+
+| FR | Proving tests (file: title) | Status |
 |---|---|---|
-| FR-19 to FR-32 | to be mapped | - |
+| FR-19 hubs and tab bar, server-decided access | e2e s13-6 "shows an admin the four tabs and a More sheet"; e2e s13-4 "shows the four student tabs and the More button"; unit s13-foundations "never offers an admin an owner-only row"; integration s13-6 "refuses a student, and a signed-out caller" | mapped |
+| FR-20 one data call per tab, old addresses redirect | unit s13-foundations "the legacy admin addresses"; unit s13-6 "moves each to the section that took its place"; e2e s13-6 "Leads has the list, the link requests"; smoke script (every redirect) | mapped |
+| FR-21 purpose line, empty state, first-visit tour once | e2e s13-6 "shows three steps once", "the pages that are reached from More say what they are for", "says what to do when nothing has happened" | mapped |
+| FR-22 landing page, finder, budgets | e2e s13-7 "the finder lists the right universities", "axe finds no WCAG 2.1 A or AA violation", "the landing page shows no team bios"; unit s13-7 "the universities for one course"; `npm run check:bundle`; Lighthouse CI | mapped |
+| FR-23 sign in and create account split, no enumeration | unit s13-2 "has no endpoint that says whether an email has an account"; integration s13-2 "shows the confirm screen and confirms nothing", "refuses everything but account/confirm"; e2e s13-2 "is not served to someone who is signed out" | mapped |
+| FR-24 one lead per finished onboarding | integration s13-3 "answers the same request again with the same lead", "lets a second device carry on", "still creates the lead, and shows both to admins as a duplicate, never merged"; e2e s13-3 "offline: saves on the phone, then sends exactly once" | mapped |
+| FR-25 relationship, no fourth role | integration s13-3 "the profile the relationship", "refuses a staff account: only a student-role account has an onboarding" | mapped |
+| FR-26 pre-selected answers, ordering, no personal data in caches | unit s13-4 "treats several chosen courses", "never keeps anything else signed-in"; integration s13-4 "returns the student's own answers and first name only"; e2e s13-4 "starts with the student's own courses ticked" | mapped |
+| FR-27 derived notifications | unit s13-5 "is unread again the next day"; integration s13-5 "marks all read without losing the list"; e2e s13-5 "Mark all read clears" | mapped |
+| FR-28 tiles, chart, period switch | unit s13-6 "gives an admin their working numbers"; integration s13-6 "gives an admin no payment and no onboarding number"; e2e s13-6 "gives the owner the owner's four tiles" | mapped |
+| FR-29 offline copies, deleted on sign-out | e2e s13-6 "keeps the numbers and the chart, never a lead reference"; e2e s13-4 "keeps the first name, the courses and the stage", "sign-out forgets the copy on the phone", "a different student signing in on the same phone sees nothing of the first" | mapped |
+| FR-30 logo vector, icon set, installed splash | unit s13-7-brand "is one path in black for the website and the same path in white for dark backgrounds", "keeps the whole mark inside the maskable icon's safe zone", "launches on the brand blue", "shows the black logo in the site header"; the real-phone check is manual (R4) | mapped (manual phone check pending) |
+| FR-31 course and level on every programme, plain message and WhatsApp | unit s13-foundations "files every programme in the real seed under a field and a level"; e2e s13-7 "a course no university lists says so and offers WhatsApp" | mapped |
+| FR-32 translation keys | unit s13-foundations "has the same keys in English and French"; unit s13-3 "has a title for every screen"; unit s13-7 "English and French have the same finder keys" | mapped |
 
 ## Watched test log (S13.9)
 
@@ -201,7 +254,7 @@ Recorded only when the owner says so.
 | R1 | Publish Google's OAuth app (Testing mode today, owner is the only test user) | First real onboarding | Open |
 | R2 | Approve the course categories and the level of each of the 77 programmes (Claude Code proposes a mapping) | S13.3 and S13.4 | **Approved by the owner 2026-10-31 ("all yes")**, with M.Tech filed under "Engineering (postgraduate)", the option offered. The mapping is in `src/lib/courses.ts`. The values reach the live database only when the seed is run against production (owner go-ahead needed). |
 | R3 | NAAC grades for the 5 universities without one, or accept "not stated, listed last" | S13.4 | **Decided by the owner 2026-10-31: leave them not stated.** |
-| R4 | Confirm the dark neon blue hex (proposed `#1F3BFF`) and check the traced logo | S13.7 | **Hex confirmed by the owner 2026-10-31 ("yes").** The traced logo is still to be checked at S13.7. |
+| R4 | Confirm the dark neon blue hex (proposed `#1F3BFF`) and check the traced logo | S13.7 | **Hex confirmed by the owner 2026-10-31 ("yes").** On 2026-11-04 the owner sent the logo image; Claude Code traced it and built the icons (Session 50). The owner's check of the trace and of the installed icon on a real phone is still to do. |
 | R5 | Legal check and text for a parent applying for a child, minors, and consent for automatic lead creation (extends H5) | Launch | Open |
 | R6 | Trust content for the landing page (E1 to E3) | Launch | Open |
 | R7 | Confirm Stage 13 and the S13.x numbering | Start of the stage | **Confirmed by the owner 2026-10-31.** |
@@ -223,7 +276,7 @@ Recorded only when the owner says so.
 | H19 / E5 | Real phone check of the WhatsApp and lead flow, online and in airplane mode | Launch |
 | H20 | Make the GitHub repository private again | After the measurements |
 | H21 | Why a Google account not on the test-user list could sign up; decide whether sign-ups should be restricted (now also covered by R1) | S11.6 / S13.8 |
-| H24 | Neon compute hours: keep the console link or add a measurement (S10.2, carried into S13.8) | Before launch |
+| H24 | Neon compute hours: **decided by the owner 2026-11-04: keep the link to the Neon console** and check its usage page after the first week and monthly (S10.2, carried into S13.8). No Neon API key, no new secret. | Decided; the habit of checking is the owner's |
 | E6, E8 | Remaining confirmations, metric targets, and fee confirmation per university | Launch |
 
 ## Project understanding (for future sessions)

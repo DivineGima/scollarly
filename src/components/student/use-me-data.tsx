@@ -39,7 +39,14 @@ export function useMeData<T>(path: string | null): { state: MeState<T>; reload: 
 /** The loading and error states of a data call. Renders nothing for a ready state, so the caller renders its own. */
 export function MeStatus({ state, reload }: { state: MeState<unknown>; reload: () => void }) {
   const t = useTranslations("me.common");
-  if (state.status === "loading") return <p role="status">{t("loading")}</p>;
+  if (state.status === "loading")
+    return (
+      <p role="status" className="loading-line">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small static logo from our own files; the image optimiser is not used on this platform */}
+        <img className="loading-mark" src="/brand/logo.svg" width={32} height={29} alt="" />
+        {t("loading")}
+      </p>
+    );
   if (state.status === "error") {
     return (
       <div role="alert" className="me-notice me-notice-error">

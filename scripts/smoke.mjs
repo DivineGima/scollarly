@@ -16,9 +16,47 @@ if (!/^https?:\/\//.test(base)) {
   process.exit(2);
 }
 
-const PUBLIC = ["/", "/universities", "/fees", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in"];
-const CLOSED_SHELLS = ["/admin", "/admin/payments", "/admin/settings", "/admin/health", "/admin/analytics/performance", "/me"];
-const CLOSED_DATA = ["/api/v1/admin/payments", "/api/v1/admin/settings", "/api/v1/admin/health", "/api/v1/admin/audit", "/api/v1/admin/performance-all", "/api/v1/me/progress"];
+const PUBLIC = ["/", "/universities", "/fees", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in", "/sign-up"];
+// Version 2 (S13.9): the four hubs, the notifications pages, the student tabs, onboarding and the account confirm screen are all closed to a visitor.
+const CLOSED_SHELLS = [
+  "/admin",
+  "/admin/leads",
+  "/admin/content",
+  "/admin/insights",
+  "/admin/notifications",
+  "/admin/settings",
+  "/admin/health",
+  "/me",
+  "/me/universities",
+  "/me/progress",
+  "/me/help",
+  "/me/notifications",
+  "/me/onboarding",
+  "/account/confirm",
+];
+// The pre-hub addresses move with a 301 from the Worker entry, before any session check (ADR-049); the address they reach is closed (above).
+const LEGACY = [
+  ["/admin/payments", "/admin/insights?view=payments"],
+  ["/admin/analytics", "/admin/insights?view=funnel"],
+  ["/admin/analytics/performance", "/admin/insights?view=performance"],
+  ["/admin/leads/link-requests", "/admin/leads?view=link-requests"],
+  ["/admin/data-requests", "/admin/leads?view=data-requests"],
+  ["/admin/content/stale", "/admin/content?view=stale"],
+  ["/admin/content/media", "/admin/content?view=media"],
+];
+const CLOSED_DATA = [
+  "/api/v1/admin/payments",
+  "/api/v1/admin/settings",
+  "/api/v1/admin/health",
+  "/api/v1/admin/audit",
+  "/api/v1/admin/performance-all",
+  "/api/v1/admin/home",
+  "/api/v1/admin/notifications",
+  "/api/v1/me/progress",
+  "/api/v1/me/home",
+  "/api/v1/me/preferences",
+  "/api/v1/me/notifications",
+];
 
 const results = [];
 const check = async (name, work) => {
@@ -57,6 +95,18 @@ for (const path of CLOSED_SHELLS) {
     if (response.status !== 404) return `HTTP ${response.status}`;
   });
 }
+for (const [from, to] of LEGACY) {
+  await check(`old address ${from} moves to ${to}`, async () => {
+    const response = await get(from);
+    const location = response.headers.get("location") ?? "";
+    if (response.status !== 301) return `HTTP ${response.status}`;
+    if (new URL(location, base).pathname + new URL(location, base).search !== to) return `moved to ${location}`;
+  });
+}
+await check("a mutation of the account area refuses a visitor", async () => {
+  const response = await get("/api/v1/account/confirm", { method: "POST", headers: { origin: base, "content-type": "application/json" }, body: "{}" });
+  if (![401, 403].includes(response.status)) return `HTTP ${response.status}`;
+});
 for (const path of CLOSED_DATA) {
   await check(`data call ${path} is 401 to a visitor`, async () => {
     const response = await get(path);
