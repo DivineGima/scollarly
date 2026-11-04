@@ -27,11 +27,15 @@
       { "currency": "USD", "amount_min": 12000, "amount_max": 24000, "period": "total course", "data_confirmed": true, "last_updated_at": "2026-06-12T00:00:00Z" }
     ],
     "campus_experiences": [
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "gu91b9abGl8", "thumbnail": { "file": "tour-thumbs/chandigarh-university.webp", "alt": "Chandigarh University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0},
       { "kind": "tour360", "title": "360° Virtual Campus Tour", "url": "https://www.iviewd.com/cu2/", "url_last_checked_at": "2026-06-12T00:00:00Z" }
     ]
   },
   {
     "slug": "cgc-university",
+    "campus_experiences": [
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "J84H_gFob8Y", "thumbnail": { "file": "tour-thumbs/cgc-university.webp", "alt": "CGC University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0}
+    ],
     "name": "CGC University",
     "city": "Mohali",
     "state": "Punjab",
@@ -51,6 +55,9 @@
   },
   {
     "slug": "swami-vivekanand-group",
+    "campus_experiences": [
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "5Qidp9H-o-k", "thumbnail": { "file": "tour-thumbs/swami-vivekanand-group.webp", "alt": "Swami Vivekanand Group of Institutions campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0}
+    ],
     "name": "Swami Vivekanand Group of Institutions",
     "city": "Chandigarh",
     "website_url": "https://vivekanandgroup.com",
@@ -93,7 +100,7 @@
       { "currency": "INR", "amount_min": 675000, "amount_max": 1500000, "period": "total course", "data_confirmed": true, "last_updated_at": "2026-06-12T00:00:00Z" }
     ],
     "campus_experiences": [
-      { "kind": "video", "title": "Official Campus Tour", "youtube_id": "5ddvpNEqpec", "url_last_checked_at": "2026-06-12T00:00:00Z" }
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "xLUXao18fs0", "thumbnail": { "file": "tour-thumbs/jain-university.webp", "alt": "Jain Deemed-to-be University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0}
     ]
   },
   {
@@ -143,6 +150,7 @@
       { "currency": "INR", "amount_min": 421000, "amount_max": 621000, "period": "total course", "data_confirmed": true, "last_updated_at": "2026-06-12T00:00:00Z" }
     ],
     "campus_experiences": [
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "fupZOX-8dHs", "thumbnail": { "file": "tour-thumbs/kalinga-university.webp", "alt": "Kalinga University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0},
       { "kind": "tour360", "title": "360° Virtual Campus Tour", "url": "https://virtualtour.kalingauniversity.ac.in/", "url_last_checked_at": "2026-06-12T00:00:00Z" }
     ]
   },
@@ -166,11 +174,14 @@
       { "name": "BCA", "duration_months": 36 }
     ],
     "campus_experiences": [
-      { "kind": "video", "title": "Official Campus Tour", "youtube_id": "CB4w1yp1Z_I", "url_last_checked_at": "2026-06-12T00:00:00Z" }
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "P-kM1Lus-lM", "thumbnail": { "file": "tour-thumbs/rayat-bahra-university.webp", "alt": "Rayat-Bahra University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0}
     ]
   },
   {
     "slug": "aditya-university",
+    "campus_experiences": [
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "UtLSuJyA0Yw", "thumbnail": { "file": "tour-thumbs/aditya-university.webp", "alt": "Aditya University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0}
+    ],
     "name": "Aditya University",
     "city": "Surampalem",
     "state": "Andhra Pradesh",
@@ -211,7 +222,7 @@
       { "name": "BCA", "duration_months": 36 }
     ],
     "campus_experiences": [
-      { "kind": "video", "title": "Official Campus Tour", "youtube_id": "bHh1-efoe4w", "url_last_checked_at": "2026-06-12T00:00:00Z" }
+      { "kind": "video", "title": "Official campus tour video", "youtube_id": "bHh1-efoe4w", "thumbnail": { "file": "tour-thumbs/ct-university.webp", "alt": "CT University campus tour video preview" }, "url_last_checked_at": "2026-11-04T00:00:00Z", "sort_order": 0}
     ]
   }
 ]
