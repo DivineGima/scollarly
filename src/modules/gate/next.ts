@@ -1,5 +1,5 @@
 import { isCourseField } from "@/lib/courses";
-import { isPublicPagePath } from "@/server/edge/fast-path";
+import { isPublicPagePath } from "@/lib/public-paths";
 
 /**
  * Where a person goes after signing in or signing up (PRD_3 F20, architecture 22.2, ADR-051). A gated button sends a signed-out

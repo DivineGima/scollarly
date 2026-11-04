@@ -1,5 +1,6 @@
 import { type Actor, AuthError, effectiveRole, hasAtLeast, isRole, isStepUpFresh, mintActor, type ResolvedSession, type Role } from "./actor";
 import { readSessionToken } from "./cookie";
+import { isTrustedSession } from "./trusted-session";
 
 export type ResolveSession = (token: string) => Promise<ResolvedSession | null>;
 
@@ -15,8 +16,9 @@ export function createAuthFacade(resolveSession: ResolveSession) {
     const token = readSessionToken(headers);
     if (!token) return null;
     const session = await resolveSession(token);
-    // Sign-in is Google only, so a session for an unverified email is never trusted (tracker: Google-verified-email test).
-    if (!session || !session.emailVerified) return null;
+    // A verified email is trusted. An unverified one (an email and password account, PRD_3 F21) is trusted for a student only; staff need a
+    // verified email (`trusted-session.ts`). The owner bootstrap and the invite check the verified flag again in their own SQL.
+    if (!session || !isTrustedSession(session)) return null;
 
     const storedRole: Role = isRole(session.role) ? session.role : "student";
     return mintActor({

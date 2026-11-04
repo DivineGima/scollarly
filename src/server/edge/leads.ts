@@ -1,6 +1,7 @@
 import { errorResponse, isSameOrigin, jsonResponse, newRequestId, readJsonBody } from "@/lib/http";
 import { createLead, type CreateLeadOutcome } from "@/modules/leads/service";
 import { readSessionToken } from "@/server/auth/cookie";
+import { isTrustedSession } from "@/server/auth/trusted-session";
 import { resolveSession } from "@/server/repositories/session-lookup";
 import { getDb } from "@/server/db/runtime";
 import { insertLead } from "@/server/repositories/lead-intake";
@@ -23,6 +24,8 @@ import { cachedSlaSettings } from "./settings-cache";
 const MAX_BODY_BYTES = 16 * 1024;
 const LIMIT = 5; // requests per window per caller
 const WINDOW_MS = 60_000;
+/** Tries per minute per caller before the session lookup: it is a database query, so a flood of cookie-bearing posts must be stopped first. */
+const GATE_LIMIT = 30;
 
 export const LEADS_PATH = "/api/v1/leads";
 
@@ -47,6 +50,10 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
   const measurement = isMeasurementRequest(request, env.PHASE0_PROBE_TOKEN);
   if (!measurement) {
     if (!sessionToken) return errorResponse(401, "UNAUTHENTICATED", "Sign in or create an account to continue.", requestId);
+    const gate = await limiter(await limiterKey({ route: "leads-gate", ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET), GATE_LIMIT, WINDOW_MS);
+    if (!gate.allowed) {
+      return errorResponse(429, "RATE_LIMITED", "Too many requests. Please wait a moment.", requestId, { headers: { "Retry-After": String(gate.retryAfterSeconds) } });
+    }
     let session: Awaited<ReturnType<typeof resolveSession>>;
     try {
       session = await resolveSession(db, sessionToken);
@@ -54,7 +61,7 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
       logError(requestId, "leads", error);
       return errorResponse(503, "TEMPORARILY_UNAVAILABLE", "Please try again in a moment.", requestId);
     }
-    if (!session) return errorResponse(401, "UNAUTHENTICATED", "Sign in or create an account to continue.", requestId);
+    if (!session || !isTrustedSession(session)) return errorResponse(401, "UNAUTHENTICATED", "Sign in or create an account to continue.", requestId);
     if (!session.accountConfirmed) return errorResponse(403, "ACCOUNT_NOT_CONFIRMED", "Finish creating your account to continue.", requestId);
   }
   const outcome = await createLead(

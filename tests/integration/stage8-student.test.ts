@@ -201,14 +201,20 @@ describe("S8.2 linking", () => {
     expect((await get("progress", student)).json.state).toBe("linked");
   });
 
-  it("links nothing for an anonymous visitor, an unknown token, a staff member or a student whose email is not verified", async () => {
+  it("links nothing for an anonymous visitor, an unknown token or a staff member", async () => {
     const staff = await makeStudent({ role: "admin" });
-    const unverified = await makeStudent({ verified: false });
-    for (const token of [null, "z".repeat(32), staff.user.token, unverified.user.token]) {
+    for (const token of [null, "z".repeat(32), staff.user.token]) {
       const outcome = await asRuntime(() => insertLead(t.db, newLead(), token));
       expect(outcome.kind).toBe("created");
       expect((await rows(`select user_id from lead where id = ${q((outcome as { id: string }).id)}`))[0]?.user_id, String(token)).toBeNull();
     }
+  });
+
+  it("links a lead made by a student who signed up with email and password (email not verified)", async () => {
+    const unverified = await makeStudent({ verified: false });
+    const outcome = await asRuntime(() => insertLead(t.db, newLead(), unverified.user.token));
+    expect(outcome.kind).toBe("created");
+    expect((await rows(`select user_id from lead where id = ${q((outcome as { id: string }).id)}`))[0]?.user_id).toBe(unverified.user.userId);
   });
 
   it("does not link an old lead, a lead that belongs to someone, or a lead the caller did not just make", async () => {

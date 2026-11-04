@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const proxy = vi.fn();
-vi.mock("@/server/auth/session", () => ({ proxyAuthRequest: (...args: unknown[]) => proxy(...args) }));
-vi.mock("@/server/security/rate-limit", () => ({ createDurableObjectLimiter: () => limiter, limiterKey: async () => "k" }));
+vi.mock("@/server/auth/session", () => ({
+  configFromEnv: (env: { NEON_AUTH_BASE_URL: string; NEON_AUTH_COOKIE_SECRET: string }) => ({ baseUrl: env.NEON_AUTH_BASE_URL, cookieSecret: env.NEON_AUTH_COOKIE_SECRET }),
+  proxyAuthRequest: (...args: unknown[]) => proxy(...args),
+}));
+vi.mock("@/server/security/rate-limit", () => ({ createDurableObjectLimiter: () => limiter, limiterKey: async (parts: { route: string }) => (parts.route === "password-email" ? "email-key" : "k") }));
 const limiter = vi.fn();
 
 import { checkEmail, checkPassword, validateSignIn, validateSignUp } from "@/modules/auth/password";
@@ -73,6 +76,21 @@ describe("S14.4: the Worker function", () => {
     expect(response?.status).toBe(429);
     expect(response?.headers.get("Retry-After")).toBe("120");
     expect(proxy).not.toHaveBeenCalled();
+  });
+
+  it("limits one email address however many callers try it", async () => {
+    limiter.mockImplementation(async (key: string) => (key === "email-key" ? { allowed: false, remaining: 0, retryAfterSeconds: 600 } : { allowed: true, remaining: 9, retryAfterSeconds: 0 }));
+    const response = await handlePasswordAuth(post("/api/auth/sign-in/email", { email: "ama@x.com", password: "pw" }), env);
+    expect(response?.status).toBe(429);
+    expect(response?.headers.get("Retry-After")).toBe("600");
+    expect(proxy).not.toHaveBeenCalled();
+  });
+
+  it("does not forward the visitor cookie to Neon Auth", async () => {
+    proxy.mockResolvedValue(new Response("{}", { status: 200 }));
+    await handlePasswordAuth(post("/api/auth/sign-in/email", { email: "a@b.co", password: "pw" }, { origin: "https://scollarly.test", cookie: "__Secure-neon-auth.session_token=other" }), env);
+    const [forwarded] = proxy.mock.calls[0] as [Request];
+    expect(forwarded.headers.get("cookie")).toBeNull();
   });
 
   it("forwards a good sign-in with the email lower-cased and passes the session cookies on", async () => {

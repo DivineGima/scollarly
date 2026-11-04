@@ -4,7 +4,8 @@ import { isPublicPagePath } from "@/server/edge/fast-path";
 import { legacyTarget } from "@/server/edge/legacy-redirects";
 import { NAV_ITEMS } from "@/components/public/site-header";
 
-const read = (path: string) => readFileSync(path, "utf8");
+// The working copy may have Windows line endings; the assertions below are written for plain newlines.
+const read = (path: string) => readFileSync(path, "utf8").split("\r\n").join("\n");
 
 describe("S14.1: fees are gone from the public site (PRD_3, ADR-054)", () => {
   it("moves /fees to /universities, with or without the locale prefix", () => {

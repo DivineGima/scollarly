@@ -47,7 +47,7 @@ describe("S14.3: the lead endpoint is the lock behind every gated button (PRD_3 
   });
 
   it("refuses an account that has not been confirmed", async () => {
-    resolveSession.mockResolvedValue({ userId: "u", accountConfirmed: false });
+    resolveSession.mockResolvedValue({ userId: "u", role: "student", emailVerified: true, accountConfirmed: false });
     const response = await handleLeadPost(post(COOKIE), env);
     expect(response.status).toBe(403);
     expect(((await response.json()) as { error: { code: string } }).error.code).toBe("ACCOUNT_NOT_CONFIRMED");
@@ -62,7 +62,7 @@ describe("S14.3: the lead endpoint is the lock behind every gated button (PRD_3 
   });
 
   it("lets a confirmed account through to the lead rules", async () => {
-    resolveSession.mockResolvedValue({ userId: "u", accountConfirmed: true });
+    resolveSession.mockResolvedValue({ userId: "u", role: "student", emailVerified: true, accountConfirmed: true });
     const response = await handleLeadPost(post(COOKIE), env);
     expect(response.status).toBe(201);
     expect(createLead).toHaveBeenCalledTimes(1);
