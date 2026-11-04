@@ -122,7 +122,9 @@ async function main(): Promise<void> {
     console.log(`  image ${file}: ${result.status} (${result.bytes} bytes, ${result.width}x${result.height})`);
   }
 
-  const built = await buildSeedRows(bundle, mediaIds);
+  // Tours only: the other rows are built and thrown away, and they name logos and pictures this mode did not import. Those get a stand-in id that is never written.
+  const lookup: ReadonlyMap<string, string> = toursOnly ? { get: (file: string) => mediaIds.get(file) ?? "00000000-0000-7000-8000-000000000000" } as ReadonlyMap<string, string> : mediaIds;
+  const built = await buildSeedRows(bundle, lookup);
   const report = await applySeed(db, toursOnly ? { ...EMPTY_ROWS, campusExperiences: built.campusExperiences } : built);
   console.log("seed: rows inserted this run (a second run reports zeros):");
   for (const [table, count] of Object.entries(report)) console.log(`  ${table}: ${count}`);
