@@ -121,6 +121,10 @@ At the owner's explicit word: (1) the Step 2 sentence was added to `CLAUDE.md` (
 
 **Done at the owner's word ("Run the deploy and write tracker update"):** triggered `stage0-deploy.yml` (workflow_dispatch) on `main` after PR #52, run https://github.com/DivineGima/scollarly/actions/runs/41227691246. **Succeeded in 27m36s.** Migrations 0014 and 0015 applied to the live Neon database (0013 was already live from an earlier session), the Worker rebuilt and deployed to `scollarly.gimafolabit.workers.dev`, secrets set, `/api/v1/health` answered 200, and the CPU measurement ran (30 lead samples). Every measured scenario passed its gate; see the CPU rows table. The 57 throwaway probe users and 67 probe leads the measurement created were removed at the end of the run, as always. **Flag F26** records that S13.4 to S13.6's own new calls have no scenario in the measurement script yet, so their CPU rows stay unmeasured rather than guessed.
 
+### 2026-11-04: Session 51 (merge, deploy and CPU measurement of S13.7 to S13.9)
+
+At the owner's word ("commit push and merge the prs and deploy"): PR #54 (S13.7 to S13.9) had all five CI checks green and was merged; `stage0-deploy.yml` was run on `main` (run 41787942487) and **succeeded** (deploy, secrets, health check 200, CPU measurement, cleanup of the throwaway users and probe leads). The live site answers with the course finder, the header logo and the manifest colour `#1F3BFF`. The run measured every version 2 call; **every row passed** (CPU rows table; flag F26 resolved). A local full Playwright run before the merge passed 293 of 293. S13.7, S13.8 and S13.9 stay `in-progress`: the owner's real-phone icon check (R4), the watched test, the role sign-in checks and the checklist sign-off (H11) are human actions. The Worker size figure is printed in the run's "Worker size gate" step; it passed the 2.6 MiB gate.
+
 ### 2026-11-04: Session 50 (S13.7 logo, icons, manifest; F23 and F24 closed)
 
 **Built against:** essentials, architecture and PRD all version 2, on the same branch as Session 49.
@@ -170,7 +174,7 @@ Check tracker_1 for any other flag.
 | F23 | The design document and PRD_2's first draft said "new programme columns" and "no row until confirm"; the code shows otherwise (see Session 40). | The approved wording and the built behaviour differ slightly. | **Resolved by the owner, 2026-11-04: "yes"** to the five points of the architecture's amendment log. |
 | F24 | S13.6 built no new `GET admin/insights?view=` call (the existing analytics, performance and payments calls are reused) and did not build the bar/progress-bar chart components named in the design, since the analytics screen already has its own bars. | The built screen differs slightly from the original design document's wording. | **Resolved by the owner, 2026-11-04: "yes"** to the built screen differing from the design wording as described in the S13.6 amendment (system_architecture_2.md). |
 | F25 | The onboarding consent text is the placeholder `draft-1`, not real legal text. | Real students should not see placeholder consent wording at launch. | **Open.** Covered by owner action R5. |
-| F26 | `scripts/measure-cpu.mjs` was never extended with scenarios for the S13.4, S13.5 and S13.6 calls (`me/home`, `me/notifications`, `admin/notifications`, `admin/home`, `admin/tour.seen`, the legacy redirect). Architecture 21.13 and the working rules ask for a measured CPU row on every new function; these rows are still blank after a real deploy and measurement run, not because the run failed but because no scenario exists for them. | The CPU gate (8 ms warm p95) is unverified for these calls in production. | **Open until measured.** Session 49 added a scenario for every one of these calls (`measure-cpu.mjs`, `seed-probe-sessions.mjs`, tested by `tests/unit/s13-8-cpu-scenarios.test.ts`). The flag closes when a deploy-and-measure run fills the CPU rows and each passes the gate, or the failing row comes to the owner. |
+| F26 | `scripts/measure-cpu.mjs` was never extended with scenarios for the S13.4, S13.5 and S13.6 calls (`me/home`, `me/notifications`, `admin/notifications`, `admin/home`, `admin/tour.seen`, the legacy redirect). Architecture 21.13 and the working rules ask for a measured CPU row on every new function; these rows are still blank after a real deploy and measurement run, not because the run failed but because no scenario exists for them. | The CPU gate (8 ms warm p95) is unverified for these calls in production. | **Resolved 2026-11-04.** Session 49 added a scenario for every one of these calls (`measure-cpu.mjs`, `seed-probe-sessions.mjs`, tested by `tests/unit/s13-8-cpu-scenarios.test.ts`). The deploy-and-measure run of 2026-11-04 filled every row and each passed the gate (warm p95 at most 4 ms, none cut). |
 
 ## Stage status
 
@@ -199,20 +203,20 @@ Allowed status values: `in-progress`, `complete`. A stage or module with no entr
 
 ## CPU rows to record (architecture 21.13; fill in at each measurement)
 
-Measured by `scripts/measure-cpu.mjs` against `scollarly.gimafolabit.workers.dev` in the deploy run of 2026-10-31 (https://github.com/DivineGima/scollarly/actions/runs/41227691246, 30 lead samples). That run only had a scenario for `POST me/onboarding`. Session 49 added scenarios for the other new calls (see flag F26); the rows below stay blank until the next deploy-and-measure run, and are never filled by estimate.
+Measured by `scripts/measure-cpu.mjs` against `scollarly.gimafolabit.workers.dev` in the deploy run of 2026-10-31 (https://github.com/DivineGima/scollarly/actions/runs/41227691246, 30 lead samples). Session 49 added a scenario for every new call (flag F26) and the deploy-and-measure run of 2026-11-04 (https://github.com/DivineGima/scollarly/actions/runs/41787942487) measured them: 50 requests per row, warm p50 and p95 from `wrangler tail`, worst of all requests, none cut at the limit. `wrangler tail` delivered 22 to 26 events for most 50-request rows (the same sampling as the 2026-10-31 run), so the statistics rest on the delivered events, not on 50 each.
 
 | Row | Warm p50 | Warm p95 | Worst | Cut at limit | Gate (p95 at most 8 ms, none cut) | Run |
 |---|---|---|---|---|---|---|
-| `POST me/onboarding` (one function: lead, profile, audit row) | 3 ms | 5 ms | 7 ms | 0 | **PASS** | 2026-10-31, run 41227691246 |
-| `GET me/home` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| `GET me/notifications` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| `GET admin/notifications` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| `POST account/confirm` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| `GET admin/home` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| `GET admin/insights` (funnel, sources, performance, payments) | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy**; these are the existing analytics/performance/payments calls, already covered under their Stage 9-11 scenario names (`analytics`, `payments`) | — |
-| `POST admin/tour.seen` | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| Legacy redirect | — | — | — | — | **not measured yet: scenario added 2026-11-04, runs with the next deploy** | — |
-| Landing page (cache hit) | — | — | — | — | measured with the public-page row after the next deploy (same gate, 5 ms) | — |
+| `POST me/onboarding` (one function: lead, profile, audit row) | 2 ms | 4 ms | 5 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| `GET me/home` | 2 ms | 4 ms | 5 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| `GET me/notifications` | 2 ms | 3 ms | 3 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| `GET admin/notifications` | 2 ms | 3 ms | 4 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| `POST account/confirm` | 2 ms | 4 ms | 5 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| `GET admin/home` (week) | 2 ms | 3 ms | 3 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| `GET admin/insights` (funnel, sources, performance, payments) | 2 ms | 3 ms | 6 ms | 0 | **PASS** (the existing analytics read: p50 2, p95 3, worst 6; the payments read: p50 2, p95 3, worst 3. Each view is one of these reads.) | 2026-11-04, run 41787942487 |
+| `POST admin/tour.seen` | 2 ms | 4 ms | 4 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| Legacy redirect (301 from the Worker entry) | 0 ms | 0 ms | 0 ms | 0 | **PASS** | 2026-11-04, run 41787942487 |
+| Landing page (cache hit), the public-page row | 0 ms | 1 ms | 151 ms | 0 | **PASS** (the 151 ms worst is the first request of a fresh instance, which pays the Worker start-up; no request was cut) | 2026-11-04, run 41787942487 |
 
 ## Traceability (to be filled at S13.9): FR-19 to FR-32 mapped to passing tests
 
