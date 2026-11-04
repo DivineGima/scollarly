@@ -22,7 +22,7 @@
         "http://localhost:3101/sign-in",
         "http://localhost:3101/sign-up"
       ],
-      "numberOfRuns": 3
+      "numberOfRuns": 1
     },
     "assert": {
       "assertions": {

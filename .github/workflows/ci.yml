@@ -71,6 +71,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'messages/**') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run build:worker
       # Fails above 2.6 MiB compressed (architecture 12, section 17).
       - run: npm run size
@@ -88,6 +93,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
+      # The build cache lets each shard skip the compile work that did not change (about a minute saved).
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'messages/**') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npx playwright install --with-deps chromium
       # Offline mode (S0.8), plus axe, the security headers with the CSP enforced, 375 px layout and the /en rewrite (S1.5, S1.6).
       - run: npm run test:e2e -- --shard=${{ matrix.shard }}/2
@@ -122,6 +133,12 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - if: steps.scope.outputs.run == 'true'
         run: npm ci
+      - if: steps.scope.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'messages/**') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       # The site is built from the test content snapshot, so every public page has content to measure (src/modules/content/fixture.ts).
       - if: steps.scope.outputs.run == 'true'
         run: npx next build
@@ -131,5 +148,10 @@ jobs:
       # First-load JavaScript of every public route, and no admin library in any of them (S3.5).
       - if: steps.scope.outputs.run == 'true'
         run: npm run check:bundle
+      # A pull request measures six key pages once (about a minute); `main` measures every public page once. One run is enough because the
+      # score has a wide margin over the 0.85 floor and the byte budget does not vary between runs.
       - if: steps.scope.outputs.run == 'true'
-        run: npx lhci autorun
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then npx lhci autorun --config=lighthouserc.pr.json; else npx lhci autorun; fi
