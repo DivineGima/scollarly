@@ -1538,28 +1538,159 @@
     "apply": "Commencer ma candidature"
   },
   "privacy": {
-    "metaTitle": "Confidentialité",
-    "metaDescription": "Comment Scollarly traite vos données personnelles.",
-    "title": "Avis de confidentialité",
-    "pending": "Notre avis de confidentialité complet est en cours de finalisation. Voici un résumé de la façon dont nous traitons vos données.",
-    "summaryHeading": "En bref",
-    "summary": {
-      "collect": "Lorsque vous postulez, nous conservons votre nom, votre numéro WhatsApp, votre pays, vos résultats et les programmes choisis. Nous ne conservons votre e-mail que si vous le donnez.",
-      "use": "Nous les utilisons seulement pour vous conseiller, vous répondre sur WhatsApp et vous aider dans votre candidature.",
-      "share": "Nous ne transmettons vos informations à une université que pour votre candidature et seulement avec votre accord.",
-      "rights": "Vous pouvez nous demander vos données ou leur effacement, par WhatsApp ou depuis votre compte."
-    }
+    "metaTitle": "Politique de confidentialité",
+    "metaDescription": "Les données personnelles que Scollarly collecte, pourquoi, qui y accède et comment vous les contrôlez.",
+    "title": "Politique de confidentialité",
+    "updated": "Dernière mise à jour : 4 novembre 2026",
+    "email": "gimafolabit@gmail.com",
+    "intro": "Scollarly aide les étudiants africains à trouver des universités en Inde et à y postuler. Cette politique explique quelles données personnelles nous collectons quand vous utilisez le site et l'application Scollarly, pourquoi nous les collectons, qui peut les voir et quels choix vous avez. « Nous » et « Scollarly » désignent l'équipe Scollarly.",
+    "sections": [
+      {
+        "heading": "Ce que nous collectons",
+        "items": [
+          "Les informations du compte : votre nom et votre adresse e-mail, issus de votre compte Google ou de l'e-mail avec lequel vous vous inscrivez. Si vous vous inscrivez avec un e-mail et un mot de passe, nous ne conservons votre mot de passe que sous une forme protégée, à sens unique, que personne dans l'équipe ne peut lire.",
+          "Ce que vous nous dites : les réponses données à l'inscription (par exemple pour qui est le compte, votre pays, la filière et le niveau voulus, et votre numéro WhatsApp), les informations d'une demande ou d'un formulaire de contact, et vos messages.",
+          "Les données techniques : un cookie de session qui vous garde connecté, et des compteurs des pages utilisées. Ces compteurs ne sont pas liés à votre nom. Nous ne conservons jamais votre adresse IP brute.",
+          "Sur votre appareil : le site peut garder sur votre téléphone une copie de pages et un formulaire non terminé pour fonctionner avec une connexion faible. Un formulaire en attente d'envoi est supprimé une fois envoyé, et au plus tard après 30 jours."
+        ]
+      },
+      {
+        "heading": "Pourquoi nous les utilisons",
+        "items": [
+          "Pour gérer votre compte et le sécuriser.",
+          "Pour vous conseiller, vous montrer les universités qui correspondent à votre filière, vous répondre sur WhatsApp et vous aider dans votre candidature.",
+          "Pour faire fonctionner le service et comprendre, en chiffres seulement, quelles pages sont utiles.",
+          "Nous n'utilisons pas vos données pour la publicité et nous ne les vendons pas."
+        ]
+      },
+      {
+        "heading": "Connexion Google et données utilisateur Google",
+        "items": [
+          "Si vous choisissez de vous connecter avec Google, nous recevons de Google votre nom et votre adresse e-mail. Nous les utilisons seulement pour créer et sécuriser votre compte et pour vous contacter au sujet de votre candidature.",
+          "Nous ne demandons pas l'accès à votre Gmail, Drive, Agenda, contacts ni à aucune autre donnée Google.",
+          "L'utilisation par Scollarly des informations reçues de Google respecte la politique Google API Services User Data Policy, y compris ses exigences d'utilisation limitée. Nous ne transférons pas les données utilisateur Google à des tiers, sauf pour faire fonctionner le service, respecter la loi ou avec votre accord, et nous ne les utilisons pas pour la publicité."
+        ]
+      },
+      {
+        "heading": "Qui peut voir vos données",
+        "items": [
+          "Seuls les membres de l'équipe Scollarly qui traitent votre candidature peuvent voir vos informations.",
+          "Une université ne voit vos informations que pour votre candidature, et seulement si vous êtes d'accord.",
+          "Nos prestataires traitent des données pour nous afin de faire fonctionner le service : Cloudflare (hébergement), Neon (base de données) et Google (connexion). Ils n'ont pas le droit de les utiliser pour leurs propres besoins.",
+          "Nous pouvons communiquer des données si la loi l'exige."
+        ]
+      },
+      {
+        "heading": "Combien de temps nous les gardons",
+        "items": [
+          "Nous gardons les informations de votre compte et de votre candidature tant que votre compte est ouvert et que nous vous aidons.",
+          "Les enregistrements bruts d'utilisation des pages sont résumés puis supprimés après environ 30 jours.",
+          "Quand vous demandez l'effacement, nous supprimons votre nom, vos coordonnées, vos réponses et les notes. Les enregistrements de paiement que nous devons garder restent, sans lien avec vous.",
+          "Les sauvegardes chiffrées sont gardées peu de temps (environ 28 jours) puis supprimées."
+        ]
+      },
+      {
+        "heading": "Vos choix et vos droits",
+        "items": [
+          "Vous pouvez demander une copie de vos données, leur correction ou leur effacement. Vous pouvez le faire depuis votre compte ou en nous écrivant.",
+          "Vous pouvez nous demander à tout moment de ne plus vous contacter sur WhatsApp.",
+          "Vous pouvez supprimer les cookies et les données du site dans votre navigateur. Vous devrez alors vous reconnecter."
+        ]
+      },
+      {
+        "heading": "Enfants et parents",
+        "items": [
+          "Les étudiants de moins de 18 ans doivent utiliser Scollarly avec un parent ou un tuteur. Un parent peut créer un compte pour postuler pour son enfant et donner ses propres coordonnées ; nous parlons alors au parent."
+        ]
+      },
+      {
+        "heading": "Sécurité",
+        "items": [
+          "Les données circulent sur une connexion chiffrée. L'accès aux données personnelles est limité selon le rôle, et chaque modification faite par un membre de l'équipe sur un dossier est enregistrée. Aucun système n'est parfaitement sûr ; utilisez donc un mot de passe fort et unique."
+        ]
+      },
+      {
+        "heading": "Modifications de cette politique",
+        "items": [
+          "Si nous modifions cette politique, nous changerons la date en haut. Si le changement est important, nous vous le dirons à votre prochaine connexion."
+        ]
+      },
+      {
+        "heading": "Nous contacter",
+        "items": [
+          "Pour toute question ou demande sur vos données, écrivez à {email}. Nous visons une réponse sous 30 jours. Si notre réponse ne vous satisfait pas, vous pouvez vous plaindre auprès de votre autorité de protection des données."
+        ]
+      }
+    ]
   },
   "terms": {
-    "metaTitle": "Conditions",
-    "metaDescription": "Les conditions d'utilisation du site Scollarly.",
+    "metaTitle": "Conditions d'utilisation",
+    "metaDescription": "Les conditions d'utilisation du site et de l'application Scollarly.",
     "title": "Conditions d'utilisation",
-    "pending": "Nos conditions complètes sont en cours de finalisation. Voici un résumé.",
-    "summary": {
-      "free": "L'aide de Scollarly est gratuite pour les étudiants. Nous ne demandons jamais aux étudiants de nous payer.",
-      "accuracy": "Les informations sur les universités peuvent changer. Vérifiez les frais et les dates avec nous avant de décider.",
-      "contact": "Questions sur ces conditions : contactez-nous sur WhatsApp."
-    }
+    "updated": "Dernière mise à jour : 4 novembre 2026",
+    "email": "gimafolabit@gmail.com",
+    "intro": "Ces conditions s'appliquent quand vous utilisez le site et l'application Scollarly. En créant un compte ou en utilisant nos services, vous les acceptez. Si vous ne les acceptez pas, n'utilisez pas Scollarly.",
+    "sections": [
+      {
+        "heading": "Ce qu'est Scollarly",
+        "items": [
+          "Scollarly est un service de conseil qui aide les étudiants africains et leurs parents à trouver des universités en Inde et à préparer leurs candidatures. Nous ne sommes pas une université et nous ne décidons pas des admissions.",
+          "Nous ne garantissons ni l'admission, ni un visa, ni une bourse, ni aucun résultat."
+        ]
+      },
+      {
+        "heading": "Notre aide est gratuite pour les étudiants",
+        "items": [
+          "Nous ne faisons pas payer nos conseils aux étudiants. Nous ne demanderons jamais à un étudiant de payer Scollarly pour être pris en compte. Les frais fixés par une université ou une administration sont distincts et se paient à elles, pas à nous."
+        ]
+      },
+      {
+        "heading": "Votre compte",
+        "items": [
+          "Vous devez donner des informations exactes et à jour. Vous êtes responsable de la protection de votre mot de passe et de votre connexion, et de ce qui se passe dans votre compte.",
+          "Un compte est pour une seule personne. Les parents peuvent créer un compte pour postuler pour leur enfant.",
+          "Certaines actions, comme postuler, nous contacter ou lancer une discussion WhatsApp, demandent un compte."
+        ]
+      },
+      {
+        "heading": "Comment utiliser le service",
+        "items": [
+          "Ne donnez pas de fausses informations, ne copiez pas et ne détournez pas le service, n'essayez pas de casser ou de sonder sa sécurité, et ne l'utilisez pas pour harceler d'autres personnes.",
+          "Nous pouvons suspendre ou fermer un compte qui ne respecte pas ces conditions."
+        ]
+      },
+      {
+        "heading": "Informations sur les universités",
+        "items": [
+          "Nous faisons de notre mieux pour garder les informations exactes, mais les universités changent leurs filières, dates et conditions. Confirmez toujours auprès de l'université avant de décider ou de payer quelqu'un.",
+          "Les liens vers d'autres sites sont donnés pour votre commodité. Nous ne sommes pas responsables de leur contenu."
+        ]
+      },
+      {
+        "heading": "Notre responsabilité",
+        "items": [
+          "Le service est fourni tel quel. Dans la mesure permise par la loi, nous ne sommes pas responsables des décisions des universités ou des autorités, ni des pertes venant de l'usage des informations du site."
+        ]
+      },
+      {
+        "heading": "Vos données",
+        "items": [
+          "La façon dont nous traitons vos données personnelles est décrite dans notre politique de confidentialité, qui fait partie de ces conditions."
+        ]
+      },
+      {
+        "heading": "Modifications",
+        "items": [
+          "Nous pouvons modifier ces conditions. Nous changerons la date en haut. Si vous continuez à utiliser Scollarly après un changement, vous acceptez les nouvelles conditions."
+        ]
+      },
+      {
+        "heading": "Nous contacter",
+        "items": [
+          "Questions sur ces conditions : écrivez à {email}."
+        ]
+      }
+    ]
   },
   "apply": {
     "page": {

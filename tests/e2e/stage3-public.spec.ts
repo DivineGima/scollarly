@@ -58,8 +58,8 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
     "/blog": ["How to apply", "Visa checklist"],
     "/blog/how-to-apply": ["Start with your results."],
     "/contact": ["+14155550100", "hello@scollarly.example"],
-    "/privacy": ["Our full privacy notice is being finalised."],
-    "/terms": ["Our full terms are being finalised."],
+    "/privacy": ["Privacy policy", "Google user data", "gimafolabit@gmail.com"],
+    "/terms": ["Terms of use", "Our help is free for students", "gimafolabit@gmail.com"],
   };
 
   for (const [path, texts] of Object.entries(expectations)) {
