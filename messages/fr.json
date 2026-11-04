@@ -1520,8 +1520,7 @@
     "metaDescription": "Vidéos et visites à 360° des campus partenaires. Rien ne se charge avant que vous appuyiez.",
     "title": "Visites de campus",
     "intro": "Découvrez les campus avant de décider. Les vidéos et visites ne se chargent que si vous appuyez dessus, donc sans consommer de données avant.",
-    "empty": "Les visites de campus apparaîtront ici lorsque les universités seront ajoutées.",
-    "onRequest": "Disponible sur demande."
+    "empty": "Les visites de campus apparaîtront ici lorsque les universités seront ajoutées."
   },
   "process": {
     "metaTitle": "Comment ça marche",

@@ -1,6 +1,6 @@
 import type { CatalogueRows, PageImageRows, PostRows, SiteRows, TrustRows } from "@/server/repositories/content";
 import { isE164 } from "@/lib/phone";
-import { isYoutubeId, safeHttpsUrl } from "./embed";
+import { isTourFrameUrl, isYoutubeId, safeHttpsUrl } from "./embed";
 import { localisedField, localisedText } from "./localise";
 import { plainExcerpt } from "./markdown";
 import type {
@@ -56,8 +56,14 @@ export function buildCatalogue(rows: CatalogueRows, locale = "en"): CatalogueSna
       const youtubeId = kind === "video" && isYoutubeId(e.youtubeId) ? e.youtubeId : null;
       const url = kind === "video" ? null : safeHttpsUrl(e.url);
       if (kind === "video" ? !youtubeId : !url) continue;
+      // A 360 tour is framed, so its host must be one the security policy allows; a gallery only opens in a new tab.
+      if (kind === "tour360" && !isTourFrameUrl(url)) continue;
       campus.push({ id: e.id, kind, title: e.title, youtubeId, url, thumbnail: media(e.thumbnailMediaId) });
     }
+
+    // A tour with no preview of its own borrows the first preview the university has, so no card shows an empty box (PRD_3 F22).
+    const fallbackPreview = campus.find((c) => c.thumbnail)?.thumbnail ?? null;
+    const withPreviews = campus.map((c) => (c.thumbnail || !fallbackPreview ? c : { ...c, thumbnail: fallbackPreview }));
 
     return {
       id: u.id,
@@ -71,7 +77,7 @@ export function buildCatalogue(rows: CatalogueRows, locale = "en"): CatalogueSna
       logo: media(u.logoMediaId),
       overview: localisedText(u.translations, locale),
       programmes: (programmes.get(u.id) ?? []).map((p) => ({ id: p.id, name: p.name, level: p.level, field: p.field, durationMonths: p.durationMonths })),
-      experiences: campus,
+      experiences: withPreviews,
       resources: (resources.get(u.id) ?? []).flatMap((r) => {
         const url = safeHttpsUrl(r.url);
         return url ? [{ id: r.id, title: r.title, url, kind: r.kind }] : [];

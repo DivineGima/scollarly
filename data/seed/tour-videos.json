@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-11-04T00:00:00Z",
+  "rule": "One public tour video per university, taken from the university's own YouTube channel (or, for Swami Vivekanand, its institute's official channel). Found with Agent Reach (YouTube search), each confirmed public and embeddable through the YouTube oEmbed answer on 2026-11-04. The owner reviews this list before launch (tracker R10). A university with no verified video is not listed on the tours page.",
+  "videos": [
+    { "slug": "chandigarh-university", "youtube_id": "gu91b9abGl8", "channel": "Chandigarh University - CU", "title": "Chandigarh University Campus Tour", "source": "https://www.youtube.com/watch?v=gu91b9abGl8" },
+    { "slug": "cgc-university", "youtube_id": "J84H_gFob8Y", "channel": "CGC University, Mohali", "title": "CGC University Mohali Campus Tour 2026", "source": "https://www.youtube.com/watch?v=J84H_gFob8Y" },
+    { "slug": "swami-vivekanand-group", "youtube_id": "5Qidp9H-o-k", "channel": "SVIET Chandigarh", "title": "Discover #SVGOI | A Virtual Journey to Your Future Campus Experience!", "source": "https://www.youtube.com/watch?v=5Qidp9H-o-k" },
+    { "slug": "jain-university", "youtube_id": "xLUXao18fs0", "channel": "JAIN (Deemed-to-be University)", "title": "Jain Campus Tour", "source": "https://www.youtube.com/watch?v=xLUXao18fs0" },
+    { "slug": "kalinga-university", "youtube_id": "fupZOX-8dHs", "channel": "Kalinga University", "title": "Rudrani Takes You on a Kalinga University Campus Tour", "source": "https://www.youtube.com/watch?v=fupZOX-8dHs" },
+    { "slug": "rayat-bahra-university", "youtube_id": "P-kM1Lus-lM", "channel": "Rayat Bahra University", "title": "Welcome to Rayat Bahra University | Full Campus Tour", "source": "https://www.youtube.com/watch?v=P-kM1Lus-lM" },
+    { "slug": "aditya-university", "youtube_id": "UtLSuJyA0Yw", "channel": "Aditya University", "title": "Aditya University Campus Tour | Where Every Space Tells a Story", "source": "https://www.youtube.com/watch?v=UtLSuJyA0Yw" },
+    { "slug": "ct-university", "youtube_id": "bHh1-efoe4w", "channel": "CT University", "title": "CT University Virtual Tour - Experience Our Campus from Anywhere!", "source": "https://www.youtube.com/watch?v=bHh1-efoe4w" }
+  ],
+  "without_video": ["karnataka-university"]
+}

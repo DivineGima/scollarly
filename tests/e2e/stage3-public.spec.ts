@@ -50,7 +50,7 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
     "/": ["Our help is free for students.", "Alpha University", "Start your application", "Students helped", "They answered me on WhatsApp the same day."],
     "/universities": ["Alpha University", "Beta University", "Gamma University"],
     "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "Official prospectus"],
-    "/campus-tours": ["Official campus tour", "Available on request."],
+    "/campus-tours": ["Official campus tour"],
     "/process": ["Share your results", "Pick at least three programmes."],
     "/visa": ["Collect your documents"],
     "/faq": ["Is Scollarly free for students?", "Yes. Students pay Scollarly nothing."],

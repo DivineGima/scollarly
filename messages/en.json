@@ -1520,8 +1520,7 @@
     "metaDescription": "Videos and 360° tours of partner campuses. Nothing loads until you tap.",
     "title": "Campus tours",
     "intro": "See the campuses before you decide. Videos and tours load only when you tap them, so they use no data until then.",
-    "empty": "Campus tours will appear here once the universities are added.",
-    "onRequest": "Available on request."
+    "empty": "Campus tours will appear here once the universities are added."
   },
   "process": {
     "metaTitle": "How it works",
