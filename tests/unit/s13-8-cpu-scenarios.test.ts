@@ -18,6 +18,9 @@ const SCENARIOS: Record<string, string> = {
   "admin-notifications": "/api/v1/admin/notifications",
   "admin-tour": "/api/v1/admin/tour.seen",
   "legacy-redirect": "/admin/payments",
+  crm: "/api/v1/admin/crm",
+  pipeline: "/api/v1/admin/pipeline",
+  "crm-export": "/api/v1/admin/export",
 };
 
 describe("the CPU measurement drives every version 2 call", () => {
