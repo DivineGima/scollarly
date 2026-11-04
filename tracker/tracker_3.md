@@ -1,0 +1,94 @@
+# Tracker 3: Scollarly v3 (Stage 14)
+
+Maintained by Claude Code. Human actions (legal review, DNS, OAuth credentials, Google console, vendor terms, owner sign-off) are recorded here only when the owner says they are done.
+
+This tracker starts version 3 (PRD_3, architecture 3, essentials 3). `tracker_2.md` is the history of Stage 13 (S13.1 to S13.9) and `tracker_1.md` of Stages 0 to 12; both stay in the repository. Where a row below says "see tracker_2" or "see tracker_1", the full text and the evidence are there. Open items are carried here unchanged.
+
+## Current position
+
+| Item | Value |
+|---|---|
+| Current PRD | `PRD_3.md` (2026-11-04, full copy: part A amendments, part B the whole of PRD_2) |
+| Current architecture | `system_architecture_3.md` (2026-11-04, derived from `PRD_3.md`; section 22 wins over older text) |
+| Essentials file | `essentials/system_architecture_essential_3.md` (Stage 14, one stage) |
+| Phase | Stage 13 modules S13.1 to S13.6 complete; S13.7 to S13.9 built and deployed but `in-progress` (owner-paced items, carried into S14.8). Stage 14 started 2026-11-04. |
+| Next module | S14.1 (quick fixes), then S14.2, S14.3, S14.4, S14.5, S14.6, S14.7, S14.8 |
+| Blocked by | Nothing blocks S14.1 to S14.3. S14.4 waits for gate G1 (flag F27). |
+
+## Start-of-task check results (CLAUDE.md steps 1 to 7), 2026-11-04
+
+| Step | Result |
+|---|---|
+| 2 essentials file | `system_architecture_essential_3.md` exists; `CLAUDE.md` Step 2 (owner decision 2026-11-04) selects it while Stage 14 is incomplete |
+| 3 architecture version | highest `system_architecture_N.md` is 3 |
+| 4 essentials vs architecture | essentials 3 cites `system_architecture_3.md`: match |
+| 5 PRD version | highest `PRD_N.md` is 3 |
+| 6 architecture vs PRD | architecture 3 says `Derived From: PRD_3.md`: match |
+| Version alignment | PRD 3, architecture 3, essentials 3: same N, each cites its own N |
+
+## Standing owner check-ins
+
+| # | Check | Link | Status |
+|---|---|---|---|
+| C1 | Has Neon Auth shipped authenticator-app 2FA (MFA/TOTP)? | https://neon.com/docs/auth/roadmap | **Paused by the owner (2026-10-24).** Do not ask again until about 2026-11-24. |
+
+## Module registry (Stage 14)
+
+| ID | Module | Status | Last session |
+|---|---|---|---|
+| S14.1 | Quick fixes (fees, underlines, footer text) | not started | |
+| S14.2 | Privacy and Terms | not started | |
+| S14.3 | Account-first actions | not started | |
+| S14.4 | Email and password | not started | |
+| S14.5 | Onboarding first | not started | |
+| S14.6 | Real tours | not started | |
+| S14.7 | CRM charts, board, filters, export | not started | |
+| S14.8 | QA, deploy and carry-over | not started | |
+
+Carried and still `in-progress` (owner-paced, see tracker_2): S13.7, S13.8, S13.9, S10.2, S11.4, S11.6.
+
+## Session log
+
+### 2026-11-04: Session 1 of tracker_3 (setup)
+
+Created this tracker at the owner's request (it had not been created when the v3 documents were merged). The v3 documents are in place (PRs #56 and #57); `CLAUDE.md` Step 2 points to version 3. Next: plan and build S14.1 to S14.4.
+
+## Flags (need the owner)
+
+| # | Flag | Status |
+|---|---|---|
+| F8 | Branch protection on `main`: the owner chose no GitHub change (2026-11-04); protection is discipline-only. | **Open** (carried) |
+| F9, F10 | Domain `scollarly.co.in` and its .IN verification (outside the code). | **Open** (carried, see tracker_2) |
+| F22 | Google's OAuth app is in Testing mode with the owner as the only test user. | **Open (owner action R1)** |
+| F25 | The onboarding consent text is the placeholder `draft-1`. | **Open (owner action R5)** |
+| F27 | Email and password: Neon Auth may force email verification that needs a sender (no paid service allowed). | **Open.** Gate G1 is checked at the start of S14.4 and reported to the owner before building. |
+| F28 | `CLAUDE.md` Step 2 pointed at essentials 2. | **Resolved 2026-11-04** (owner said yes). |
+| F29 | PRD_3 and architecture 3 were amendment texts. | **Resolved 2026-11-04** (full copies made). |
+
+## CPU rows to record (architecture 22.8, measured by `scripts/measure-cpu.mjs`)
+
+Rows measured for version 2 are in tracker_2 and all passed. New rows for Stage 14 (gate: warm p95 at most 8 ms, none cut):
+
+| Row | Warm p50 | Warm p95 | Worst | Cut | Gate | Run |
+|---|---|---|---|---|---|---|
+| Password sign-up and sign-in (S14.4) | | | | | | |
+| Gated refusals (`SIGN_IN_REQUIRED`, `ONBOARDING_REQUIRED`) (S14.3, S14.5) | | | | | | |
+| `GET admin/pipeline`, `GET admin/export.csv` (S14.7) | | | | | | |
+| `/fees` 301 redirect (S14.1) | | | | | | |
+
+## Owner actions (human, never marked done by Claude Code)
+
+| # | Action | Needed before | Status |
+|---|---|---|---|
+| R1 | Publish Google's OAuth app, with the Privacy and Terms links from S14.2 | First real onboarding | Open |
+| R4 | Real-phone check of the installed icon and launch screen, and a look at the traced logo | Launch | Open |
+| R5 | Legal check and text for Privacy, Terms, parent applying for a child, minors, consent | Launch | Open |
+| R6 | Trust content for the landing page | Launch | Open |
+| R10 | Review the tour video list (S14.6) | Before S14.6 completes | Open |
+| R11 | Confirm the CRM metric list (PRD_3 F18) | Before S14.7 | Open |
+| H11 | Owner sign-off of the pre-launch checklist | Launch | Open |
+| H19 / E5 | Real phone check of the WhatsApp and lead flow, online and offline | Launch | Open |
+| H20 | Make the GitHub repository private again | After the measurements | Open |
+| Watched test | Three real people use the app (S13.9, now S14.8) | Launch | Open |
+
+The other open carried items (H4, H5, H7, H9, H10, H12, H14, H21, H24, E6, E8) stay as listed in tracker_2.
