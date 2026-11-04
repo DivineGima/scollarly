@@ -35,7 +35,7 @@ export default async function PostPage({ params }: Props) {
   return (
     <article>
       <p>
-        <PageLink href="/blog">{t("back")}</PageLink>
+        <PageLink href="/blog" className="link-standalone">{t("back")}</PageLink>
       </p>
       <h1>{post.title}</h1>
       <time dateTime={post.publishedAt} className="muted">

@@ -38,7 +38,7 @@ test.describe("A9 sign in", () => {
     const button = page.getByRole("link", { name: "Sign in with Google" });
     await expect(button).toHaveAttribute("href", "/auth/start");
     await expect(page.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up");
-    await expect(page.getByText("No Google account? You can still apply and message us on WhatsApp.")).toBeVisible();
+    await expect(page.getByText("Having trouble signing in? Write to us from the Contact page.")).toBeVisible();
     await expect(alerts(page)).toHaveCount(0);
     await axe(page);
   });

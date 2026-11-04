@@ -23,7 +23,7 @@
 
 ### 22.2 Account-first actions (ADR-051)
 
-- **Server is the lock.** `POST lead-intake` (apply), the contact submit and any lead-creating function require `Actor.accountConfirmed` and a finished onboarding; otherwise 401 `SIGN_IN_REQUIRED` or 403 `ONBOARDING_REQUIRED`. Authorisation stays in the auth facade, never middleware.
+- **Server is the lock.** `POST lead-intake` (apply), the contact submit and any lead-creating function require `Actor.accountConfirmed` and a finished onboarding; otherwise 401 `UNAUTHENTICATED` or 403 `ONBOARDING_REQUIRED`. Authorisation stays in the auth facade, never middleware.
 - **No signed-out WhatsApp link.** The one WhatsApp helper gets a `signedIn` argument: signed out, it returns no URL and the caller renders a gate trigger. Public pages are cached and carry no person data, so the server-rendered page contains the **gate trigger** (an anchor to `/sign-in?next=<encoded intent>`), and a small island upgrades it to the pop-up. A signed-in person is detected on the phone from the existing non-secret `scollarly_signed_in` hint cookie (no session data in a cache); the island swaps the trigger for the real WhatsApp or apply link, which is built on the phone from `site_setting` data already in the page. If the hint is wrong, the server still refuses (first bullet).
 - **`next` safety.** `next` accepts only the intents `apply`, `chat:<university>`, `contact`, `course:<field>`; anything else is dropped. No open redirect.
 - **Pop-up.** One shared client component `GateDialog` (native `<dialog>`, focus trap by the platform, Escape closes, both buttons large). It adds under 1.5 KB gzip; the public ceiling is re-checked in CI.

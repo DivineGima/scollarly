@@ -471,7 +471,7 @@ test.describe("C7 health", () => {
 // ---- S11.1 the enforced CSP ----------------------------------------------------------------------------------------
 
 test.describe("S11.1 the enforced Content-Security-Policy", () => {
-  const ROUTES = ["/", "/universities", "/fees", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in"];
+  const ROUTES = ["/", "/universities", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in"];
 
   for (const path of ROUTES) {
     test(`${path} loads with no policy violation`, async ({ page }) => {

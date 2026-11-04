@@ -1,3 +1,4 @@
+import { SIGNED_IN_FRAGMENT } from "@/lib/client/signed-in-hint";
 import { newRequestId } from "@/lib/http";
 import { readIntent, unconfirmedLanding } from "@/modules/auth/intent";
 import { INVITE_TOKEN_PATTERN, landingPathFor } from "@/modules/auth/service";
@@ -22,7 +23,8 @@ import { createSecondFactorStore } from "@/server/repositories/second-factor";
  *     their role when the verified email equals `OWNER_EMAIL` and no owner exists;
  *  4. sends a Google login with no confirmed Scollarly account to the confirm screen (they used Sign in) or confirms it and starts
  *     onboarding (they used Create account), architecture 21.3;
- *  5. sends everyone else to the page for their role.
+ *  5. sends a student back to the public page they tapped an action on (`next`, checked by `modules/gate/next.ts`), and everyone
+ *     else to the page for their role.
  */
 
 export const LANDING_PATH = "/auth/landing";
@@ -69,6 +71,10 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
       if (next.confirmNow) await confirmAccount(env.db, contextOf({ userId: actor.userId, role: "student" }));
       return redirect(request, next.path);
     }
+
+    // A student who tapped an action on a public page goes back to that page (PRD_3 F20). Staff always go to their own home.
+    const back = readIntent(new URL(request.url)).next;
+    if (storedRole === "student" && back) return redirect(request, `${back}${SIGNED_IN_FRAGMENT}`);
 
     let twoFactorEnrolled = false;
     if (storedRole === "owner") {

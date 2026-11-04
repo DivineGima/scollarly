@@ -1,14 +1,12 @@
 import type { CatalogueRows, PageImageRows, PostRows, SiteRows, TrustRows } from "@/server/repositories/content";
 import { isE164 } from "@/lib/phone";
 import { isYoutubeId, safeHttpsUrl } from "./embed";
-import { confirmedRange } from "./fees";
 import { localisedField, localisedText } from "./localise";
 import { plainExcerpt } from "./markdown";
 import type {
   BlogSnapshot,
   CampusView,
   CatalogueSnapshot,
-  FeeLine,
   MediaRef,
   PageImageSnapshot,
   SiteSnapshot,
@@ -47,17 +45,10 @@ function group<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
 export function buildCatalogue(rows: CatalogueRows, locale = "en"): CatalogueSnapshot {
   const media = mediaIndex(rows.media, locale);
   const programmes = group(rows.programmes, (p) => p.universityId);
-  const fees = group(rows.fees, (f) => f.universityId);
   const experiences = group(rows.experiences, (e) => e.universityId);
   const resources = group(rows.resources, (r) => r.universityId);
 
   const universities = rows.universities.map((u): UniversityView => {
-    const feeLines: FeeLine[] = [];
-    for (const f of fees.get(u.id) ?? []) {
-      const range = confirmedRange(f);
-      if (range) feeLines.push({ id: f.id, ...range, period: f.period, lastUpdatedAt: new Date(f.lastUpdatedAt).toISOString(), programmeId: f.programmeId });
-    }
-
     const campus: CampusView[] = [];
     for (const e of experiences.get(u.id) ?? []) {
       const kind = e.kind as CampusView["kind"];
@@ -80,7 +71,6 @@ export function buildCatalogue(rows: CatalogueRows, locale = "en"): CatalogueSna
       logo: media(u.logoMediaId),
       overview: localisedText(u.translations, locale),
       programmes: (programmes.get(u.id) ?? []).map((p) => ({ id: p.id, name: p.name, level: p.level, field: p.field, durationMonths: p.durationMonths })),
-      fees: feeLines,
       experiences: campus,
       resources: (resources.get(u.id) ?? []).flatMap((r) => {
         const url = safeHttpsUrl(r.url);
@@ -187,18 +177,4 @@ export function buildPageImages(rows: PageImageRows, locale = "en"): PageImageSn
     if (ref) snapshot[row.key] = ref;
   }
   return snapshot;
-}
-
-/**
- * The line a card quotes: "Fees from USD 3,000 tuition per year". It prefers the tuition lines, stays inside one
- * currency (currencies are never compared or summed), and takes the lowest start. Null when nothing is confirmed (FR-2).
- */
-export function headlineFee(university: Pick<UniversityView, "fees">): FeeLine | null {
-  const tuition = university.fees.filter((line) => /tuition/i.test(line.period));
-  const pool = tuition.length > 0 ? tuition : university.fees;
-  const first = pool[0];
-  if (!first) return null;
-  let best = first;
-  for (const line of pool) if (line.currency === first.currency && line.min < best.min) best = line;
-  return best;
 }

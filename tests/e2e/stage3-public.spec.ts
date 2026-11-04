@@ -12,7 +12,6 @@ const PAGES = [
   "/universities",
   "/universities/alpha-university",
   "/universities/beta-university",
-  "/fees",
   "/campus-tours",
   "/process",
   "/visa",
@@ -49,9 +48,8 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
 
   const expectations: Record<string, string[]> = {
     "/": ["Our help is free for students.", "Alpha University", "Start your application", "Students helped", "They answered me on WhatsApp the same day."],
-    "/universities": ["Alpha University", "Beta University", "Gamma University", "Fees to be confirmed"],
-    "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "USD 3,000 – 6,000", "Official prospectus"],
-    "/fees": ["Alpha University", "USD 3,000 – 6,000", "INR 150,000 – 250,000", "Contact us"],
+    "/universities": ["Alpha University", "Beta University", "Gamma University"],
+    "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "Official prospectus"],
     "/campus-tours": ["Official campus tour", "Available on request."],
     "/process": ["Share your results", "Pick at least three programmes."],
     "/visa": ["Collect your documents"],
@@ -60,8 +58,8 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
     "/blog": ["How to apply", "Visa checklist"],
     "/blog/how-to-apply": ["Start with your results."],
     "/contact": ["+14155550100", "hello@scollarly.example"],
-    "/privacy": ["Our full privacy notice is being finalised."],
-    "/terms": ["Our full terms are being finalised."],
+    "/privacy": ["Privacy policy", "Google user data", "gimafolabit@gmail.com"],
+    "/terms": ["Terms of use", "Our help is free for students", "gimafolabit@gmail.com"],
   };
 
   for (const [path, texts] of Object.entries(expectations)) {
@@ -74,42 +72,25 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
 });
 
 test.describe("FR-2: fees", () => {
-  test("a confirmed fee shows its range, currency and last-updated date, with the disclaimer", async ({ page }) => {
-    await page.goto("/universities/alpha-university");
-    const text = await bodyText(page);
-    expect(text).toContain("USD 3,000 – 6,000");
-    expect(text).toContain("tuition per year");
-    expect(text).toContain("Last updated 2026-06-12");
-    expect(text).toContain("Fees are set by the university and can change.");
-    expect(text).not.toMatch(/\b(USD|INR) 0\b/);
-  });
-
-  test("an unconfirmed fee shows 'Fees to be confirmed' and a WhatsApp call to action, never 0 or a blank", async ({ page }) => {
+  test("a university page offers a WhatsApp call to action built from the one helper, and shows no fee", async ({ page }) => {
     await page.goto("/universities/beta-university");
     const text = await bodyText(page);
-    expect(text).toContain("Fees to be confirmed");
-    expect(text).not.toMatch(/\b(USD|INR) 0\b/);
+    expect(text).not.toContain("Fees to be confirmed");
     const whatsapp = page.getByRole("link", { name: "Ask about this university on WhatsApp" }).first();
     await expect(whatsapp).toBeVisible();
     // The address comes from the number in site_setting (here the fixture's), through the one helper (FR-4).
-    await expect(whatsapp).toHaveAttribute("href", "https://wa.me/14155550100");
+    await expect(whatsapp).toHaveAttribute("data-gate-href", "https://wa.me/14155550100");
   });
 
-  test("the fees page lists a range per currency and 'Contact us' for the university without one", async ({ page }) => {
+  test("fees are not shown anywhere and /fees moves to the universities list", async ({ page }) => {
     await page.goto("/fees");
-    const rows = page.locator("tbody tr");
-    await expect(rows).toHaveCount(3);
-    await expect(rows.filter({ hasText: "Beta University" })).toContainText("Contact us");
-    await expect(rows.filter({ hasText: "Gamma University" })).toContainText("INR 150,000 – 250,000");
-    expect(await bodyText(page)).not.toContain("USD 153");
-  });
-
-  test("the currency chips narrow the table without a request", async ({ page }) => {
-    await page.goto("/fees");
-    await page.getByRole("button", { name: "INR" }).click();
-    await expect(page.locator("tbody tr")).toHaveCount(1);
-    await page.getByRole("button", { name: "All" }).click();
-    await expect(page.locator("tbody tr")).toHaveCount(3);
+    await expect(page).toHaveURL(/\/universities$/);
+    for (const path of ["/universities", "/universities/alpha-university", "/"]) {
+      await page.goto(path);
+      const text = await bodyText(page);
+      expect(text).not.toMatch(/USD 3,000|INR 150,000|Fees to be confirmed|Fees from/);
+    }
+    await expect(page.getByRole("link", { name: "Fees", exact: true })).toHaveCount(0);
   });
 });
 

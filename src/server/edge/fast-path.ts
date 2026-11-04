@@ -16,7 +16,6 @@ export type FastPathKind = "page" | "media";
 export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set([
   "/",
   "/universities",
-  "/fees",
   "/campus-tours",
   "/process",
   "/visa",

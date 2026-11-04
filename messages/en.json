@@ -49,7 +49,7 @@
       "title": "Welcome back",
       "intro": "Sign in to follow your application, or to work as Scollarly staff. This page is for people who already have an account.",
       "google": "Sign in with Google",
-      "noGoogle": "No Google account? You can still apply and message us on WhatsApp.",
+      "noGoogle": "Having trouble signing in? Write to us from the Contact page.",
       "offline": "You need a connection to sign in or create an account.",
       "errorCancelled": "Sign-in was cancelled. Nothing was changed.",
       "errorFailed": "We could not sign you in. Please try again.",
@@ -107,7 +107,7 @@
       "google": "Continue with Google",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
-      "noGoogle": "No Google account? You can still apply and message us on WhatsApp."
+      "noGoogle": "Having trouble signing in? Write to us from the Contact page."
     },
     "confirm": {
       "title": "No account found",
@@ -120,6 +120,48 @@
       "errorOffline": "You need a connection to create your account.",
       "errorFailed": "We could not create your account. Please try again.",
       "errorSignedOut": "Your session ended. Please sign in again."
+    },
+    "email": {
+      "or": "or use your email",
+      "signInTitle": "Sign in with email",
+      "signUpTitle": "Sign up with email",
+      "role": "I am signing up as",
+      "as": {
+        "student": "A student",
+        "parent": "A parent applying for my child"
+      },
+      "name": "Your full name",
+      "email": "Email address",
+      "password": "Password",
+      "show": "Show",
+      "hide": "Hide",
+      "passwordHelp": "At least {min} characters. Do not use your name or a password from another site.",
+      "forgot": "Lost your password? Sign in with Google if your email is a Google address, or write to us from the Contact page.",
+      "signIn": "Sign in",
+      "signUp": "Sign up",
+      "working": "Please wait...",
+      "offline": "You need a connection to sign in or sign up.",
+      "tooMany": "Too many tries. Please wait a few minutes and try again.",
+      "unavailable": "Sign-in is not available right now. Please try again in a moment.",
+      "badCredentials": "The email or password is not right.",
+      "cannotSignUp": "We could not create this account. If you already have one, sign in instead.",
+      "check": "Please check the details below.",
+      "issue": {
+        "name": {
+          "required": "Enter your name.",
+          "too_long": "That name is too long."
+        },
+        "email": {
+          "required": "Enter your email address.",
+          "invalid": "Enter a valid email address, like name@example.com."
+        },
+        "password": {
+          "required": "Enter your password.",
+          "too_short": "Use at least {min} characters.",
+          "too_long": "That password is too long.",
+          "weak": "Choose a password that is harder to guess."
+        }
+      }
     }
   },
   "admin": {
@@ -1411,7 +1453,6 @@
       "label": "Main",
       "home": "Home",
       "universities": "Universities",
-      "fees": "Fees",
       "tours": "Campus tours",
       "process": "How it works",
       "visa": "Visa",
@@ -1421,7 +1462,7 @@
       "contact": "Contact"
     },
     "footer": {
-      "tagline": "Helping African students study in India. Free for students.",
+      "tagline": "Helping African students study in India.",
       "privacy": "Privacy",
       "terms": "Terms"
     },
@@ -1450,9 +1491,7 @@
     "noMatch": "No university matches. Clear the search or a filter.",
     "results": "{count} universities shown",
     "empty": "Our universities are being added. Message us on WhatsApp and we will suggest one that fits your results.",
-    "naac": "NAAC {grade}",
-    "fromFee": "Fees from {amount} {period}",
-    "feesTbcShort": "Fees to be confirmed"
+    "naac": "NAAC {grade}"
   },
   "university": {
     "back": "All universities",
@@ -1460,10 +1499,6 @@
     "overviewHeading": "Overview",
     "programmesHeading": "Programmes",
     "duration": "{months} months",
-    "feesHeading": "Fees",
-    "feeUpdated": "Last updated {date}",
-    "feeDisclaimer": "Fees are set by the university and can change. We confirm them with the university before you pay anything.",
-    "feesTbc": "Fees to be confirmed. Ask us and we will check with the university.",
     "campusHeading": "Campus",
     "resourcesHeading": "Official links",
     "officialWebsite": "University website",
@@ -1479,20 +1514,6 @@
       "viewGallery": "View gallery",
       "noThumbnail": "Preview not available"
     }
-  },
-  "fees": {
-    "metaTitle": "Fees",
-    "metaDescription": "University fees in USD or INR, shown only when confirmed. Others: contact us.",
-    "title": "Fees",
-    "intro": "Fee ranges for universities where we have confirmed them. Each amount shows its currency and when it was last updated.",
-    "university": "University",
-    "fee": "Fee",
-    "updated": "Updated {date}",
-    "contactUs": "Contact us",
-    "filterCurrency": "Filter by currency",
-    "all": "All",
-    "disclaimer": "Fees are set by the universities and can change. Amounts in different currencies are never added together.",
-    "empty": "Fees will appear here once the universities are added."
   },
   "tours": {
     "metaTitle": "Campus tours",
@@ -1559,28 +1580,159 @@
     "apply": "Start your application"
   },
   "privacy": {
-    "metaTitle": "Privacy",
-    "metaDescription": "How Scollarly handles your personal data.",
-    "title": "Privacy notice",
-    "pending": "Our full privacy notice is being finalised. This is a summary of how we handle your data.",
-    "summaryHeading": "In short",
-    "summary": {
-      "collect": "When you apply we keep your name, WhatsApp number, country, results and chosen programmes. We keep your email only if you give it.",
-      "use": "We use them only to advise you, answer you on WhatsApp and help with your application.",
-      "share": "We share your details with a university only for your application and only when you agree.",
-      "rights": "You can ask us to send you your data or erase it, by WhatsApp or from your account."
-    }
+    "metaTitle": "Privacy policy",
+    "metaDescription": "What personal data Scollarly collects, why, who sees it, and how you can control it.",
+    "title": "Privacy policy",
+    "updated": "Last updated: 4 November 2026",
+    "email": "gimafolabit@gmail.com",
+    "intro": "Scollarly helps African students find and apply to universities in India. This policy explains what personal data we collect when you use the Scollarly website and app, why we collect it, who can see it, and what choices you have. \"We\" and \"Scollarly\" mean the Scollarly team.",
+    "sections": [
+      {
+        "heading": "What we collect",
+        "items": [
+          "Account details: your name and email address, from your Google account or from the email you sign up with. If you sign up with email and a password, we store your password only in a protected, one-way form that nobody on our team can read.",
+          "What you tell us: the answers you give when you sign up (for example who the account is for, your country, the course and level you want, and your WhatsApp number), the details in an application or contact form, and your messages to us.",
+          "Technical data: a session cookie that keeps you signed in, and counts of which pages are used. These counts are not tied to your name. We never store your raw IP address.",
+          "On your device: the website can keep a copy of pages and an unfinished form on your phone so it works with a weak connection. A form waiting to be sent is removed once it is sent, and after 30 days at most."
+        ]
+      },
+      {
+        "heading": "Why we use it",
+        "items": [
+          "To run your account and keep it secure.",
+          "To advise you, show the universities that fit your course, answer you on WhatsApp and help with your application.",
+          "To keep the service working and to understand, in numbers only, which pages are useful.",
+          "We do not use your data for advertising and we do not sell it."
+        ]
+      },
+      {
+        "heading": "Google sign-in and Google user data",
+        "items": [
+          "If you choose Sign in with Google, we receive your name and email address from Google. We use them only to create and secure your account and to contact you about your application.",
+          "We do not ask for access to your Gmail, Drive, Calendar, contacts or any other Google data.",
+          "Scollarly's use of information received from Google follows the Google API Services User Data Policy, including its Limited Use requirements. We do not transfer Google user data to others except as needed to run the service, to comply with the law, or with your consent, and we do not use it for advertising."
+        ]
+      },
+      {
+        "heading": "Who can see your data",
+        "items": [
+          "Only the Scollarly team members who handle your application can see your details.",
+          "A university sees your details only for your application, and only when you agree.",
+          "Our service providers process data for us to run the service: Cloudflare (hosting), Neon (database) and Google (sign-in). They may not use it for their own purposes.",
+          "We may disclose data if the law requires it."
+        ]
+      },
+      {
+        "heading": "How long we keep it",
+        "items": [
+          "We keep your account and application details while your account is open and while we are helping you.",
+          "Raw page-use records are summarised and removed after about 30 days.",
+          "When you ask us to erase your data, we remove your name, contact details, answers and notes. Records of payments we must keep stay, with no link to you.",
+          "Encrypted backups are kept for a short time (about 28 days) and then deleted."
+        ]
+      },
+      {
+        "heading": "Your choices and rights",
+        "items": [
+          "You can ask for a copy of your data, ask us to correct it, or ask us to erase it. You can do this from your account or by writing to us.",
+          "You can ask us to stop contacting you on WhatsApp at any time.",
+          "You can remove cookies and stored site data in your browser. You will then need to sign in again."
+        ]
+      },
+      {
+        "heading": "Children and parents",
+        "items": [
+          "Students under 18 should use Scollarly together with a parent or guardian. A parent can create an account to apply for their child and give their own contact details; we then speak to the parent."
+        ]
+      },
+      {
+        "heading": "Security",
+        "items": [
+          "Data travels over an encrypted connection. Access to personal data is limited by role, and every change a team member makes to a lead is recorded. No system is perfectly secure, so please use a strong, unique password."
+        ]
+      },
+      {
+        "heading": "Changes to this policy",
+        "items": [
+          "If we change this policy, we will update the date at the top. If a change is important, we will tell you when you next sign in."
+        ]
+      },
+      {
+        "heading": "Contact us",
+        "items": [
+          "For any question or request about your data, write to {email}. We aim to reply within 30 days. If you are unhappy with our answer, you can complain to your data protection authority."
+        ]
+      }
+    ]
   },
   "terms": {
-    "metaTitle": "Terms",
-    "metaDescription": "The terms for using the Scollarly website.",
+    "metaTitle": "Terms of use",
+    "metaDescription": "The terms for using the Scollarly website and app.",
     "title": "Terms of use",
-    "pending": "Our full terms are being finalised. This is a summary.",
-    "summary": {
-      "free": "Scollarly's help is free for students. We never ask students to pay us.",
-      "accuracy": "University information can change. Check fees and dates with us before you decide.",
-      "contact": "Questions about these terms: contact us on WhatsApp."
-    }
+    "updated": "Last updated: 4 November 2026",
+    "email": "gimafolabit@gmail.com",
+    "intro": "These terms apply when you use the Scollarly website and app. By creating an account or using our services you agree to them. If you do not agree, please do not use Scollarly.",
+    "sections": [
+      {
+        "heading": "What Scollarly is",
+        "items": [
+          "Scollarly is an advisory service that helps African students and their parents find universities in India and prepare applications. We are not a university and we do not decide admissions.",
+          "We do not guarantee admission, a visa, a scholarship or any result."
+        ]
+      },
+      {
+        "heading": "Our help is free for students",
+        "items": [
+          "We do not charge students for our advice. We will never ask a student to pay Scollarly to be considered. Charges set by a university or by a government are separate and are paid to them, not to us."
+        ]
+      },
+      {
+        "heading": "Your account",
+        "items": [
+          "You must give true and current information. You are responsible for keeping your password and your sign-in safe and for what happens in your account.",
+          "An account is for one person. Parents may create an account to apply for their child.",
+          "Some actions, such as applying, contacting us or starting a WhatsApp chat, need an account."
+        ]
+      },
+      {
+        "heading": "How you may use the service",
+        "items": [
+          "Do not give false information, copy or misuse the service, try to break or probe its security, or use it to harass others.",
+          "We may suspend or close an account that breaks these terms."
+        ]
+      },
+      {
+        "heading": "Information about universities",
+        "items": [
+          "We work hard to keep information accurate, but universities change courses, dates and requirements. Always confirm with the university before you decide or pay anyone.",
+          "Links to other websites are for your convenience. We are not responsible for their content."
+        ]
+      },
+      {
+        "heading": "Our responsibility",
+        "items": [
+          "The service is provided as it is. To the extent the law allows, we are not responsible for decisions made by universities or authorities, or for losses that come from relying on information on the site."
+        ]
+      },
+      {
+        "heading": "Your data",
+        "items": [
+          "How we handle your personal data is described in our Privacy policy, which forms part of these terms."
+        ]
+      },
+      {
+        "heading": "Changes",
+        "items": [
+          "We may change these terms. We will update the date at the top. If you keep using Scollarly after a change, you accept the new terms."
+        ]
+      },
+      {
+        "heading": "Contact us",
+        "items": [
+          "Questions about these terms: write to {email}."
+        ]
+      }
+    ]
   },
   "apply": {
     "page": {
@@ -2113,5 +2265,12 @@
       "openStale": "Open the list",
       "openHealth": "Open Health"
     }
+  },
+  "gate": {
+    "title": "Create an account or sign in",
+    "intro": "To apply, contact us or chat with us on WhatsApp, you need a free Scollarly account. It takes a minute, and everything you do is saved on your own page.",
+    "signUp": "Sign up",
+    "signIn": "Sign in",
+    "close": "Not now"
   }
 }

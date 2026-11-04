@@ -33,7 +33,8 @@ test("a course no university lists says so and offers WhatsApp; 'Choose' clears 
   await select.selectOption("law");
   await expect(page.getByTestId("finder-university")).toHaveCount(0);
   await expect(page.getByTestId("finder-none")).toBeVisible();
-  await expect(page.getByTestId("finder-whatsapp")).toHaveAttribute("href", /wa\.me\//);
+  // The chat address sits behind the account gate: signed out, the link goes to Sign in and keeps the real address for later.
+  await expect(page.getByTestId("finder-whatsapp")).toHaveAttribute("data-gate-href", /wa\.me\//);
   await expect(page.getByTestId("finder-cta")).toHaveAttribute("href", "/sign-up?course=law");
   await select.selectOption("commerce");
   await expect(page.getByTestId("finder-university")).toHaveCount(1);

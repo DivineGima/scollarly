@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { clearSignedIn } from "@/lib/client/signed-in-hint";
 import { clearDashboardSnapshot } from "@/offline/dashboard-snapshot";
 import { clearKeptShells } from "@/offline/kept-shells";
 import { clearOnboardingOnDevice } from "@/offline/onboarding-draft";
@@ -19,6 +20,7 @@ export function SignOutRunner() {
 
   async function signOut() {
     setFailed(false);
+    clearSignedIn();
     await clearProgressSnapshot();
     await clearOnboardingOnDevice();
     await clearKeptShells();

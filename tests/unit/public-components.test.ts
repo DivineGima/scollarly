@@ -2,7 +2,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CampusEmbed, type CampusEmbedProps } from "@/components/public/campus-embed";
-import { FeeTable } from "@/components/public/fee-table";
 import { MarkdownView } from "@/components/public/markdown-view";
 import { UniversityBrowser } from "@/components/public/university-browser";
 
@@ -57,42 +56,19 @@ describe("FR-3: no iframe and no outside request before a tap", () => {
   });
 });
 
-describe("FR-2: the fee table never shows a zero or a blank", () => {
-  const feeLabels = { university: "University", fee: "Fee", updated: "Updated {date}", contactUs: "Contact us", filterCurrency: "Currency", all: "All", disclaimer: "Fees can change." };
-  const rows = [
-    { slug: "alpha", name: "Alpha", lines: [{ id: "1", currency: "USD", range: "USD 3,000 – 6,000", period: "tuition per year", updated: "2026-06-12" }] },
-    { slug: "beta", name: "Beta", lines: [] },
-    { slug: "gamma", name: "Gamma", lines: [{ id: "2", currency: "INR", range: "INR 150,000 – 250,000", period: "tuition per year", updated: "2026-05-01" }] },
-  ];
-  const html = renderToStaticMarkup(createElement(FeeTable, { rows, currencies: ["INR", "USD"], labels: feeLabels }));
-
-  it("lists every university: a range for confirmed fees and 'Contact us' for the rest", () => {
-    expect(html).toContain("USD 3,000 – 6,000");
-    expect(html).toContain("INR 150,000 – 250,000");
-    expect(html).toContain(">Contact us<");
-    expect(html).toContain("Updated 2026-06-12");
-  });
-
-  it("never renders a zero amount and never adds currencies together", () => {
-    expect(html).not.toMatch(/(USD|INR) 0\b/);
-    expect(html).not.toContain("USD 153");
-  });
-});
-
 describe("A2: the universities list is complete in the HTML", () => {
-  const item = (slug: string, name: string, feeText: string) => ({ slug, name, city: "Mohali", state: "Punjab", type: "private", naacGrade: "A+", logo: null, feeText, levels: [] });
+  const item = (slug: string, name: string) => ({ slug, name, city: "Mohali", state: "Punjab", type: "private", naacGrade: "A+", logo: null, levels: [] });
   const html = renderToStaticMarkup(
     createElement(UniversityBrowser, {
-      items: [item("alpha", "Alpha University", "Fees from USD 3,000"), item("beta", "Beta University", "Fees to be confirmed")],
+      items: [item("alpha", "Alpha University"), item("beta", "Beta University")],
       labels: { search: "Search", searchPlaceholder: "Name", filterLevel: "Level", filterCity: "City", all: "All", noMatch: "None", results: "{count} shown", naac: "NAAC {grade}" },
     }),
   );
 
-  it("shows each card with its link, its fee sentence and its grade", () => {
+  it("shows each card with its link and its grade", () => {
     expect(html).toContain('href="/universities/alpha"');
     expect(html).toContain('href="/universities/beta"');
-    expect(html).toContain("Fees from USD 3,000");
-    expect(html).toContain("Fees to be confirmed");
+    expect(html).not.toContain("Fees");
     expect(html).toContain("NAAC A+");
     expect(html).toContain("2 shown");
   });

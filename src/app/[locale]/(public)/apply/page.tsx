@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { RequireAccount } from "@/components/public/gate/require-account";
 import { ApplyForm } from "@/components/public/lead/apply-form";
 import { getLeadLabels } from "@/components/public/lead/get-labels";
 import { pageMetadata } from "@/components/public/page-metadata";
@@ -20,7 +21,7 @@ const MIN_PROGRAMMES = 3;
 export default async function ApplyPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, labels, { universities }, { contact }] = await Promise.all([getTranslations("apply"), getLeadLabels(locale), readCatalogue(), readSite()]);
+  const [t, labels, { universities }, { contact }, g] = await Promise.all([getTranslations("apply"), getLeadLabels(locale), readCatalogue(), readSite(), getTranslations("gate")]);
   const programmes = universities.flatMap((u) => u.programmes.map((p) => ({ id: p.id, name: p.name, universityId: u.id, universityName: u.name })));
 
   return (
@@ -32,7 +33,9 @@ export default async function ApplyPage({ params }: { params: Promise<{ locale: 
           <noscript>
             <p className="notice">{t("apply.noscript")}</p>
           </noscript>
-          <ApplyForm labels={labels} programmes={programmes} numberE164={contact.whatsappE164} siteKey={TURNSTILE_SITE_KEY} locale={locale} />
+          <RequireAccount labels={{ title: g("title"), intro: g("intro"), signIn: g("signIn"), signUp: g("signUp") }} next="/apply">
+            <ApplyForm labels={labels} programmes={programmes} numberE164={contact.whatsappE164} siteKey={TURNSTILE_SITE_KEY} locale={locale} />
+          </RequireAccount>
         </>
       ) : (
         <>

@@ -1,6 +1,7 @@
 import { errorResponse, isSameOrigin, jsonResponse, newRequestId, readJsonBody } from "@/lib/http";
 import { createLead, type CreateLeadOutcome } from "@/modules/leads/service";
 import { readSessionToken } from "@/server/auth/cookie";
+import { resolveSession } from "@/server/repositories/session-lookup";
 import { getDb } from "@/server/db/runtime";
 import { insertLead } from "@/server/repositories/lead-intake";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
@@ -40,9 +41,22 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
   const limiter = createDurableObjectLimiter(env.RATE_LIMITER);
   const key = await limiterKey({ route: "leads", ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET);
 
-  // A student who is signed in has the session cookie; the lead is linked to that account (S8.2). Reading the cookie costs nothing.
+  // Applying needs an account (PRD_3 F20, ADR-051): the server is the lock, whatever the page showed. The cookie is read first, which
+  // costs nothing; only a request that has one pays for the one session query. The lead is then linked to that account (S8.2).
   const sessionToken = readSessionToken(request.headers);
   const measurement = isMeasurementRequest(request, env.PHASE0_PROBE_TOKEN);
+  if (!measurement) {
+    if (!sessionToken) return errorResponse(401, "UNAUTHENTICATED", "Sign in or create an account to continue.", requestId);
+    let session: Awaited<ReturnType<typeof resolveSession>>;
+    try {
+      session = await resolveSession(db, sessionToken);
+    } catch (error) {
+      logError(requestId, "leads", error);
+      return errorResponse(503, "TEMPORARILY_UNAVAILABLE", "Please try again in a moment.", requestId);
+    }
+    if (!session) return errorResponse(401, "UNAUTHENTICATED", "Sign in or create an account to continue.", requestId);
+    if (!session.accountConfirmed) return errorResponse(403, "ACCOUNT_NOT_CONFIRMED", "Finish creating your account to continue.", requestId);
+  }
   const outcome = await createLead(
     {
       insert: (row) => insertLead(db, row, sessionToken),

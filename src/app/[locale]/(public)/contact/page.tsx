@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CopyButton } from "@/components/public/copy-button";
 import { Paragraphs } from "@/components/public/copy";
-import { PageLink } from "@/components/public/page-link";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
 import { telHref } from "@/lib/phone";
 import { readSite } from "@/modules/content/read";
+import { GateLink } from "@/components/public/gate/gate-link";
 
 // A6 + S4.6. Every number comes from `site_setting` (FR-4); when the owner has not set one the page says so.
 export const revalidate = 3600;
@@ -62,9 +62,9 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
       </section>
 
       <p className="cta-row">
-        <PageLink href="/apply" className="btn btn-primary">
+        <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary">
           {t("apply")}
-        </PageLink>
+        </GateLink>
       </p>
     </>
   );

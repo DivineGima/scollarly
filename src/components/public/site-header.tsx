@@ -1,10 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { PageLink } from "./page-link";
+import { GateLink } from "./gate/gate-link";
 
 export const NAV_ITEMS = [
   { href: "/", key: "home" },
   { href: "/universities", key: "universities" },
-  { href: "/fees", key: "fees" },
   { href: "/campus-tours", key: "tours" },
   { href: "/process", key: "process" },
   { href: "/visa", key: "visa" },
@@ -32,9 +32,9 @@ export async function SiteHeader() {
           <PageLink href="/sign-in" className="link-quiet">
             {t("signIn")}
           </PageLink>
-          <PageLink href="/apply" className="btn btn-primary btn-small">
+          <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary btn-small">
             {t("apply")}
-          </PageLink>
+          </GateLink>
         </div>
       </div>
       <nav aria-label={t("nav.label")} className="site-nav">

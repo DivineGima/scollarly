@@ -18,7 +18,7 @@ test.describe("Create account", () => {
     await expect(page.getByRole("link", { name: /I am a student/ })).toHaveAttribute("href", "/auth/start?intent=sign-up&as=student");
     await expect(page.getByRole("link", { name: /I am a parent applying for my child/ })).toHaveAttribute("href", "/auth/start?intent=sign-up&as=parent");
     await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
-    await expect(page.getByText("No Google account? You can still apply and message us on WhatsApp.")).toBeVisible();
+    await expect(page.getByText("Having trouble signing in? Write to us from the Contact page.")).toBeVisible();
     await axe(page);
   });
 

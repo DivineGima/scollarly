@@ -36,10 +36,10 @@ This tracker starts version 3 (PRD_3, architecture 3, essentials 3). `tracker_2.
 
 | ID | Module | Status | Last session |
 |---|---|---|---|
-| S14.1 | Quick fixes (fees, underlines, footer text) | not started | |
-| S14.2 | Privacy and Terms | not started | |
-| S14.3 | Account-first actions | not started | |
-| S14.4 | Email and password | not started | |
+| S14.1 | Quick fixes (fees, underlines, footer text) | in-progress (PR #59) | Session 2 |
+| S14.2 | Privacy and Terms | in-progress (PR #60) | Session 2 |
+| S14.3 | Account-first actions | in-progress | Session 2 |
+| S14.4 | Email and password | in-progress (code done, live switch-on waits for the owner) | Session 2 |
 | S14.5 | Onboarding first | not started | |
 | S14.6 | Real tours | not started | |
 | S14.7 | CRM charts, board, filters, export | not started | |
@@ -48,6 +48,10 @@ This tracker starts version 3 (PRD_3, architecture 3, essentials 3). `tracker_2.
 Carried and still `in-progress` (owner-paced, see tracker_2): S13.7, S13.8, S13.9, S10.2, S11.4, S11.6.
 
 ## Session log
+
+### 2026-11-04: Session 2 of tracker_3 (S14.1 to S14.4 built; essentials 3, architecture 3)
+
+Built on branches stacked in order (PR #59 S14.1, PR #60 S14.2, S14.3 and S14.4 next). **S14.1:** fees removed from every public read, page, card and offline copy; `/fees` answers 301 to `/universities`; links are not underlined (line on hover, focus and in long text); footer tagline without "Free for students". **S14.2:** full Privacy policy and Terms of use in English and French. **S14.3:** sign-in pop-up (`GateRuntime`), `GateLink` on Apply and WhatsApp buttons, `RequireAccount` on `/apply`, a `next` allow-list carried through Google sign-in, and the server lock in `POST /api/v1/leads` (401 `UNAUTHENTICATED` without a session, 403 `ACCOUNT_NOT_CONFIRMED`). A signed-in hint on the phone (localStorage, set by the signed-in screens and by the `#signed-in` fragment after sign-in) picks between the real button and the pop-up; it grants nothing. The contact page has no form (only WhatsApp, phone, email and an Apply link); phone and email stay visible as contact information. **S14.4:** `POST /api/auth/sign-up/email` and `/sign-in/email` as Worker functions with validation, rate limit and one fixed error answer; forms on both pages. **Not live yet:** email and password is switched off in Neon Auth (flag F27). Sign-in and sign-up page text "No Google account? You can still apply..." was replaced because it is no longer true.
 
 ### 2026-11-04: Session 1 of tracker_3 (setup)
 
@@ -61,7 +65,7 @@ Created this tracker at the owner's request (it had not been created when the v3
 | F9, F10 | Domain `scollarly.co.in` and its .IN verification (outside the code). | **Open** (carried, see tracker_2) |
 | F22 | Google's OAuth app is in Testing mode with the owner as the only test user. | **Open (owner action R1)** |
 | F25 | The onboarding consent text is the placeholder `draft-1`. | **Open (owner action R5)** |
-| F27 | Email and password: Neon Auth may force email verification that needs a sender (no paid service allowed). | **Open.** Gate G1 is checked at the start of S14.4 and reported to the owner before building. |
+| F27 | Email and password: Neon Auth may force email verification that needs a sender (no paid service allowed). | **Gate G1 checked 2026-11-04: passes.** The Neon Auth project (`aged-recipe-72220939`, production) supports email and password on the plan we use. It is **switched off today** (`email_password.enabled: false`) and verification is not required (`verify_email_on_sign_up: false`), so no email sender is needed. Neon also lists a shared sender (`auth@mail.myneon.app`), but it is for testing, not production. **Owner decision needed before the live switch-on:** (1) turn email and password on in the Neon Auth settings; (2) accept that without verification a person can sign up with an email they do not own. Claude Code does not change the live Neon Auth settings without the owner's word. |
 | F28 | `CLAUDE.md` Step 2 pointed at essentials 2. | **Resolved 2026-11-04** (owner said yes). |
 | F29 | PRD_3 and architecture 3 were amendment texts. | **Resolved 2026-11-04** (full copies made). |
 
@@ -72,7 +76,7 @@ Rows measured for version 2 are in tracker_2 and all passed. New rows for Stage 
 | Row | Warm p50 | Warm p95 | Worst | Cut | Gate | Run |
 |---|---|---|---|---|---|---|
 | Password sign-up and sign-in (S14.4) | | | | | | |
-| Gated refusals (`SIGN_IN_REQUIRED`, `ONBOARDING_REQUIRED`) (S14.3, S14.5) | | | | | | |
+| Gated refusals (`UNAUTHENTICATED`, `ONBOARDING_REQUIRED`) (S14.3, S14.5) | | | | | | |
 | `GET admin/pipeline`, `GET admin/export.csv` (S14.7) | | | | | | |
 | `/fees` 301 redirect (S14.1) | | | | | | |
 

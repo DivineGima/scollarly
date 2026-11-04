@@ -22,12 +22,17 @@ const MAP: Readonly<Record<string, Target>> = {
   "/admin/payments": { path: "/admin/insights", view: "payments" },
 };
 
+/** Public pages that were removed. Fees are no longer shown anywhere (PRD_3 F-fees, ADR-054); the old address moves to the universities list. */
+const MOVED: Readonly<Record<string, string>> = { "/fees": "/universities" };
+
 const LOCALE_PREFIX = /^(\/en)(?=\/)/;
 
 /** The address an old one moves to, or null when the address was never moved. Pure, so it is unit-tested without a Worker. */
 export function legacyTarget(pathname: string, search: string): string | null {
   const prefix = LOCALE_PREFIX.exec(pathname)?.[1] ?? "";
   const path = pathname.slice(prefix.length).replace(/\/+$/, "");
+  const moved = MOVED[path];
+  if (moved) return `${prefix}${moved}`;
   const target = MAP[path];
   if (!target) return null;
   const params = new URLSearchParams(search);

@@ -13,6 +13,7 @@ import { WhatsAppButton } from "@/components/public/whatsapp-button";
 import { toCourseCatalogue } from "@/modules/content/course-catalogue";
 import { readCatalogue, readPageImages, readSite, readTrust } from "@/modules/content/read";
 import { pageMetadata } from "@/components/public/page-metadata";
+import { GateLink } from "@/components/public/gate/gate-link";
 
 // A1. Prerendered; the content is read at build or revalidate time and a publish refreshes it (architecture 6.1, 10.4).
 export const revalidate = 3600;
@@ -52,9 +53,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <h1 id="hero-title">{blocks["hero.title"] ?? t("hero.title")}</h1>
           <p className="lead">{blocks["hero.subtitle"] ?? t("hero.subtitle")}</p>
           <p className="cta-row">
-            <PageLink href="/apply" className="btn btn-primary">
+            <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary">
               {t("startApplication")}
-            </PageLink>
+            </GateLink>
             <WhatsAppButton context={{ page: "/" }} />
           </p>
           <p className="muted">{t("freeForStudents")}</p>
@@ -95,7 +96,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               ))}
             </ul>
             <p>
-              <PageLink href="/universities">{t("allUniversities")}</PageLink>
+              <PageLink href="/universities" className="link-standalone">{t("allUniversities")}</PageLink>
             </p>
           </>
         ) : (
@@ -158,7 +159,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <h2 id="faq-heading">{t("faqHeading")}</h2>
           <FaqList faqs={site.faqs.slice(0, 4)} generalLabel={t("faqGeneral")} />
           <p>
-            <PageLink href="/faq">{t("allFaq")}</PageLink>
+            <PageLink href="/faq" className="link-standalone">{t("allFaq")}</PageLink>
           </p>
         </section>
       ) : null}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Paragraphs } from "@/components/public/copy";
+import { LegalSections, type LegalSection } from "@/components/public/legal-sections";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { readSite } from "@/modules/content/read";
 
@@ -21,16 +22,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       {blocks["privacy.body"] ? (
         <Paragraphs text={blocks["privacy.body"]} />
       ) : (
-        <>
-          <p className="notice">{t("pending")}</p>
-          <h2>{t("summaryHeading")}</h2>
-          <ul>
-            <li>{t("summary.collect")}</li>
-            <li>{t("summary.use")}</li>
-            <li>{t("summary.share")}</li>
-            <li>{t("summary.rights")}</li>
-          </ul>
-        </>
+        <LegalSections intro={t("intro")} updated={t("updated")} email={t("email")} sections={t.raw("sections") as LegalSection[]} />
       )}
     </>
   );

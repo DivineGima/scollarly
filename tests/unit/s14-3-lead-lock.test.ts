@@ -1,0 +1,70 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const resolveSession = vi.fn();
+const createLead = vi.fn();
+
+vi.mock("@/server/repositories/session-lookup", () => ({ resolveSession: (...args: unknown[]) => resolveSession(...args) }));
+vi.mock("@/modules/leads/service", () => ({ createLead: (...args: unknown[]) => createLead(...args) }));
+vi.mock("@/server/db/runtime", () => ({ getDb: () => ({}) }));
+vi.mock("@/server/repositories/lead-intake", () => ({ insertLead: vi.fn() }));
+vi.mock("@/server/security/rate-limit", () => ({ createDurableObjectLimiter: () => async () => ({ allowed: true }), limiterKey: async () => "k" }));
+vi.mock("@/server/edge/settings-cache", () => ({ cachedSlaSettings: vi.fn() }));
+
+import { handleLeadPost } from "@/server/edge/leads";
+
+const env = { RATE_LIMITER: {}, RATE_LIMIT_SECRET: "s", DATABASE_URL: "postgres://x", TURNSTILE_SECRET_KEY: "t", PHASE0_PROBE_TOKEN: "probe" } as unknown as CloudflareEnv;
+
+function post(headers: Record<string, string> = {}): Request {
+  return new Request("https://scollarly.test/api/v1/leads", {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": "11111111-1111-4111-8111-111111111111", ...headers },
+    body: JSON.stringify({ name: "Ama" }),
+  });
+}
+
+const COOKIE = { cookie: "__Secure-neon-auth.session_token=abcdefghijklmnop1234567890.sig" };
+
+describe("S14.3: the lead endpoint is the lock behind every gated button (PRD_3 F20)", () => {
+  beforeEach(() => {
+    resolveSession.mockReset();
+    createLead.mockReset();
+    createLead.mockResolvedValue({ ok: true, replayed: false, status: 201, ref: "SC-AAAAA-AAAAB" });
+  });
+
+  it("refuses a request with no session cookie, before any database call", async () => {
+    const response = await handleLeadPost(post(), env);
+    expect(response.status).toBe(401);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe("UNAUTHENTICATED");
+    expect(resolveSession).not.toHaveBeenCalled();
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("refuses a cookie that names no live session", async () => {
+    resolveSession.mockResolvedValue(null);
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(401);
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("refuses an account that has not been confirmed", async () => {
+    resolveSession.mockResolvedValue({ userId: "u", accountConfirmed: false });
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe("ACCOUNT_NOT_CONFIRMED");
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("answers 503, not a false refusal, when the session lookup itself fails", async () => {
+    resolveSession.mockRejectedValue(new Error("db down"));
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(503);
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("lets a confirmed account through to the lead rules", async () => {
+    resolveSession.mockResolvedValue({ userId: "u", accountConfirmed: true });
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(201);
+    expect(createLead).toHaveBeenCalledTimes(1);
+  });
+});

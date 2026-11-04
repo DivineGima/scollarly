@@ -4,9 +4,10 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Paragraphs } from "@/components/public/copy";
 import { MediaImage } from "@/components/public/media-image";
 import { PageLink } from "@/components/public/page-link";
-import { CampusSection, FeeSection } from "@/components/public/university-parts";
+import { CampusSection } from "@/components/public/university-parts";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
 import { readCatalogue } from "@/modules/content/read";
+import { GateLink } from "@/components/public/gate/gate-link";
 
 // A3. A university published after the last build is rendered on first request and then cached like the others.
 export const revalidate = 3600;
@@ -37,7 +38,7 @@ export default async function UniversityPage({ params }: Props) {
   return (
     <>
       <p>
-        <PageLink href="/universities">{t("back")}</PageLink>
+        <PageLink href="/universities" className="link-standalone">{t("back")}</PageLink>
       </p>
       <header className="uni-header">
         {university.logo ? (
@@ -74,7 +75,6 @@ export default async function UniversityPage({ params }: Props) {
         </section>
       ) : null}
 
-      <FeeSection university={university} page={page} />
       <CampusSection experiences={university.experiences} />
 
       {university.resources.length > 0 || university.websiteUrl ? (
@@ -104,9 +104,9 @@ export default async function UniversityPage({ params }: Props) {
       <section className="section cta-band" aria-labelledby="next-heading">
         <h2 id="next-heading">{t("nextHeading")}</h2>
         <p className="cta-row">
-          <PageLink href="/apply" className="btn btn-primary">
+          <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary">
             {t("apply")}
-          </PageLink>
+          </GateLink>
           <WhatsAppButton context={{ page, universityId: university.id, universityName: university.name }} labelKey="ask" />
         </p>
       </section>
