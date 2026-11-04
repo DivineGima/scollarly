@@ -1,0 +1,43 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npx next start -p 3101",
+      "startServerReadyPattern": "Ready",
+      "url": [
+        "http://localhost:3101/",
+        "http://localhost:3101/universities",
+        "http://localhost:3101/universities/alpha-university",
+        "http://localhost:3101/campus-tours",
+        "http://localhost:3101/apply",
+        "http://localhost:3101/sign-in"
+      ],
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.85
+          }
+        ],
+        "total-byte-weight": [
+          "error",
+          {
+            "maxNumericValue": 204800
+          }
+        ],
+        "categories:accessibility": [
+          "warn",
+          {
+            "minScore": 0.9
+          }
+        ]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci"
+    }
+  }
+}
