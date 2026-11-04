@@ -11,7 +11,7 @@ This tracker starts version 4 (PRD_4, architecture 4, essentials 4). `tracker_3.
 | Current PRD | `PRD_4.md` (2026-11-05, full copy: part A amendments, part B the whole of PRD_3) |
 | Current architecture | `system_architecture_4.md` (2026-11-05, derived from `PRD_4.md`; section 23 wins over older text) |
 | Essentials file | `essentials/system_architecture_essential_4.md` (Stage 15, one stage) |
-| Phase | Stage 14 built, merged and deployed (see tracker_3); its owner-paced items are carried into S15.7. **Stage 15 documents written 2026-11-05 (PRD_4, architecture 4, essentials 4), awaiting the owner's sign-off.** S15.1 (faster pipeline) is in review as PR #75. |
+| Phase | Stage 14 built, merged and deployed (see tracker_3); its owner-paced items are carried into S15.7. **Stage 15 documents written 2026-11-05 (PRD_4, architecture 4, essentials 4), awaiting the owner's sign-off.** S15.1 (faster pipeline) is complete and merged (PR #75). |
 | Next module | S15.2 once the owner signs off the documents. |
 | Blocked by | The owner's sign-off of PRD_4, architecture 4 and essentials 4. |
 
@@ -36,7 +36,7 @@ This tracker starts version 4 (PRD_4, architecture 4, essentials 4). `tracker_3.
 
 | ID | Module | Status | Last session |
 |---|---|---|---|
-| S15.1 | Faster pipeline | in-progress (PR #75 open; its own run is the timing evidence) | Session 1 |
+| S15.1 | Faster pipeline | complete: merged as PR #75. Its own run (which changed the Lighthouse config, so Lighthouse ran) finished in 3 min 49 s at the slowest job (Lighthouse 3 min 31 s, Playwright 3 min 49 s and 2 min 35 s, build 2 min 39 s, integration 2 min 16 s, lint and unit 2 min 1 s), against about 12 minutes before. A documents-only pull request skips Lighthouse. | Session 1 |
 | S15.2 | Profile-only onboarding | not started (waits for sign-off) | |
 | S15.3 | Apply from the account | not started | |
 | S15.4 | Public pages and WhatsApp | not started | |
