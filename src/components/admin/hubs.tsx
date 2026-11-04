@@ -10,6 +10,8 @@ import { StalePanel } from "./content/stale-panel";
 import { DataRequestsPanel } from "./data-requests-panel";
 import { LeadsPanel } from "./leads-panel";
 import { LinkRequestsPanel } from "./link-requests-panel";
+import { CrmOverview } from "./crm/crm-overview";
+import { PipelineBoard } from "./crm/pipeline-board";
 import { PaymentsPanel } from "./payments-panel";
 
 interface Section {
@@ -54,7 +56,7 @@ export function LeadsHub() {
   const t = useTranslations("admin.hub");
   const view = useView();
   if (view === null) return <Loading />;
-  const current = view === "link-requests" || view === "data-requests" ? view : "leads";
+  const current = view === "link-requests" || view === "data-requests" || view === "pipeline" ? view : "leads";
   return (
     <>
       <SectionTabs
@@ -63,11 +65,12 @@ export function LeadsHub() {
         current={current}
         sections={[
           { key: "leads", label: t("leads.leads") },
+          { key: "pipeline", label: t("leads.pipeline") },
           { key: "link-requests", label: t("leads.linkRequests") },
           { key: "data-requests", label: t("leads.dataRequests") },
         ]}
       />
-      {current === "link-requests" ? <LinkRequestsPanel /> : current === "data-requests" ? <DataRequestsPanel /> : <LeadsPanel />}
+      {current === "link-requests" ? <LinkRequestsPanel /> : current === "data-requests" ? <DataRequestsPanel /> : current === "pipeline" ? <PipelineBoard /> : <LeadsPanel />}
     </>
   );
 }
@@ -100,7 +103,7 @@ export function InsightsHub() {
   const t = useTranslations("admin.hub");
   const view = useView();
   if (view === null) return <Loading />;
-  const current = view === "payments" ? "payments" : "results";
+  const current = view === "payments" || view === "overview" ? view : "results";
   return (
     <>
       <SectionTabs
@@ -109,10 +112,11 @@ export function InsightsHub() {
         current={current}
         sections={[
           { key: "results", label: t("insights.results") },
+          { key: "overview", label: t("insights.overview") },
           { key: "payments", label: t("insights.payments") },
         ]}
       />
-      {current === "payments" ? <PaymentsPanel /> : <AnalyticsPanel />}
+      {current === "payments" ? <PaymentsPanel /> : current === "overview" ? <CrmOverview /> : <AnalyticsPanel />}
     </>
   );
 }

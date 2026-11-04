@@ -1373,7 +1373,8 @@
       "leads": {
         "leads": "Contacts",
         "linkRequests": "Demandes de lien",
-        "dataRequests": "Demandes de données"
+        "dataRequests": "Demandes de données",
+        "pipeline": "Parcours"
       },
       "content": {
         "overview": "Tout le contenu",
@@ -1382,7 +1383,8 @@
       },
       "insights": {
         "results": "Résultats",
-        "payments": "Paiements"
+        "payments": "Paiements",
+        "overview": "Vue d'ensemble"
       }
     },
     "tours": {
@@ -1442,6 +1444,99 @@
           "body": "Les paiements de placement reçus des universités. Enregistrez-en un ou annulez une erreur avec un motif."
         }
       ]
+    },
+    "crm": {
+      "title": "Vue CRM",
+      "purpose": "Combien de dossiers sont arrivés, à quelle vitesse vous avez répondu, et où ils en sont. Changez les filtres pour regarder un pays, une source ou seulement les vôtres.",
+      "range": "Dossiers reçus du {from} au {to} (heure d'Afrique de l'Ouest).",
+      "other": "Autres",
+      "unknownSource": "Non indiquée",
+      "empty": "Rien à afficher avec ces filtres.",
+      "export": "Télécharger en CSV",
+      "exportNote": "Le fichier contient seulement des références, dates, étapes, pays et délais. Il ne contient ni noms, ni numéros, ni e-mails. Il est limité à 5 000 dossiers et chaque téléchargement est enregistré.",
+      "filters": {
+        "label": "Filtres",
+        "from": "Du",
+        "to": "Au",
+        "country": "Pays",
+        "source": "Provenance",
+        "assigned": "Attribué à",
+        "all": "Tous",
+        "assignedAll": "Tout le monde",
+        "assignedMe": "Moi",
+        "assignedUnassigned": "Personne pour l'instant",
+        "apply": "Afficher"
+      },
+      "tiles": {
+        "leads": "Nouveaux dossiers",
+        "answered": "Répondus",
+        "answeredOf": "{answered} sur {leads} dossiers",
+        "response": "Première réponse (moyenne)",
+        "overdue": "En retard",
+        "overdueNote": "Sans réponse à temps, encore ouverts",
+        "arrived": "Arrivés en Inde",
+        "arrivedOf": "{arrived} sur {leads} dossiers"
+      },
+      "change": {
+        "up": "En hausse de {percent} % sur la période d'avant",
+        "down": "En baisse de {percent} % sur la période d'avant",
+        "same": "Identique à la période d'avant",
+        "noBase": "{delta} sur la période d'avant (elle n'en avait aucun)"
+      },
+      "response": {
+        "none": "Pas encore de réponse",
+        "minutes": "{value} min",
+        "hours": "{value} h",
+        "days": "{value} jours"
+      },
+      "charts": {
+        "perDay": "Dossiers par jour",
+        "perDayExplain": "Chaque point est le nombre de dossiers arrivés ce jour-là.",
+        "perDayCaption": "Dossiers reçus par jour",
+        "stages": "Où en sont les dossiers",
+        "stagesExplain": "Chaque part est le nombre de dossiers qui en sont aujourd'hui à cette étape.",
+        "stagesCaption": "Dossiers par étape actuelle",
+        "totalLabel": "dossiers",
+        "funnel": "Jusqu'où vont les dossiers",
+        "funnelExplain": "Chaque barre est le nombre de dossiers qui ont atteint cette étape ou l'ont dépassée. Le pourcentage est la part de l'étape d'avant qui y est arrivée.",
+        "funnelCaption": "Dossiers qui ont atteint chaque étape",
+        "ofPrevious": "{percent} % de l'étape d'avant",
+        "countries": "D'où viennent les étudiants",
+        "countriesExplain": "Les pays avec le plus de dossiers. Les autres sont regroupés.",
+        "countriesCaption": "Dossiers par pays",
+        "sources": "D'où viennent les dossiers",
+        "sourcesExplain": "Les pages et boutons qui ont amené le plus de dossiers.",
+        "sourcesCaption": "Dossiers par provenance",
+        "admins": "Chaque conseiller",
+        "adminsExplain": "Les dossiers de chaque conseiller, avec combien il a répondu et combien sont en retard. Seul le propriétaire voit ceci.",
+        "adminsCaption": "Dossiers attribués à chaque conseiller",
+        "adminNote": "{answered} répondus, {overdue} en retard"
+      },
+      "columns": {
+        "name": "Nom",
+        "count": "Dossiers",
+        "day": "Jour",
+        "stage": "Étape",
+        "reached": "Atteints",
+        "country": "Pays",
+        "source": "Provenance",
+        "admin": "Conseiller",
+        "assigned": "Dossiers attribués"
+      },
+      "board": {
+        "title": "Parcours",
+        "purpose": "Chaque dossier ouvert dans la colonne de son étape. Utilisez Déplacer vers pour changer l'étape d'un dossier. Le filtre de dates ne s'applique pas ici.",
+        "emptyColumn": "Aucun dossier ici.",
+        "noName": "Nom non donné",
+        "overdue": "En retard",
+        "unassigned": "Personne pour l'instant",
+        "moveTo": "Déplacer vers...",
+        "moveLabel": "Déplacer le dossier {ref} vers une autre étape",
+        "more": "{count} de plus dans la liste des dossiers",
+        "stale": "Quelqu'un a changé ce dossier avant vous. Le tableau a été actualisé.",
+        "failed": "Cela n'a pas été enregistré. Réessayez.",
+        "offline": "Il faut une connexion pour déplacer un dossier."
+      }
     }
   },
   "site": {
