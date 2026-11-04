@@ -166,7 +166,8 @@ describe("who may finish onboarding", () => {
   });
 
   it("refuses a signed-out caller", async () => {
-    const stranger = await t.signIn({ verified: false });
+    // Signed out: a session that has ended (an unverified student is no longer signed out: email and password accounts are unverified, PRD_3 F21).
+    const stranger = await t.signIn({ expiresInMs: -60_000 });
     expect((await post(stranger, bodyOf(student()))).status).toBe(401);
   });
 

@@ -120,7 +120,8 @@ describe("what an unconfirmed login can call", () => {
   });
 
   it("refuses a signed-out caller, and a body it does not understand", async () => {
-    const stranger = await t.signIn({ verified: false });
+    // Signed out: a session that has ended (an unverified student is no longer signed out: email and password accounts are unverified, PRD_3 F21).
+    const stranger = await t.signIn({ expiresInMs: -60_000 });
     expect((await call("/api/v1/account/confirm", stranger)).status).toBe(401);
     const person = await t.signIn();
     await t.asRuntime();
