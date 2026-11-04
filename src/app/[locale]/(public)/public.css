@@ -435,6 +435,8 @@ body:has(.site) {
 }
 .poster {
   width: 100%;
+  /* The picture tag carries height="360" to reserve its space; without this that attribute beats aspect-ratio, so the preview was a 328 by 360 box with the black bars of a 4:3 picture showing and the sides cropped. */
+  height: auto;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--radius-md);
@@ -865,8 +867,21 @@ body:has(.site) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  min-height: var(--touch-target);
 }
 .brand-mark {
   width: 1.75rem;
   height: auto;
+}
+
+/* Design review: header and footer links are standalone controls, so they get the site's own minimum touch size (they were 21 to 24 px high). */
+.bar-actions .link-quiet,
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+}
+/* A pop-up title should not leave one word alone on its second line. */
+.gate-dialog h2 {
+  text-wrap: balance;
 }

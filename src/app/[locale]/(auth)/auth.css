@@ -168,6 +168,9 @@
 }
 .auth-password input {
   flex: 1;
+  /* A text input counts its default width (about 200 px) as the smallest the row can be, so on a 320 px phone the row was wider than the form and the page scrolled sideways. A width of 0 with flex: 1 lets it take only what the Show button leaves. */
+  width: 0;
+  min-width: 0;
 }
 .auth-show {
   min-width: 4.5rem;

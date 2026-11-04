@@ -1564,6 +1564,11 @@
     "whatsapp": {
       "chat": "Discuter sur WhatsApp",
       "ask": "Poser une question sur cette université sur WhatsApp"
+    },
+    "notFound": {
+      "title": "Cette page est introuvable",
+      "body": "L'adresse est peut-être ancienne ou mal saisie. Retournez à l'accueil ou utilisez le menu ci-dessus.",
+      "home": "Aller à l'accueil"
     }
   },
   "trust": {
