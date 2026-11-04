@@ -120,6 +120,48 @@
       "errorOffline": "You need a connection to create your account.",
       "errorFailed": "We could not create your account. Please try again.",
       "errorSignedOut": "Your session ended. Please sign in again."
+    },
+    "email": {
+      "or": "or use your email",
+      "signInTitle": "Sign in with email",
+      "signUpTitle": "Sign up with email",
+      "role": "I am signing up as",
+      "as": {
+        "student": "A student",
+        "parent": "A parent applying for my child"
+      },
+      "name": "Your full name",
+      "email": "Email address",
+      "password": "Password",
+      "show": "Show",
+      "hide": "Hide",
+      "passwordHelp": "At least {min} characters. Do not use your name or a password from another site.",
+      "forgot": "Lost your password? Sign in with Google if your email is a Google address, or write to us from the Contact page.",
+      "signIn": "Sign in",
+      "signUp": "Sign up",
+      "working": "Please wait...",
+      "offline": "You need a connection to sign in or sign up.",
+      "tooMany": "Too many tries. Please wait a few minutes and try again.",
+      "unavailable": "Sign-in is not available right now. Please try again in a moment.",
+      "badCredentials": "The email or password is not right.",
+      "cannotSignUp": "We could not create this account. If you already have one, sign in instead.",
+      "check": "Please check the details below.",
+      "issue": {
+        "name": {
+          "required": "Enter your name.",
+          "too_long": "That name is too long."
+        },
+        "email": {
+          "required": "Enter your email address.",
+          "invalid": "Enter a valid email address, like name@example.com."
+        },
+        "password": {
+          "required": "Enter your password.",
+          "too_short": "Use at least {min} characters.",
+          "too_long": "That password is too long.",
+          "weak": "Choose a password that is harder to guess."
+        }
+      }
     }
   },
   "admin": {

@@ -13,6 +13,7 @@ import { handleMutation } from "../src/server/edge/mutations";
 import { EVENTS_PATH, handleEventsPost } from "../src/server/edge/events";
 import { handleLeadPost, LEADS_PATH } from "../src/server/edge/leads";
 import { serveMedia } from "../src/server/edge/media";
+import { handlePasswordAuth } from "../src/server/edge/password-auth";
 import { handleSignIn } from "../src/server/edge/sign-in";
 import { getMediaStore } from "../src/server/media/runtime";
 
@@ -55,6 +56,10 @@ async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext
 
   const signIn = handleSignIn(request, env);
   if (signIn) return signIn;
+
+  // Email and password sign-up and sign-in (PRD_3 F21): plain functions too, before Next.js starts.
+  const password = await handlePasswordAuth(request, env);
+  if (password) return password;
 
   const landing = await handleLanding(request, () => landingDeps(env, (task) => ctx.waitUntil(task)));
   if (landing) return landing;

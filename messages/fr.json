@@ -120,6 +120,48 @@
       "errorOffline": "Vous avez besoin d'une connexion pour créer votre compte.",
       "errorFailed": "Nous n'avons pas pu créer votre compte. Veuillez réessayer.",
       "errorSignedOut": "Votre session a pris fin. Veuillez vous reconnecter."
+    },
+    "email": {
+      "or": "ou utilisez votre e-mail",
+      "signInTitle": "Se connecter avec l'e-mail",
+      "signUpTitle": "S'inscrire avec l'e-mail",
+      "role": "Je m'inscris en tant que",
+      "as": {
+        "student": "Étudiant",
+        "parent": "Parent qui postule pour mon enfant"
+      },
+      "name": "Votre nom complet",
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "passwordHelp": "Au moins {min} caractères. N'utilisez pas votre nom ni un mot de passe d'un autre site.",
+      "forgot": "Mot de passe perdu ? Connectez-vous avec Google si votre e-mail est une adresse Google, ou écrivez-nous depuis la page Contact.",
+      "signIn": "Se connecter",
+      "signUp": "S'inscrire",
+      "working": "Veuillez patienter...",
+      "offline": "Il faut une connexion pour se connecter ou s'inscrire.",
+      "tooMany": "Trop d'essais. Attendez quelques minutes puis réessayez.",
+      "unavailable": "La connexion n'est pas disponible pour le moment. Réessayez dans un instant.",
+      "badCredentials": "L'e-mail ou le mot de passe n'est pas correct.",
+      "cannotSignUp": "Nous n'avons pas pu créer ce compte. Si vous en avez déjà un, connectez-vous.",
+      "check": "Vérifiez les informations ci-dessous.",
+      "issue": {
+        "name": {
+          "required": "Entrez votre nom.",
+          "too_long": "Ce nom est trop long."
+        },
+        "email": {
+          "required": "Entrez votre adresse e-mail.",
+          "invalid": "Entrez une adresse e-mail valide, comme nom@exemple.com."
+        },
+        "password": {
+          "required": "Entrez votre mot de passe.",
+          "too_short": "Utilisez au moins {min} caractères.",
+          "too_long": "Ce mot de passe est trop long.",
+          "weak": "Choisissez un mot de passe plus difficile à deviner."
+        }
+      }
     }
   },
   "admin": {

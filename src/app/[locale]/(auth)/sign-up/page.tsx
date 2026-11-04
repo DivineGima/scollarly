@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { EmailPasswordForm } from "@/components/auth/email-password-form";
 import { NextAwareLink } from "@/components/auth/next-aware-link";
 import { SignInNotice } from "@/components/auth/sign-in-notice";
 import { SignUpChoices } from "@/components/auth/sign-up-choices";
@@ -22,6 +23,7 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
       <p>{t("intro")}</p>
       <SignInNotice />
       <SignUpChoices />
+      <EmailPasswordForm mode="sign-up" />
       <p className="auth-muted">
         {t("haveAccount")}{" "}
         <NextAwareLink href="/sign-in">{t("signIn")}</NextAwareLink>
