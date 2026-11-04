@@ -43,7 +43,7 @@ Public information stays public: a visitor can read the landing page, universiti
 
 Sign in and Sign up offer **Google** and **email with password**. The owner chose email and password because it sends no email and costs nothing. [Owner, v3]
 
-- Password rules, lockout and rate limits follow the existing sign-in protection; no "does this email exist" signal (the F14 rule stays). [Mine, v3]
+- Password rules (8 to 128 characters, not one repeated character, not just the part of the email before the @) and rate limits (per caller address and per email address) protect sign-up and sign-in; there is no account lockout. There is no "does this email exist" signal (the F14 rule stays). Verification is off, so a student account may have an unverified email; admins and the owner always need a verified email (Google). [Mine, v3]
 - A password reset needs email sending, which is not available (Resend removed). Until a free sender exists, reset is **not offered**; the sign-in page tells a person who lost their password to use Google with the same email if it is a Google address, otherwise to contact the team through the contact details on the Contact page. [Open: owner decides whether to offer a reset later]
 - Whether email verification is required depends on what Neon Auth supports without a paid sender; this is a Phase 0 style gate in the architecture (the owner is told the result before building on it). [Mine, v3]
 - The onboarding screen's final button reads **"Sign up"**; the old "Create account" label on sign-up becomes "Sign up". [Owner, v3]

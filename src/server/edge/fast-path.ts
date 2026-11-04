@@ -12,31 +12,8 @@
 
 export type FastPathKind = "page" | "media";
 
-/** Public pages that are prerendered and identical for every visitor. Extend as public pages are added. */
-export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set([
-  "/",
-  "/universities",
-  "/campus-tours",
-  "/process",
-  "/visa",
-  "/faq",
-  "/about",
-  "/blog",
-  "/contact",
-  "/apply",
-  "/privacy",
-  "/terms",
-  "/offline",
-  "/sign-in",
-  "/sign-out",
-]);
-
-/** Pages whose last segment is a slug the content team chose (a university or a post). A slug page that does not exist answers 404, which is never stored. */
-const SLUG_PAGE = /^\/(universities|blog)\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-export function isPublicPagePath(pathname: string): boolean {
-  return PUBLIC_PAGE_PATHS.has(pathname) || SLUG_PAGE.test(pathname);
-}
+export { isPublicPagePath, PUBLIC_PAGE_PATHS } from "@/lib/public-paths";
+import { isPublicPagePath } from "@/lib/public-paths";
 
 const MEDIA_PATH = /^\/media\/([a-f0-9]{64})(?:\.webp)?$/;
 

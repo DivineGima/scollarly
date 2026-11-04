@@ -1,6 +1,6 @@
 import { errorResponse, isSameOrigin, jsonResponse, newRequestId, readJsonBody } from "@/lib/http";
 import { normaliseEmail, PASSWORD_SIGN_IN_PATH, PASSWORD_SIGN_UP_PATH, validateSignIn, validateSignUp } from "@/modules/auth/password";
-import { proxyAuthRequest, type NeonAuthConfig } from "@/server/auth/session";
+import { configFromEnv, proxyAuthRequest } from "@/server/auth/session";
 import { logError } from "@/server/log";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
 
@@ -13,12 +13,14 @@ import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-l
  */
 
 const MAX_BODY_BYTES = 2 * 1024;
-const LIMIT = 10; // tries per window per caller
+/** Per caller address. High enough that many students behind one mobile carrier address do not lock each other out. */
+const LIMIT = 30;
 const WINDOW_MS = 10 * 60_000;
+/** Per email address, whatever address the tries come from, so one account cannot be guessed at from many addresses. */
+const EMAIL_LIMIT = 8;
+const EMAIL_WINDOW_MS = 15 * 60_000;
 
 type Env = Pick<CloudflareEnv, "NEON_AUTH_BASE_URL" | "NEON_AUTH_COOKIE_SECRET" | "RATE_LIMITER" | "RATE_LIMIT_SECRET">;
-
-const configOf = (env: Env): NeonAuthConfig => ({ baseUrl: env.NEON_AUTH_BASE_URL, cookieSecret: env.NEON_AUTH_COOKIE_SECRET });
 
 const UNAVAILABLE = "Sign-in is not available right now. Please try again in a moment.";
 
@@ -50,21 +52,25 @@ export async function handlePasswordAuth(request: Request, env: Env): Promise<Re
 
   const limiter = createDurableObjectLimiter(env.RATE_LIMITER);
   const key = await limiterKey({ route: signUp ? "password-sign-up" : "password-sign-in", ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET);
-  const decision = await limiter(key, LIMIT, WINDOW_MS);
-  if (!decision.allowed) {
-    return errorResponse(429, "RATE_LIMITED", "Too many tries. Please wait a few minutes.", requestId, { headers: { "Retry-After": String(decision.retryAfterSeconds) } });
+  const email = normaliseEmail(input.email);
+  // The email goes into the limiter key only as a salted hash (`limiterKey`), so no address is stored.
+  const emailKey = await limiterKey({ route: "password-email", ip: email }, env.RATE_LIMIT_SECRET);
+  const [byAddress, byEmail] = await Promise.all([limiter(key, LIMIT, WINDOW_MS), limiter(emailKey, EMAIL_LIMIT, EMAIL_WINDOW_MS)]);
+  const blocked = !byAddress.allowed ? byAddress : !byEmail.allowed ? byEmail : null;
+  if (blocked) {
+    return errorResponse(429, "RATE_LIMITED", "Too many tries. Please wait a few minutes.", requestId, { headers: { "Retry-After": String(blocked.retryAfterSeconds) } });
   }
 
-  const email = normaliseEmail(input.email);
   const forwarded = new Request(request.url, {
     method: "POST",
-    headers: { "content-type": "application/json", origin, cookie: request.headers.get("cookie") ?? "" },
+    // No cookie is forwarded: a visitor who already holds a session must not mix it into a new sign-up or sign-in.
+    headers: { "content-type": "application/json", origin },
     body: JSON.stringify(signUp ? { name: input.name.trim(), email, password: input.password } : { email, password: input.password }),
   });
 
   let answer: Response;
   try {
-    answer = await proxyAuthRequest(forwarded, signUp ? "sign-up/email" : "sign-in/email", configOf(env));
+    answer = await proxyAuthRequest(forwarded, signUp ? "sign-up/email" : "sign-in/email", configFromEnv(env));
   } catch (error) {
     logError(requestId, signUp ? "password-sign-up" : "password-sign-in", error);
     return errorResponse(503, "TEMPORARILY_UNAVAILABLE", UNAVAILABLE, requestId);

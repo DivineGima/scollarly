@@ -245,7 +245,9 @@ describe("S2.5: accepting an invite (landing step, B0)", () => {
     const wrong = await t.signIn({ email: "someone.else@example.test" });
     const unverified = await t.signIn({ email: "target.admin@example.test", verified: false }).catch(() => null);
     expect((await landing(wrong, `?invite=${token}`)).location).toBe(`/accept-invite/${token}?error=1`);
-    if (unverified) expect((await landing(unverified, `?invite=${token}`)).location).toBe("/sign-in?error=failed"); // no session is trusted for an unverified email
+    // An unverified student session is trusted as a student, but the invite SQL still refuses an unverified email: the same answer as a wrong email.
+    if (unverified) expect((await landing(unverified, `?invite=${token}`)).location).toBe(`/accept-invite/${token}?error=1`);
+    if (unverified) expect(await count(`select count(*)::int as n from app_user where id = ${q(unverified.userId)} and role <> 'student'`)).toBe(0);
     expect(await count(`select count(*)::int as n from app_user where id = ${q(wrong.userId)} and role <> 'student'`)).toBe(0);
 
     const expiring = await invite("late@example.test");

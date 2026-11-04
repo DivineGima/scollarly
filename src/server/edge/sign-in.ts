@@ -1,6 +1,6 @@
 import { intentParams, readIntent } from "@/modules/auth/intent";
 import { INVITE_TOKEN_PATTERN } from "@/modules/auth/service";
-import { completeSignIn, startGoogleSignIn, type NeonAuthConfig } from "@/server/auth/session";
+import { completeSignIn, configFromEnv, startGoogleSignIn } from "@/server/auth/session";
 import { LANDING_PATH } from "./landing";
 
 /**
@@ -19,11 +19,6 @@ export const SIGN_IN_START_PATH = "/auth/start";
 export const SIGN_IN_RETURN_PATH = "/auth/return";
 export const SIGNED_IN_LANDING_PATH = LANDING_PATH;
 
-const configOf = (env: Pick<CloudflareEnv, "NEON_AUTH_BASE_URL" | "NEON_AUTH_COOKIE_SECRET">): NeonAuthConfig => ({
-  baseUrl: env.NEON_AUTH_BASE_URL,
-  cookieSecret: env.NEON_AUTH_COOKIE_SECRET,
-});
-
 /** A well-formed invite token from the query string, or null. Anything else is dropped, never passed on. */
 function inviteOf(url: URL): string | null {
   const invite = url.searchParams.get("invite");
@@ -39,7 +34,7 @@ export function handleSignIn(request: Request, env: Pick<CloudflareEnv, "NEON_AU
   if (invite) params.set("invite", invite);
   const query = params.toString();
   const carry = (path: string) => (query ? `${path}?${query}` : path);
-  if (url.pathname === SIGN_IN_START_PATH) return startGoogleSignIn(request, configOf(env), carry(SIGN_IN_RETURN_PATH));
-  if (url.pathname === SIGN_IN_RETURN_PATH) return completeSignIn(request, configOf(env), carry(SIGNED_IN_LANDING_PATH));
+  if (url.pathname === SIGN_IN_START_PATH) return startGoogleSignIn(request, configFromEnv(env), carry(SIGN_IN_RETURN_PATH));
+  if (url.pathname === SIGN_IN_RETURN_PATH) return completeSignIn(request, configFromEnv(env), carry(SIGNED_IN_LANDING_PATH));
   return null;
 }

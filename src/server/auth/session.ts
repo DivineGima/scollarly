@@ -19,9 +19,19 @@ export interface NeonAuthConfig {
   cookieSecret: string;
 }
 
+export interface NeonAuthEnv {
+  NEON_AUTH_BASE_URL: string;
+  NEON_AUTH_COOKIE_SECRET: string;
+}
+
+/** The Neon Auth settings from the Worker environment. One place, used by every edge function that talks to Neon Auth. */
+export const configFromEnv = (env: NeonAuthEnv): NeonAuthConfig => ({ baseUrl: env.NEON_AUTH_BASE_URL, cookieSecret: env.NEON_AUTH_COOKIE_SECRET });
+
 /**
- * What the public `/api/auth/*` route may forward. Sign-in is Google only, so email sign-up, email sign-in, password reset, email change
- * and profile update are not reachable from outside, whatever the Neon Auth project allows. The Worker's own sign-in start calls
+ * What the public `/api/auth/*` route may forward. Email sign-up and sign-in are NOT forwarded here: they are answered earlier by the Worker
+ * (`edge/password-auth.ts`), which validates and rate limits them. Password reset, email change and profile update are not reachable from
+ * outside either. Note that this limits only our own address: Neon Auth's own public URL also answers email routes while the project has
+ * email and password switched on (tracker flag F30), and our limits do not apply there. The Worker's own sign-in start calls
  * `proxyAuthRequest` directly and is not limited by this list.
  */
 const ALLOWED_AUTH_ROUTES: readonly { method: string; path: RegExp }[] = [

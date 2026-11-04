@@ -48,9 +48,10 @@ describe("owner bootstrap", () => {
     expect(await landing(other)).toBe("/account/confirm");
     expect(await roleOf(other)).toBe("student");
 
-    // The exact owner address, but Google has not verified it: no session is trusted, so nothing is bootstrapped.
+    // The exact owner address, but the email is not verified: the session counts as a student at most, and the bootstrap SQL refuses it.
     const unverified = await t.signIn({ email: OWNER_EMAIL, verified: false });
-    expect(await landing(unverified)).toBe("/sign-in");
+    expect(await landing(unverified)).toBe("/account/confirm");
+    expect(await roleOf(unverified)).toBe("student");
     expect(await t.run(`select count(*)::int as n from app_user where role = 'owner'`)).toEqual([{ n: 0 }]);
   });
 

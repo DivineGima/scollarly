@@ -33,8 +33,11 @@ describe("checkSession: one query per request, no cache (ADR-034, ADR-020)", () 
     expect(await facadeFor(null).checkSession(withSession())).toBeNull();
   });
 
-  it("returns null when Google did not report the email as verified", async () => {
-    expect(await facadeFor(session({ emailVerified: false })).checkSession(withSession())).toBeNull();
+  it("trusts an unverified email for a student only (email and password sign-up, PRD_3 F21), never for staff", async () => {
+    expect(await facadeFor(session({ emailVerified: false })).checkSession(withSession())).toMatchObject({ storedRole: "student" });
+    expect(await facadeFor(session({ emailVerified: false, role: "admin" })).checkSession(withSession())).toBeNull();
+    expect(await facadeFor(session({ emailVerified: false, role: "owner" })).checkSession(withSession())).toBeNull();
+    expect(await facadeFor(session({ emailVerified: true, role: "owner" })).checkSession(withSession())).toMatchObject({ storedRole: "owner" });
   });
 
   it("asks the database once per call and passes only the token, never the signature", async () => {

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const start = vi.fn();
 const complete = vi.fn();
 vi.mock("@/server/auth/session", () => ({
+  configFromEnv: (env: { NEON_AUTH_BASE_URL: string; NEON_AUTH_COOKIE_SECRET: string }) => ({ baseUrl: env.NEON_AUTH_BASE_URL, cookieSecret: env.NEON_AUTH_COOKIE_SECRET }),
   startGoogleSignIn: (...args: unknown[]) => start(...args),
   completeSignIn: (...args: unknown[]) => complete(...args),
 }));
