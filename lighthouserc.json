@@ -4,6 +4,7 @@
       "startServerCommand": "npx next start -p 3101",
       "startServerReadyPattern": "Ready",
       "url": [
+        "http://localhost:3101/offline",
         "http://localhost:3101/",
         "http://localhost:3101/universities",
         "http://localhost:3101/universities/alpha-university",
@@ -18,7 +19,6 @@
         "http://localhost:3101/privacy",
         "http://localhost:3101/terms",
         "http://localhost:3101/apply",
-        "http://localhost:3101/offline",
         "http://localhost:3101/sign-in",
         "http://localhost:3101/sign-up"
       ],
@@ -26,11 +26,29 @@
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["error", { "minScore": 0.85 }],
-        "total-byte-weight": ["error", { "maxNumericValue": 204800 }],
-        "categories:accessibility": ["warn", { "minScore": 0.9 }]
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.85
+          }
+        ],
+        "total-byte-weight": [
+          "error",
+          {
+            "maxNumericValue": 204800
+          }
+        ],
+        "categories:accessibility": [
+          "warn",
+          {
+            "minScore": 0.9
+          }
+        ]
       }
     },
-    "upload": { "target": "filesystem", "outputDir": ".lighthouseci" }
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci"
+    }
   }
 }
