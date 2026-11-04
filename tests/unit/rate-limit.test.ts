@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { consume, limiterKey, type WindowState } from "@/server/security/rate-limit";
+import { consume, createDurableObjectLimiter, limiterKey, type WindowState } from "@/server/security/rate-limit";
 
 describe("consume (fixed window)", () => {
   const WINDOW = 60_000;
@@ -60,5 +60,33 @@ describe("limiterKey", () => {
 
   it("copes with a missing IP", async () => {
     expect(await limiterKey({ route: "leads", ip: null }, "secret", day)).toMatch(/^[0-9a-f]{32}$/);
+  });
+});
+
+describe("consume with a cost of 0 (only look)", () => {
+  it("uses no try, and still refuses once the budget is spent", () => {
+    const first = consume(undefined, 1000, 2, 60_000, 0);
+    expect(first.decision.allowed).toBe(true);
+    expect(first.state.count).toBe(0);
+    const spent: WindowState = { count: 2, resetAt: 61_000 };
+    expect(consume(spent, 2000, 2, 60_000, 0).decision.allowed).toBe(false);
+    expect(consume({ count: 1, resetAt: 61_000 }, 2000, 2, 60_000, 0).state.count).toBe(1);
+  });
+});
+
+describe("createDurableObjectLimiter", () => {
+  const namespace = (hit: () => Promise<unknown>) =>
+    ({ idFromName: (k: string) => k, get: () => ({ hit }) }) as unknown as DurableObjectNamespace;
+
+  it("passes the stub's answer through, with the cost", async () => {
+    let seen: unknown[] = [];
+    const ns = { idFromName: (k: string) => k, get: () => ({ hit: async (...args: unknown[]) => ((seen = args), { allowed: true, remaining: 1, retryAfterSeconds: 0 }) }) } as unknown as DurableObjectNamespace;
+    expect((await createDurableObjectLimiter(ns)("k", 5, 1000, 0)).allowed).toBe(true);
+    expect(seen).toEqual([5, 1000, 0]);
+  });
+
+  it("never throws: a failing Durable Object means not allowed, retry in 30 seconds", async () => {
+    const limiter = createDurableObjectLimiter(namespace(async () => { throw new Error("Exceeded quota"); }));
+    await expect(limiter("k", 5, 1000)).resolves.toEqual({ allowed: false, remaining: 0, retryAfterSeconds: 30 });
   });
 });

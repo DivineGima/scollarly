@@ -16,8 +16,12 @@ const MAX_BODY_BYTES = 2 * 1024;
 /** Per caller address. High enough that many students behind one mobile carrier address do not lock each other out. */
 const LIMIT = 30;
 const WINDOW_MS = 10 * 60_000;
-/** Per email address, whatever address the tries come from, so one account cannot be guessed at from many addresses. */
-const EMAIL_LIMIT = 8;
+/**
+ * Per email address, whatever address the tries come from, so one account cannot be guessed at from many addresses. Only FAILED answers
+ * count: a stranger can no longer lock a student out by sending tries, because tries that were not refused use none of the budget, and a
+ * successful sign-in is never blocked by earlier success.
+ */
+const EMAIL_LIMIT = 10;
 const EMAIL_WINDOW_MS = 15 * 60_000;
 
 type Env = Pick<CloudflareEnv, "NEON_AUTH_BASE_URL" | "NEON_AUTH_COOKIE_SECRET" | "RATE_LIMITER" | "RATE_LIMIT_SECRET">;
@@ -55,7 +59,8 @@ export async function handlePasswordAuth(request: Request, env: Env): Promise<Re
   const email = normaliseEmail(input.email);
   // The email goes into the limiter key only as a salted hash (`limiterKey`), so no address is stored.
   const emailKey = await limiterKey({ route: "password-email", ip: email }, env.RATE_LIMIT_SECRET);
-  const [byAddress, byEmail] = await Promise.all([limiter(key, LIMIT, WINDOW_MS), limiter(emailKey, EMAIL_LIMIT, EMAIL_WINDOW_MS)]);
+  // The address budget is used by every try; the email budget is only looked at here (cost 0) and used after a refused answer below.
+  const [byAddress, byEmail] = await Promise.all([limiter(key, LIMIT, WINDOW_MS), limiter(emailKey, EMAIL_LIMIT, EMAIL_WINDOW_MS, 0)]);
   const blocked = !byAddress.allowed ? byAddress : !byEmail.allowed ? byEmail : null;
   if (blocked) {
     return errorResponse(429, "RATE_LIMITED", "Too many tries. Please wait a few minutes.", requestId, { headers: { "Retry-After": String(blocked.retryAfterSeconds) } });
@@ -78,6 +83,8 @@ export async function handlePasswordAuth(request: Request, env: Env): Promise<Re
 
   if (answer.status >= 500) return errorResponse(503, "TEMPORARILY_UNAVAILABLE", UNAVAILABLE, requestId);
   if (!answer.ok) {
+    // A refused answer uses one try of this email's budget (a good answer uses none).
+    await limiter(emailKey, EMAIL_LIMIT, EMAIL_WINDOW_MS, 1);
     // One fixed answer, whatever Neon Auth said, so a stranger learns nothing about which emails have an account.
     return signUp
       ? errorResponse(400, "VALIDATION", "We could not create this account. If you already have one, sign in instead.", requestId, { fields: { form: "cannot_sign_up" } })

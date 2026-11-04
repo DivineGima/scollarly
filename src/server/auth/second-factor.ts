@@ -95,6 +95,9 @@ export function createSecondFactor(deps: SecondFactorDeps) {
 
   /** Finishes enrolment with the first code. Returns the recovery codes, shown to the owner exactly once. */
   async function confirmEnrolment(userId: string, sessionId: string, code: string): Promise<{ recoveryCodes: string[] } | VerifyResult> {
+    // Only the first code confirms. Once enrolment is confirmed this would issue new recovery codes without the step-up check that
+    // `regenerateRecoveryCodes` makes, so it is refused (the owner's code can still be checked with `verifyCode`).
+    if ((await store.getTotp(userId))?.confirmed) return "not_enrolled";
     const result = await verifyCode(userId, sessionId, code, { allowUnconfirmed: true });
     if (result !== "ok") return result;
     const recoveryCodes = generateRecoveryCodes();

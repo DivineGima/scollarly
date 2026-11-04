@@ -10,13 +10,23 @@ vi.mock("@/server/auth/session", () => ({
 
 import { handleSignIn } from "@/server/edge/sign-in";
 
-const env = { NEON_AUTH_BASE_URL: "https://auth.example/neondb/auth", NEON_AUTH_COOKIE_SECRET: "s".repeat(32) } as CloudflareEnv;
+const limiterBinding = (decision = { allowed: true, remaining: 9, retryAfterSeconds: 0 }) =>
+  ({ idFromName: (k: string) => k, get: () => ({ hit: async () => decision }) }) as unknown as DurableObjectNamespace;
+const env = { NEON_AUTH_BASE_URL: "https://auth.example/neondb/auth", NEON_AUTH_COOKIE_SECRET: "s".repeat(32), RATE_LIMITER: limiterBinding(), RATE_LIMIT_SECRET: "r" } as unknown as CloudflareEnv;
 const get = (path: string, method = "GET") => new Request(`https://scollarly.example${path}`, { method });
 
 describe("handleSignIn", () => {
   beforeEach(() => {
     start.mockReset().mockResolvedValue(new Response(null, { status: 302 }));
     complete.mockReset().mockResolvedValue(new Response(null, { status: 302 }));
+  });
+
+  it("sends a caller who is over the limit to the sign-in page, and never starts Google sign-in", async () => {
+    const limited = { ...env, RATE_LIMITER: limiterBinding({ allowed: false, remaining: 0, retryAfterSeconds: 300 }) } as unknown as CloudflareEnv;
+    const response = await handleSignIn(get("/auth/start"), limited);
+    expect(response?.status).toBe(302);
+    expect(response?.headers.get("Location")).toBe("https://scollarly.example/sign-in?error=unavailable");
+    expect(start).not.toHaveBeenCalled();
   });
 
   it("starts Google sign-in at /auth/start, returning to /auth/return", async () => {
