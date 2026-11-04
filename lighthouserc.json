@@ -19,7 +19,9 @@
         "http://localhost:3101/privacy",
         "http://localhost:3101/terms",
         "http://localhost:3101/apply",
-        "http://localhost:3101/offline"
+        "http://localhost:3101/offline",
+        "http://localhost:3101/sign-in",
+        "http://localhost:3101/sign-up"
       ],
       "numberOfRuns": 3
     },

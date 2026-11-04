@@ -1,4 +1,4 @@
-# Pre-launch checklist (S11.6, PRD 12.2)
+# Pre-launch checklist (S11.6, PRD 12.2; extended for version 2 in S13.8)
 
 **Only the owner marks an item done.** Claude Code prepared the list and can do the "Claude Code does" part when you send what is asked. Nothing here has been ticked. Where an item has a tracker ID (H or E), the tracker is the record.
 
@@ -11,6 +11,9 @@
 | E3 | Team bios (H4) | Send confirmed names, roles, bios | Enters and publishes | |
 | E4 | Privacy notice and terms; legal check on consent for 17-year-olds and data protection in the seven student countries (H5) | Send the final text | Puts it in `privacy.body` and `terms.body`, changes `CONSENT_NOTICE_VERSION` so each lead records which text it agreed to | |
 | E8 | Fees: each marked confirmed with its real range | Confirm per university | Updates the rows. Until then the pages say "Fees to be confirmed" | |
+| R5 | Legal check and text for a parent applying for a child, minors, and consent for the lead that onboarding creates automatically (extends E4). Today the consent text is the placeholder `draft-1` (flag F25) | Send the final text | Puts it in the onboarding consent notice and changes the notice version so each lead records which text it agreed to | |
+| R6 | Trust content for the landing page (E1 to E3 above): until they are confirmed the landing page shows no statistic, testimonial or bio | Send the confirmed content | Enters and publishes it | |
+| R4 | The logo: the image you sent was traced to `public/brand/logo.svg` and the icons were built on `#1F3BFF` (2026-11-04) | Look at the logo in the site header, and the installed icon and launch screen on a real Android phone; say if anything is off | Re-traces or rebuilds with `node scripts/make-icons.mjs` if you want a change | |
 | | **Rule:** no unconfirmed statistic, testimonial or team bio is published | Check the public site once | A test fails if one appears (`stage3-public.spec.ts`, S3.4) | |
 
 ## B. Numbers and accounts
@@ -21,6 +24,7 @@
 | H9 | The remaining "[Mine, confirm]" items (SLA hours 4 and 24, step-up window 10 minutes, invite expiry, backup retention 28 days, hourly uptime check, image caps) | Read them in the PRD and architecture and say "yes" or change them | |
 | H10 | Metric targets and the pipeline freshness "N days" | After four weeks of data; **Settings** has the field, **Health** shows the result | |
 | H12 | Neon Object Storage limits | The pricing page shows 5 GB and no request or transfer limit | |
+| R1 | Publish Google's OAuth app (it is in Testing mode with you as the only test user, flag F22). **Until this is done, real students cannot sign up** | In the Google Cloud console, OAuth consent screen: set the app to In production. Then try Create account with a Google account that is not yours | Nothing; tell Claude Code when it is done | |
 | H21 | Google sign-up: a Google account that was not on the test-user list could sign up as a student | Open the OAuth consent screen: Testing or In production? Does Neon Auth use its own shared Google login or your client ID? Decide if sign-ups should be restricted. Publishing the Google app is a launch step | |
 | H8/H13 | Google OAuth credentials in Neon Auth | Done 2026-10-24; at launch, move the Google app from Testing to In production | |
 | H15 | Magic Link plugin off in Neon Auth | Done 2026-10-24 per the owner | |
@@ -28,7 +32,7 @@
 | H19 | Phone test: tap WhatsApp, fill the quick form, confirm the chat opens with the reference and the lead is in the database; repeat in airplane mode | Send Claude Code the reference | |
 | H20 | Make the repository private again | Then the Actions minute limit applies; see `docs/quota-review.md` | |
 | F13 | Neon Auth keeps visitors' IP and browser string; migration 0004 blanks them | Try on a throwaway branch, then confirm a real sign-in leaves both empty | |
-| F8 | `main` is not protected (GitHub Free private repository) | Make the repository public, upgrade, or accept discipline-only and record it | |
+| F8 | `main` is not protected by a branch rule. The repository is public today, so GitHub would allow one; on 2026-11-04 you chose not to change GitHub settings. If H20 makes the repository private again, GitHub Free will refuse the rule | Decide: keep discipline-only (record it as an accepted risk), or turn the rule on while the repository is public | |
 
 ## C. The domain (F10, H7, E7)
 
@@ -50,20 +54,30 @@
 ## E. Production smoke test (S11.7)
 
 1. `node scripts/smoke.mjs https://scollarly.gimafolabit.workers.dev` (or the domain). Every line must say PASS. It checks the public pages, the headers, and that nothing signed-in is open to a visitor. Claude Code can run it for you.
-2. Sign in as each role and open the screens. Tick only what you saw work:
+2. Sign in as each role and open the screens. Tick only what you saw work. The screens are the version 2 tabs (Home, Leads, Content, Insights for staff; Home, Universities, My progress, Help for students) and the round More button:
 
 | Role | Open | Expect | Done by owner (date) |
 |---|---|---|---|
-| Student (a Google account that is not staff) | `/me`, `/me/link-application`, `/me/profile`, `/me/data` | Progress or "We are matching your application"; export downloads; **do not press Erase on a real account** | |
-| Student | `/admin`, `/admin/payments` | 404 | |
-| Admin (invite one) | Overview, Leads, Content, Analytics, Payments, Data requests, Profile | Everything opens; no Team, Audit, Security, Settings, Health in the menu | |
-| Admin | `/admin/settings`, `/admin/health`, `/admin/analytics/performance` | 404 or an empty page | |
+| A new person (a Google account with no Scollarly account) | Press **Sign in**, not Create account | A confirm screen "No account found, create one?". Press Back: no account is made. Then press **Create account** | |
+| Student | Create account, answer the questions (Basics, School results, Study plan), finish | A reference number; the Home tab greets you by name; **Universities** shows the university offering your course first | |
+| Student | Turn the phone to airplane mode and reopen the app | Your name, your courses and the ordered universities still show; changes say they need a connection | |
+| Parent | Create account as a parent, give the child's name and your own number | The lead holds the child's name and your number (check in the admin Leads tab) | |
+| Student | `/admin`, `/admin/insights` | 404 | |
+| Student | **More**, then Notifications | Items about your own application only; **Mark all read** clears the dot | |
+| Admin (invite one) | Home, Leads, Content, Insights, and Notifications from More | Everything opens; no Team, Audit log, Security, Settings or Health in More; the first-visit tour shows once per tab and never again | |
+| Admin | `/admin/settings`, `/admin/health` | 404 or an empty page | |
+| Admin | An old bookmark such as `/admin/payments` | It moves to the Insights tab, payments section | |
 | Admin | Record a payment, then void it with a reason | Totals change; the voided row is struck through; CSV downloads | |
-| Owner (with the authenticator code) | Team, Audit log, Security, **Settings**, **Health**, every-admin performance | All open; saving Settings asks for the code | |
-| Owner | Settings: change the WhatsApp number to your own, save, open the public Contact page | The new number within about 30 seconds, no deploy. Put the real one back | |
-| Owner | Settings: Download full export | A JSON file with no secrets and no pictures | |
+| Owner (with the authenticator code) | Team, Audit log, Security, **Settings**, **Health** from More, and every admin's performance in Insights | All open; saving Settings asks for the code | |
+| Owner | Settings: change the WhatsApp number to your own, save, open the public Contact page and the landing page's course finder | The new number within about 30 seconds, no deploy. Put the real one back | |
+| Owner | Settings: Download full export | A JSON file with no secrets and no pictures; it includes onboarding profiles | |
+| Anyone, on a real Android phone | Install the app from the browser menu | The installed icon and the launch screen use the white logo on dark neon blue (needs R4 done first) | |
 
-3. Tell Claude Code "the smoke test passed for student, admin and owner" and it records it in the tracker. It does not record it on its own.
+3. Tell Claude Code "the smoke test passed for student, parent, admin and owner" and it records it in the tracker. It does not record it on its own.
+
+## E2. The watched test (S13.9)
+
+Three real people use the live app with **no help from you**: one student, one parent, and one admin (or the first person you will invite). Watch without speaking and note the first place each got lost. Send the notes to Claude Code, who records them in `tracker/tracker_2.md` (the "Watched test log" table). This needs R1 to be done, because the student and the parent need a Google account that can sign up. Claude Code cannot run this step.
 
 ## F. Sign-off (H11)
 
