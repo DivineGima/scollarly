@@ -64,19 +64,19 @@ afterAll(async () => {
 });
 
 describe("S3.1: public reads return published content only, as the runtime role", () => {
-  it("returns published universities with only their published programmes, confirmed fees and published experiences", async () => {
+  it("returns published universities with only their published programmes, and published experiences", async () => {
     const rows = await readCatalogueRows(t.db);
     expect(rows.universities.map((u) => u.slug)).toEqual(["published-uni"]);
     expect(rows.programmes.map((p) => p.name)).toEqual(["Published Programme"]);
-    expect(rows.fees.map((f) => f.id)).toEqual([ids.feeOk]);
+    expect(rows).not.toHaveProperty("fees");
     expect(rows.experiences.map((e) => e.title)).toEqual(["Tour"]);
   });
 
-  it("builds the pages' view of it: a confirmed range, an overview and nothing from drafts", async () => {
+  it("builds the pages' view of it: an overview and nothing from drafts", async () => {
     const { universities } = buildCatalogue(await readCatalogueRows(t.db));
     expect(universities).toHaveLength(1);
     expect(universities[0]).toMatchObject({ slug: "published-uni", overview: "An overview." });
-    expect(universities[0]?.fees).toMatchObject([{ currency: "USD", min: 3000, max: 6000 }]);
+    expect(universities[0]).not.toHaveProperty("fees");
     expect(universities[0]?.experiences).toMatchObject([{ kind: "video", youtubeId: "5ddvpNEqpec" }]);
   });
 

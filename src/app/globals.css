@@ -74,6 +74,18 @@ h3 {
 
 a {
   color: var(--color-accent);
+  text-decoration: none;
+}
+
+/* Links are not underlined (owner decision 2026-11-04). The line appears on hover and keyboard focus, and stays inside long
+   text (blog and policy pages) so a link there is not told apart by colour alone. */
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+}
+
+.prose a {
+  text-decoration: underline;
 }
 
 :focus-visible {

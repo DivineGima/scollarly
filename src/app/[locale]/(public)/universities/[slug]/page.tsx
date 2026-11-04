@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Paragraphs } from "@/components/public/copy";
 import { MediaImage } from "@/components/public/media-image";
 import { PageLink } from "@/components/public/page-link";
-import { CampusSection, FeeSection } from "@/components/public/university-parts";
+import { CampusSection } from "@/components/public/university-parts";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
 import { readCatalogue } from "@/modules/content/read";
 
@@ -74,7 +74,6 @@ export default async function UniversityPage({ params }: Props) {
         </section>
       ) : null}
 
-      <FeeSection university={university} page={page} />
       <CampusSection experiences={university.experiences} />
 
       {university.resources.length > 0 || university.websiteUrl ? (

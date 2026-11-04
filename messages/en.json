@@ -1411,7 +1411,6 @@
       "label": "Main",
       "home": "Home",
       "universities": "Universities",
-      "fees": "Fees",
       "tours": "Campus tours",
       "process": "How it works",
       "visa": "Visa",
@@ -1421,7 +1420,7 @@
       "contact": "Contact"
     },
     "footer": {
-      "tagline": "Helping African students study in India. Free for students.",
+      "tagline": "Helping African students study in India.",
       "privacy": "Privacy",
       "terms": "Terms"
     },
@@ -1450,9 +1449,7 @@
     "noMatch": "No university matches. Clear the search or a filter.",
     "results": "{count} universities shown",
     "empty": "Our universities are being added. Message us on WhatsApp and we will suggest one that fits your results.",
-    "naac": "NAAC {grade}",
-    "fromFee": "Fees from {amount} {period}",
-    "feesTbcShort": "Fees to be confirmed"
+    "naac": "NAAC {grade}"
   },
   "university": {
     "back": "All universities",
@@ -1460,10 +1457,6 @@
     "overviewHeading": "Overview",
     "programmesHeading": "Programmes",
     "duration": "{months} months",
-    "feesHeading": "Fees",
-    "feeUpdated": "Last updated {date}",
-    "feeDisclaimer": "Fees are set by the university and can change. We confirm them with the university before you pay anything.",
-    "feesTbc": "Fees to be confirmed. Ask us and we will check with the university.",
     "campusHeading": "Campus",
     "resourcesHeading": "Official links",
     "officialWebsite": "University website",
@@ -1479,20 +1472,6 @@
       "viewGallery": "View gallery",
       "noThumbnail": "Preview not available"
     }
-  },
-  "fees": {
-    "metaTitle": "Fees",
-    "metaDescription": "University fees in USD or INR, shown only when confirmed. Others: contact us.",
-    "title": "Fees",
-    "intro": "Fee ranges for universities where we have confirmed them. Each amount shows its currency and when it was last updated.",
-    "university": "University",
-    "fee": "Fee",
-    "updated": "Updated {date}",
-    "contactUs": "Contact us",
-    "filterCurrency": "Filter by currency",
-    "all": "All",
-    "disclaimer": "Fees are set by the universities and can change. Amounts in different currencies are never added together.",
-    "empty": "Fees will appear here once the universities are added."
   },
   "tours": {
     "metaTitle": "Campus tours",

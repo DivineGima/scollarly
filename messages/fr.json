@@ -1411,7 +1411,6 @@
       "label": "Principal",
       "home": "Accueil",
       "universities": "Universités",
-      "fees": "Frais",
       "tours": "Visites de campus",
       "process": "Comment ça marche",
       "visa": "Visa",
@@ -1421,7 +1420,7 @@
       "contact": "Contact"
     },
     "footer": {
-      "tagline": "Nous aidons les étudiants africains à étudier en Inde. Gratuit pour les étudiants.",
+      "tagline": "Nous aidons les étudiants africains à étudier en Inde.",
       "privacy": "Confidentialité",
       "terms": "Conditions"
     },
@@ -1450,9 +1449,7 @@
     "noMatch": "Aucune université ne correspond. Effacez la recherche ou un filtre.",
     "results": "{count} universités affichées",
     "empty": "Nos universités sont en cours d'ajout. Écrivez-nous sur WhatsApp et nous vous proposerons celle qui correspond à vos résultats.",
-    "naac": "NAAC {grade}",
-    "fromFee": "Frais à partir de {amount} {period}",
-    "feesTbcShort": "Frais à confirmer"
+    "naac": "NAAC {grade}"
   },
   "university": {
     "back": "Toutes les universités",
@@ -1460,10 +1457,6 @@
     "overviewHeading": "Présentation",
     "programmesHeading": "Programmes",
     "duration": "{months} mois",
-    "feesHeading": "Frais",
-    "feeUpdated": "Mis à jour le {date}",
-    "feeDisclaimer": "Les frais sont fixés par l'université et peuvent changer. Nous les confirmons avec l'université avant tout paiement.",
-    "feesTbc": "Frais à confirmer. Demandez-nous et nous vérifierons auprès de l'université.",
     "campusHeading": "Campus",
     "resourcesHeading": "Liens officiels",
     "officialWebsite": "Site de l'université",
@@ -1479,20 +1472,6 @@
       "viewGallery": "Voir la galerie",
       "noThumbnail": "Aperçu non disponible"
     }
-  },
-  "fees": {
-    "metaTitle": "Frais",
-    "metaDescription": "Frais des universités en USD ou en INR, affichés seulement lorsqu'ils sont confirmés. Sinon : contactez-nous.",
-    "title": "Frais",
-    "intro": "Fourchettes de frais pour les universités où nous les avons confirmées. Chaque montant indique sa devise et sa date de mise à jour.",
-    "university": "Université",
-    "fee": "Frais",
-    "updated": "Mis à jour le {date}",
-    "contactUs": "Contactez-nous",
-    "filterCurrency": "Filtrer par devise",
-    "all": "Tout",
-    "disclaimer": "Les frais sont fixés par les universités et peuvent changer. Les montants en devises différentes ne sont jamais additionnés.",
-    "empty": "Les frais apparaîtront ici lorsque les universités seront ajoutées."
   },
   "tours": {
     "metaTitle": "Visites de campus",

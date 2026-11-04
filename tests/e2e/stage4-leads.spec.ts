@@ -123,7 +123,7 @@ test.describe("the quick WhatsApp form (A5b, ADR-030)", () => {
 
   test("a quick form on a page with no university asks which one (the rule needs a university or a programme)", async ({ page, context }) => {
     const server = await install(context);
-    await page.goto("/fees");
+    await page.goto("/process");
     await page.waitForLoadState("networkidle");
     await page.getByRole("link", { name: "Chat on WhatsApp" }).first().click();
     const dialog = page.getByRole("dialog");

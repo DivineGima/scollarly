@@ -9,7 +9,6 @@ export type PageGroup = (typeof PAGE_GROUPS)[number];
 const STATIC: Record<string, PageGroup> = {
   "/": "home",
   "/universities": "universities",
-  "/fees": "fees",
   "/campus-tours": "tours",
   "/process": "process",
   "/visa": "visa",

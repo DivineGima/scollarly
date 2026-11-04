@@ -11,15 +11,11 @@
         "naacGrade": "A+",
         "websiteUrl": "https://alpha.example/",
         "logo": null,
-        "overview": "Alpha University is a test university with confirmed fees.\n\nIt has a second paragraph.",
+        "overview": "Alpha University is a test university with a full set of details.\n\nIt has a second paragraph.",
         "programmes": [
           { "id": "00000000-0000-4000-8000-0000000000a1", "name": "B.Tech Computer Science", "level": "Undergraduate", "field": "computer_science_it", "durationMonths": 48 },
           { "id": "00000000-0000-4000-8000-0000000000a2", "name": "MBA", "level": "Postgraduate", "field": "business_management", "durationMonths": 24 },
           { "id": "00000000-0000-4000-8000-0000000000a3", "name": "BBA", "level": "Undergraduate", "field": "business_management", "durationMonths": 36 }
-        ],
-        "fees": [
-          { "id": "00000000-0000-4000-8000-0000000000f1", "currency": "USD", "min": 3000, "max": 6000, "period": "tuition per year", "lastUpdatedAt": "2026-06-12T00:00:00.000Z", "programmeId": null },
-          { "id": "00000000-0000-4000-8000-0000000000f2", "currency": "USD", "min": 1920, "max": 2400, "period": "hostel per year", "lastUpdatedAt": "2026-06-12T00:00:00.000Z", "programmeId": null }
         ],
         "experiences": [
           { "id": "00000000-0000-4000-8000-0000000000c1", "kind": "video", "title": "Official campus tour", "youtubeId": "5ddvpNEqpec", "url": null, "thumbnail": null },
@@ -37,9 +33,8 @@
         "naacGrade": "A",
         "websiteUrl": null,
         "logo": null,
-        "overview": "Beta University has no confirmed fee yet.",
+        "overview": "Beta University has the minimum details.",
         "programmes": [{ "id": "00000000-0000-4000-8000-0000000000b1", "name": "B.Com", "level": "Undergraduate", "field": "commerce", "durationMonths": 36 }],
-        "fees": [],
         "experiences": [],
         "resources": []
       },
@@ -55,7 +50,6 @@
         "logo": null,
         "overview": "",
         "programmes": [],
-        "fees": [{ "id": "00000000-0000-4000-8000-0000000000f3", "currency": "INR", "min": 150000, "max": 250000, "period": "tuition per year", "lastUpdatedAt": "2026-05-01T00:00:00.000Z", "programmeId": null }],
         "experiences": [],
         "resources": []
       }
@@ -78,8 +72,7 @@
       "about.value.commitment.title": "Commitment",
       "about.value.commitment.body": "We stay with you until you arrive.",
       "about.motto": "Your journey, our commitment.",
-      "contact.email": "hello@scollarly.example",
-      "fees.disclaimer": "Fees are indicative and set by the universities."
+      "contact.email": "hello@scollarly.example"
     },
     "contact": { "whatsappE164": "+14155550100", "phoneDisplay": "+1 415 555 0100" }
   },

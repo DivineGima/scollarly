@@ -23,18 +23,6 @@ export interface ProgrammeView {
   durationMonths: number | null;
 }
 
-/** A fee line that passed the FR-2 rules: confirmed, with `0 < min <= max`. Unconfirmed fees never become a `FeeLine`. */
-export interface FeeLine {
-  id: string;
-  currency: Currency;
-  min: number;
-  max: number;
-  period: string;
-  /** ISO instant, shown as "last updated". */
-  lastUpdatedAt: string;
-  programmeId: string | null;
-}
-
 export type CampusKind = "video" | "tour360" | "gallery";
 
 export interface CampusView {
@@ -68,8 +56,6 @@ export interface UniversityView {
   /** The overview paragraph(s); empty when none was written. */
   overview: string;
   programmes: ProgrammeView[];
-  /** Confirmed fee lines only. Empty means "Fees to be confirmed" (FR-2). */
-  fees: FeeLine[];
   experiences: CampusView[];
   resources: ResourceView[];
 }

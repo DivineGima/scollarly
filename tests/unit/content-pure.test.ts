@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildBlog, buildCatalogue, buildPageImages, buildSite, buildTrust, headlineFee } from "@/modules/content/builders";
+import { buildBlog, buildCatalogue, buildPageImages, buildSite, buildTrust } from "@/modules/content/builders";
 import { isYoutubeId, safeHttpsUrl, youtubeEmbedUrl } from "@/modules/content/embed";
 import { confirmedRange, formatAmount, formatRange } from "@/modules/content/fees";
 import { fixtureFileName, loadFixture } from "@/modules/content/fixture";
@@ -36,15 +36,6 @@ describe("fee gating (FR-2)", () => {
     expect(formatAmount(1920.5)).toBe("1,920.50");
     expect(formatRange({ currency: "USD", min: 3000, max: 6000 })).toBe("USD 3,000 – 6,000");
     expect(formatRange({ currency: "INR", min: 150000, max: 150000 })).toBe("INR 150,000");
-  });
-
-  it("quotes the lowest tuition line in one currency on a card, and nothing when no fee is confirmed", () => {
-    const line = (id: string, currency: "USD" | "INR", min: number, period: string) => ({ id, currency, min, max: min + 1, period, lastUpdatedAt: "2026-01-01T00:00:00.000Z", programmeId: null });
-    expect(headlineFee({ fees: [] })).toBeNull();
-    expect(headlineFee({ fees: [line("a", "USD", 1920, "hostel per year"), line("b", "USD", 3000, "tuition per year"), line("c", "USD", 2500, "tuition per year")] })?.id).toBe("c");
-    // Currencies are never compared: the first tuition line's currency wins.
-    expect(headlineFee({ fees: [line("a", "USD", 3000, "tuition per year"), line("b", "INR", 100, "tuition per year")] })?.id).toBe("a");
-    expect(headlineFee({ fees: [line("a", "USD", 500, "hostel per year")] })?.id).toBe("a");
   });
 });
 
@@ -131,12 +122,11 @@ describe("translated text (decision D19)", () => {
 describe("builders apply the publish rules a second time", () => {
   const media = [{ id: "m1", sha256: "a".repeat(64), width: 100, height: 50, alt: { en: "Logo" } }];
   const university = { id: "u1", slug: "alpha", name: "Alpha", city: "C", state: "S", type: "private", naacGrade: "A", websiteUrl: "http://insecure.example", logoMediaId: "m1", translations: { en: "Overview" } };
-  const base = { universities: [university], programmes: [], fees: [], experiences: [], resources: [], media };
+  const base = { universities: [university], programmes: [], experiences: [], resources: [], media };
 
-  it("drops an unconfirmed or invalid fee even if it reached the builder", () => {
-    const fee = (over: object) => ({ id: "f", universityId: "u1", programmeId: null, currency: "USD", amountMin: "100", amountMax: "200", period: "tuition per year", dataConfirmed: true, lastUpdatedAt: new Date("2026-01-01T00:00:00Z"), ...over });
-    const result = buildCatalogue({ ...base, fees: [fee({ id: "ok" }), fee({ id: "x1", dataConfirmed: false }), fee({ id: "x2", amountMin: "0" }), fee({ id: "x3", amountMax: "50" })] });
-    expect(result.universities[0]?.fees.map((f) => f.id)).toEqual(["ok"]);
+  it("never puts a fee on a university, even when a fee row reached the builder", () => {
+    const result = buildCatalogue({ ...base, fees: [{ id: "ok" }] } as unknown as typeof base);
+    expect(result.universities[0]).not.toHaveProperty("fees");
   });
 
   it("keeps a video only with a valid id, a tour only with an https address, and drops http websites and resources", () => {

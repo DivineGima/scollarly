@@ -12,7 +12,6 @@ const PAGES = [
   "/universities",
   "/universities/alpha-university",
   "/universities/beta-university",
-  "/fees",
   "/campus-tours",
   "/process",
   "/visa",
@@ -49,9 +48,8 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
 
   const expectations: Record<string, string[]> = {
     "/": ["Our help is free for students.", "Alpha University", "Start your application", "Students helped", "They answered me on WhatsApp the same day."],
-    "/universities": ["Alpha University", "Beta University", "Gamma University", "Fees to be confirmed"],
-    "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "USD 3,000 – 6,000", "Official prospectus"],
-    "/fees": ["Alpha University", "USD 3,000 – 6,000", "INR 150,000 – 250,000", "Contact us"],
+    "/universities": ["Alpha University", "Beta University", "Gamma University"],
+    "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "Official prospectus"],
     "/campus-tours": ["Official campus tour", "Available on request."],
     "/process": ["Share your results", "Pick at least three programmes."],
     "/visa": ["Collect your documents"],
@@ -95,21 +93,15 @@ test.describe("FR-2: fees", () => {
     await expect(whatsapp).toHaveAttribute("href", "https://wa.me/14155550100");
   });
 
-  test("the fees page lists a range per currency and 'Contact us' for the university without one", async ({ page }) => {
+  test("fees are not shown anywhere and /fees moves to the universities list", async ({ page }) => {
     await page.goto("/fees");
-    const rows = page.locator("tbody tr");
-    await expect(rows).toHaveCount(3);
-    await expect(rows.filter({ hasText: "Beta University" })).toContainText("Contact us");
-    await expect(rows.filter({ hasText: "Gamma University" })).toContainText("INR 150,000 – 250,000");
-    expect(await bodyText(page)).not.toContain("USD 153");
-  });
-
-  test("the currency chips narrow the table without a request", async ({ page }) => {
-    await page.goto("/fees");
-    await page.getByRole("button", { name: "INR" }).click();
-    await expect(page.locator("tbody tr")).toHaveCount(1);
-    await page.getByRole("button", { name: "All" }).click();
-    await expect(page.locator("tbody tr")).toHaveCount(3);
+    await expect(page).toHaveURL(/\/universities$/);
+    for (const path of ["/universities", "/universities/alpha-university", "/"]) {
+      await page.goto(path);
+      const text = await bodyText(page);
+      expect(text).not.toMatch(/USD 3,000|INR 150,000|Fees to be confirmed|Fees from/);
+    }
+    await expect(page.getByRole("link", { name: "Fees", exact: true })).toHaveCount(0);
   });
 });
 

@@ -16,7 +16,7 @@ if (!/^https?:\/\//.test(base)) {
   process.exit(2);
 }
 
-const PUBLIC = ["/", "/universities", "/fees", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in", "/sign-up"];
+const PUBLIC = ["/", "/universities", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in", "/sign-up"];
 // Version 2 (S13.9): the four hubs, the notifications pages, the student tabs, onboarding and the account confirm screen are all closed to a visitor.
 const CLOSED_SHELLS = [
   "/admin",
@@ -36,6 +36,7 @@ const CLOSED_SHELLS = [
 ];
 // The pre-hub addresses move with a 301 from the Worker entry, before any session check (ADR-049); the address they reach is closed (above).
 const LEGACY = [
+  ["/fees", "/universities"],
   ["/admin/payments", "/admin/insights?view=payments"],
   ["/admin/analytics", "/admin/insights?view=funnel"],
   ["/admin/analytics/performance", "/admin/insights?view=performance"],

@@ -5,7 +5,6 @@ import {
   campusExperience,
   contentBlock,
   faq,
-  feeStructure,
   journey,
   journeyStep,
   mediaAsset,
@@ -31,9 +30,9 @@ import { runPublic } from "./as-actor";
 
 const published = (status: AnyPgColumn) => eq(status, "published");
 
-/** Universities with their programmes, fees, campus experiences and resources, plus the image metadata they point at. */
+/** Universities with their programmes, campus experiences and resources, plus the image metadata they point at. */
 export async function readCatalogueRows(db: Db) {
-  const [universities, programmes, fees, experiences, resources, media] = await runPublic(
+  const [universities, programmes, experiences, resources, media] = await runPublic(
     db,
     db
       .select({
@@ -63,22 +62,6 @@ export async function readCatalogueRows(db: Db) {
       .from(programme)
       .where(published(programme.status))
       .orderBy(asc(programme.sortOrder), asc(programme.name)),
-    // Only confirmed fees leave the database. The page checks the range again (modules/content/fees.ts).
-    db
-      .select({
-        id: feeStructure.id,
-        universityId: feeStructure.universityId,
-        programmeId: feeStructure.programmeId,
-        currency: feeStructure.currency,
-        amountMin: feeStructure.amountMin,
-        amountMax: feeStructure.amountMax,
-        period: feeStructure.period,
-        dataConfirmed: feeStructure.dataConfirmed,
-        lastUpdatedAt: feeStructure.lastUpdatedAt,
-      })
-      .from(feeStructure)
-      .where(and(published(feeStructure.status), eq(feeStructure.dataConfirmed, true)))
-      .orderBy(asc(feeStructure.sortOrder), asc(feeStructure.period)),
     db
       .select({
         id: campusExperience.id,
@@ -99,7 +82,7 @@ export async function readCatalogueRows(db: Db) {
       .orderBy(asc(officialResource.sortOrder), asc(officialResource.title)),
     readMediaQuery(db),
   );
-  return { universities, programmes, fees, experiences, resources, media };
+  return { universities, programmes, experiences, resources, media };
 }
 
 /** Image metadata for every live asset. A few hundred rows at most (the image budget caps the count). */

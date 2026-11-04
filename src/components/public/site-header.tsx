@@ -4,7 +4,6 @@ import { PageLink } from "./page-link";
 export const NAV_ITEMS = [
   { href: "/", key: "home" },
   { href: "/universities", key: "universities" },
-  { href: "/fees", key: "fees" },
   { href: "/campus-tours", key: "tours" },
   { href: "/process", key: "process" },
   { href: "/visa", key: "visa" },

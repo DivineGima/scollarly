@@ -10,8 +10,6 @@ export interface UniversityCardItem {
   type: string | null;
   naacGrade: string | null;
   logo: { src: string; width: number; height: number; alt: string } | null;
-  /** Already worded, for example "Fees from USD 3,000 tuition per year", or the "to be confirmed" line. Never 0 or blank (FR-2). */
-  feeText: string;
   levels: string[];
 }
 
@@ -90,7 +88,6 @@ export function UniversityBrowser({ items, labels }: { items: UniversityCardItem
                   {item.type ? <span className="badge">{item.type}</span> : null}
                   {item.naacGrade ? <span className="badge">{fill(labels.naac, { grade: item.naacGrade })}</span> : null}
                 </span>
-                <span className="fee-line">{item.feeText}</span>
               </a>
             </li>
           ))}
