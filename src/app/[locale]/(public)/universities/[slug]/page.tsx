@@ -38,7 +38,7 @@ export default async function UniversityPage({ params }: Props) {
   return (
     <>
       <p>
-        <PageLink href="/universities">{t("back")}</PageLink>
+        <PageLink href="/universities" className="link-standalone">{t("back")}</PageLink>
       </p>
       <header className="uni-header">
         {university.logo ? (

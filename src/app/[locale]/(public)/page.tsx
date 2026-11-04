@@ -96,7 +96,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               ))}
             </ul>
             <p>
-              <PageLink href="/universities">{t("allUniversities")}</PageLink>
+              <PageLink href="/universities" className="link-standalone">{t("allUniversities")}</PageLink>
             </p>
           </>
         ) : (
@@ -159,7 +159,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <h2 id="faq-heading">{t("faqHeading")}</h2>
           <FaqList faqs={site.faqs.slice(0, 4)} generalLabel={t("faqGeneral")} />
           <p>
-            <PageLink href="/faq">{t("allFaq")}</PageLink>
+            <PageLink href="/faq" className="link-standalone">{t("allFaq")}</PageLink>
           </p>
         </section>
       ) : null}

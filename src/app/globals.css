@@ -85,9 +85,12 @@ a:focus-visible {
 }
 
 .prose a,
-.auth-card p a,
 .legal a,
-.notice a {
+.notice a,
+p a:not(.btn):not(.link-standalone),
+label a,
+td a,
+dd a {
   text-decoration: underline;
 }
 

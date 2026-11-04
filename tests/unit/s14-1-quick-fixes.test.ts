@@ -42,6 +42,6 @@ describe("S14.1: links are not underlined until hover or focus", () => {
   it("sets no underline on links, adds one on hover and focus and keeps it in running text", () => {
     expect(css).toMatch(/\na \{[^}]*text-decoration: none;/);
     expect(css).toMatch(/a:hover,\na:focus-visible \{\s*text-decoration: underline;/);
-    expect(css).toMatch(/\.prose a,[\s\S]*?\.auth-card p a,[\s\S]*?\.legal a,[\s\S]*?\{\s*text-decoration: underline;/);
+    expect(css).toMatch(/\.prose a,[\s\S]*?\.legal a,[\s\S]*?p a:not\(\.btn\):not\(\.link-standalone\)[\s\S]*?\{\s*text-decoration: underline;/);
   });
 });

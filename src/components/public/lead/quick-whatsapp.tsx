@@ -134,7 +134,7 @@ function QuickForm({
           after={
             flow.state.phase === "done" ? (
               <p>
-                <PageLink href={opened.universityId ? `/apply?university=${encodeURIComponent(opened.universityId)}` : "/apply"}>{labels.completeApplication}</PageLink>
+                <PageLink className="link-standalone" href={opened.universityId ? `/apply?university=${encodeURIComponent(opened.universityId)}` : "/apply"}>{labels.completeApplication}</PageLink>
               </p>
             ) : null
           }
