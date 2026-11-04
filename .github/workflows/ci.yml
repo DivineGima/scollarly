@@ -78,6 +78,11 @@ jobs:
   e2e:
     name: Playwright (offline mode)
     runs-on: ubuntu-latest
+    # Two shards run side by side, so the browser tests take about 3 minutes instead of 5. Each shard builds the site once.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -85,24 +90,46 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       # Offline mode (S0.8), plus axe, the security headers with the CSP enforced, 375 px layout and the /en rewrite (S1.5, S1.6).
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/2
       - if: failure()
         uses: actions/upload-artifact@v4
-        with: { name: playwright-report, path: playwright-report, retention-days: 7 }
+        with: { name: "playwright-report-${{ matrix.shard }}", path: playwright-report, retention-days: 7 }
 
   lighthouse:
     name: Lighthouse CI (mobile budget)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+        with: { fetch-depth: 0 }
+      # The mobile budget takes about 10 minutes, so a pull request runs it only when it touches something a public page is made of. Every merge to
+      # `main` runs it in full, so the budget is still checked on everything that ships.
+      - name: Does this change touch the public site?
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          changed=$(git diff --name-only "origin/$BASE...HEAD")
+          if echo "$changed" | grep -qE '^(src/app/\[locale\]/\(public\)|src/app/layout|src/components/(public|shell|auth)|src/modules/content/|src/lib/|src/i18n/|messages/|public/|next\.config|package(-lock)?\.json|lighthouserc|scripts/check-public-bundle)|\.css$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No public page changed: the Lighthouse budget is checked again when this merges to main."
+          fi
+      - if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
-      - run: npm ci
+      - if: steps.scope.outputs.run == 'true'
+        run: npm ci
       # The site is built from the test content snapshot, so every public page has content to measure (src/modules/content/fixture.ts).
-      - run: npx next build
+      - if: steps.scope.outputs.run == 'true'
+        run: npx next build
         env:
           CONTENT_FIXTURE_FILE: tests/fixtures/content-snapshot.json
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
       # First-load JavaScript of every public route, and no admin library in any of them (S3.5).
-      - run: npm run check:bundle
-      - run: npx lhci autorun
+      - if: steps.scope.outputs.run == 'true'
+        run: npm run check:bundle
+      - if: steps.scope.outputs.run == 'true'
+        run: npx lhci autorun
