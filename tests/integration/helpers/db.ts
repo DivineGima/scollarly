@@ -131,3 +131,26 @@ export async function createTestDb(): Promise<TestDb> {
     close,
   };
 }
+
+/**
+ * Extra sessions on the same real Postgres, each as the non-owner `app_runtime` role, so a test can make requests truly overlap. The main
+ * connection of `createTestDb` is one session, so two "simultaneous" requests on it only interleave their statements, which proves nothing about
+ * locks. Needs `TEST_DATABASE_URL` (the CI service container); the in-process engine has one connection, so a test that needs these is skipped
+ * there (`it.skipIf(!process.env.TEST_DATABASE_URL)`).
+ */
+export async function openRuntimeConnections(count: number): Promise<{ dbs: Db[]; close: () => Promise<void> }> {
+  const url = process.env.TEST_DATABASE_URL;
+  if (!url) throw new Error("openRuntimeConnections needs TEST_DATABASE_URL");
+  const clients = await Promise.all(
+    Array.from({ length: count }, async () => {
+      const client = new pg.Client({ connectionString: url });
+      await client.connect();
+      await client.query("set role app_runtime");
+      return client;
+    }),
+  );
+  return {
+    dbs: clients.map((client) => drizzleNodePg(client, { schema }) as unknown as Db),
+    close: async () => void (await Promise.all(clients.map((client) => client.end()))),
+  };
+}
