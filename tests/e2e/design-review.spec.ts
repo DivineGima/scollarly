@@ -43,8 +43,4 @@ test("an address no page answers is a 404 in the page frame, with the page langu
   await expect(page.getByRole("banner")).toBeVisible();
 });
 
-test("the pop-up title is balanced so a single word does not sit alone on the last line", async ({ page }) => {
-  await page.goto("/");
-  const wrap = await page.evaluate(() => getComputedStyle(document.querySelector(".gate-dialog h2")!).textWrap);
-  expect(wrap).toBe("balance");
-});
+// The sign-in pop-up (and its balanced title) was removed in S15.4.

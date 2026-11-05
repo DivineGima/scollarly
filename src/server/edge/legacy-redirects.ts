@@ -7,6 +7,8 @@
  * people to screens that do not exist yet.
  */
 
+import { readSessionToken } from "@/server/auth/cookie";
+
 interface Target {
   path: string;
   view: string;
@@ -38,6 +40,28 @@ export function legacyTarget(pathname: string, search: string): string | null {
   const params = new URLSearchParams(search);
   params.set("view", target.view);
   return `${prefix}${target.path}?${params.toString()}`;
+}
+
+/**
+ * Where the old public Apply address goes (PRD_4 F24, architecture 23.5). Applying lives inside the account now, so `/apply` is not a page
+ * any more: a browser with a session cookie goes to the Apply screen, anyone else to Sign in with `/apply` as the place to return to (after
+ * sign-in, and onboarding for a new account, the same forward takes them to the Apply screen). No database call: whether the session is
+ * real is decided by the screen it lands on. Pure, so it is unit-tested without a Worker.
+ */
+export function applyForwardTarget(pathname: string, hasSessionCookie: boolean): string | null {
+  const prefix = LOCALE_PREFIX.exec(pathname)?.[1] ?? "";
+  const path = pathname.slice(prefix.length).replace(/\/+$/, "");
+  if (path !== "/apply") return null;
+  return hasSessionCookie ? `${prefix}/me/apply` : `${prefix}/sign-in?next=${encodeURIComponent("/apply")}`;
+}
+
+/** `GET` and `HEAD` only. `302`, never stored: the answer depends on the cookie. Null for every other address. */
+export function handleApplyForward(request: Request): Response | null {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  const to = applyForwardTarget(url.pathname, readSessionToken(request.headers) !== null);
+  if (to === null) return null;
+  return new Response(null, { status: 302, headers: { Location: new URL(to, url.origin).toString(), "Cache-Control": "no-store" } });
 }
 
 /** `GET` and `HEAD` only. Returns a response for an old address and null for everything else, so the Worker carries on as before. */

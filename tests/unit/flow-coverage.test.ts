@@ -14,8 +14,9 @@ const map: Record<string, { file: string; title: string }[]> = {
   A2: [{ file: "stage3-public.spec.ts", title: "A2: the universities list" }],
   A3: [{ file: "stage3-public.spec.ts", title: "FR-3: nothing loads before a tap" }, { file: "stage3-public.spec.ts", title: "a university that does not exist is a 404" }],
   A4: [{ file: "stage3-public.spec.ts", title: "FR-2: fees" }, { file: "stage3-public.spec.ts", title: "FR-1: with JavaScript off, every public page shows its main content" }],
-  A5: [{ file: "stage4-leads.spec.ts", title: "the full application (A5)" }],
-  A5b: [{ file: "stage4-leads.spec.ts", title: "the quick WhatsApp form (A5b, ADR-030)" }],
+  // A5 and A5b changed in S15.4 (PRD_4 F24, F26): the application is made inside the account, and the chat button lives there too.
+  A5: [{ file: "s15-3-apply.spec.ts", title: "sending" }, { file: "s15-3-apply.spec.ts", title: "choosing the programmes" }],
+  A5b: [{ file: "s14-3-gate.spec.ts", title: "every public page stays readable and offers Create an account" }],
   A6: [{ file: "stage3-public.spec.ts", title: '"/contact": ["+14155550100"' }],
   A7: [{ file: "stage3-public.spec.ts", title: "A7: a post cannot inject markup" }],
   A8: [{ file: "offline.spec.ts", title: "service worker and offline page (S0.8)" }, { file: "stage3-public.spec.ts", title: '"/privacy"' }],

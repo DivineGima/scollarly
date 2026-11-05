@@ -47,7 +47,7 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
   test.use({ javaScriptEnabled: false });
 
   const expectations: Record<string, string[]> = {
-    "/": ["Our help is free for students.", "Alpha University", "Start your application", "Students helped", "They answered me on WhatsApp the same day."],
+    "/": ["Our help is free for students.", "Alpha University", "Create an account", "Students helped", "They answered me on WhatsApp the same day."],
     "/universities": ["Alpha University", "Beta University", "Gamma University"],
     "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "Official prospectus"],
     "/campus-tours": ["Official campus tour"],
@@ -72,14 +72,13 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
 });
 
 test.describe("FR-2: fees", () => {
-  test("a university page offers a WhatsApp call to action built from the one helper, and shows no fee", async ({ page }) => {
+  test("a university page offers Create an account as its call to action, with no chat link, and shows no fee", async ({ page }) => {
     await page.goto("/universities/beta-university");
     const text = await bodyText(page);
     expect(text).not.toContain("Fees to be confirmed");
-    const whatsapp = page.getByRole("link", { name: "Ask about this university on WhatsApp" }).first();
-    await expect(whatsapp).toBeVisible();
-    // The address comes from the number in site_setting (here the fixture's), through the one helper (FR-4).
-    await expect(whatsapp).toHaveAttribute("data-gate-href", "https://wa.me/14155550100");
+    // The chat address is built only inside the account, from the number in site_setting, through the one helper (FR-4, PRD_4 F26).
+    await expect(page.locator("main").getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=%2Funiversities%2Fbeta-university");
+    await expect(page.locator('a[href*="wa.me"], [data-gate-href]')).toHaveCount(0);
   });
 
   test("fees are not shown anywhere and /fees moves to the universities list", async ({ page }) => {

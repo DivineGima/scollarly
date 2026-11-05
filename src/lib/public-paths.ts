@@ -15,7 +15,6 @@ export const PUBLIC_PAGE_PATHS: ReadonlySet<string> = new Set([
   "/about",
   "/blog",
   "/contact",
-  "/apply",
   "/privacy",
   "/terms",
   "/offline",

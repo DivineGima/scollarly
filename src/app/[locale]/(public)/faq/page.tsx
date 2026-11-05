@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { FaqList } from "@/components/public/steps";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { readSite } from "@/modules/content/read";
 
 // A4 /faq: tap a question and the answer opens. Every answer is in the HTML.
@@ -23,7 +23,7 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
       <p className="lead">{t("intro")}</p>
       {faqs.length > 0 ? <FaqList faqs={faqs} generalLabel={t("general")} /> : <p>{t("empty")}</p>}
       <p className="cta-row">
-        <WhatsAppButton context={{ page: "/faq" }} />
+        <CreateAccountLink next="/faq" />
       </p>
     </>
   );

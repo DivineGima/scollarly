@@ -57,6 +57,7 @@ function Ready({ data }: { data: ProgressData }) {
   const next = useTranslations("me.next");
 
   if (data.state === "matching" || !data.lead) {
+    const askUrl = buildWhatsAppUrl(data.whatsappE164, t("matching.whatsappText"));
     return (
       <section>
         <h1>{t("title")}</h1>
@@ -64,9 +65,18 @@ function Ready({ data }: { data: ProgressData }) {
           <h2>{t("matching.title")}</h2>
           <p>{t("matching.body")}</p>
           {data.pendingClaims > 0 ? <p className="me-muted">{t("matching.pending", { count: data.pendingClaims })}</p> : null}
-          <a className="me-button" href="/me/link-application">
+          <a className="me-button" href="/me/apply" data-testid="apply-button">
+            {t("matching.apply")}
+          </a>
+          <a className="me-button me-button-quiet" href="/me/link-application">
             {t("matching.link")}
           </a>
+          {/* Any student who finished onboarding can message the team, applied or not (PRD_4 F26). The message asks for nothing. */}
+          {askUrl ? (
+            <a className="me-button me-button-quiet" href={askUrl} target="_blank" rel="noopener noreferrer" data-testid="whatsapp">
+              {t("matching.whatsapp")}
+            </a>
+          ) : null}
         </div>
       </section>
     );

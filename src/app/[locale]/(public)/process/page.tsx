@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { StepList } from "@/components/public/steps";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { readSite } from "@/modules/content/read";
-import { GateLink } from "@/components/public/gate/gate-link";
 
 // A4 /process: the application steps in order, each with what Scollarly does.
 export const revalidate = 3600;
@@ -25,10 +24,7 @@ export default async function ProcessPage({ params }: { params: Promise<{ locale
       <p className="lead">{t("intro")}</p>
       {steps.length > 0 ? <StepList steps={steps} idPrefix="step" /> : <p>{t("empty")}</p>}
       <p className="cta-row">
-        <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary">
-          {t("apply")}
-        </GateLink>
-        <WhatsAppButton context={{ page: "/process" }} />
+        <CreateAccountLink next="/process" />
       </p>
     </>
   );

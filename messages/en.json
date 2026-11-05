@@ -24,7 +24,7 @@
       "prompt": "Pick a course to see which universities offer it.",
       "countOne": "{count} university offers this course",
       "countOther": "{count} universities offer this course",
-      "none": "No university lists this course yet. Message us on WhatsApp and we will suggest one that fits.",
+      "none": "No university lists this course yet. Create an account and message us, and we will suggest one that fits.",
       "cta": "Create your free account",
       "ctaHint": "We keep your course, so your list is ready when you finish signing up.",
       "naac": "NAAC {grade}",
@@ -1542,7 +1542,7 @@
   "site": {
     "name": "Scollarly",
     "skip": "Skip to main content",
-    "apply": "Apply",
+    "createAccount": "Create an account",
     "signIn": "Sign in",
     "nav": {
       "label": "Main",
@@ -2007,9 +2007,12 @@
       "others": "{count, plural, one {You have # other application linked to this account.} other {You have # other applications linked to this account.}}",
       "matching": {
         "title": "We are matching your application",
-        "body": "We have not linked an application to your account yet. If you already applied, ask us to link it. If you have not applied, you can start from the Apply page.",
+        "body": "We have not linked an application to your account yet. If you already applied before, ask us to link it. If you have not applied yet, press Apply.",
         "pending": "{count, plural, one {Your request is waiting for an admin to confirm it.} other {Your # requests are waiting for an admin to confirm them.}}",
-        "link": "Link my application"
+        "apply": "Apply",
+        "link": "Link my application",
+        "whatsapp": "Message us on WhatsApp",
+        "whatsappText": "Hello Scollarly! I have created my account and I have a question before I apply."
       },
       "offline": {
         "body": "You're offline. This is the last progress saved on this phone, and it may be out of date.",
@@ -2322,6 +2325,9 @@
       "noApplication": "You have not applied yet. When you are ready, choose your programmes and send your application.",
       "applyButton": "Apply",
       "progressLink": "Link an application I already made",
+      "whatsappAsk": "Message us on WhatsApp",
+      "whatsappNoApplication": "Hello Scollarly! I am {name}. I am interested in {courses}. I have not applied yet and I have a question.",
+      "whatsappNoApplicationAnon": "Hello Scollarly! I have created my account and I have a question before I apply.",
       "finishProfile": {
         "title": "Finish your profile",
         "body": "A few short questions let us show the universities that fit your course.",
@@ -2362,7 +2368,7 @@
       "faq": "Questions and answers",
       "contact": "Contact us",
       "whatsapp": "Message us on WhatsApp",
-      "whatsappText": "Hello, I need help with my Scollarly application.",
+      "whatsappText": "Hello Scollarly, I need help with my account.",
       "whatsappMissing": "The WhatsApp number is not available right now. Please try again later."
     }
   },

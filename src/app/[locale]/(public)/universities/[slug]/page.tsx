@@ -5,9 +5,8 @@ import { Paragraphs } from "@/components/public/copy";
 import { MediaImage } from "@/components/public/media-image";
 import { PageLink } from "@/components/public/page-link";
 import { CampusSection } from "@/components/public/university-parts";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { readCatalogue } from "@/modules/content/read";
-import { GateLink } from "@/components/public/gate/gate-link";
 
 // A3. A university published after the last build is rendered on first request and then cached like the others.
 export const revalidate = 3600;
@@ -104,10 +103,7 @@ export default async function UniversityPage({ params }: Props) {
       <section className="section cta-band" aria-labelledby="next-heading">
         <h2 id="next-heading">{t("nextHeading")}</h2>
         <p className="cta-row">
-          <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary">
-            {t("apply")}
-          </GateLink>
-          <WhatsAppButton context={{ page, universityId: university.id, universityName: university.name }} labelKey="ask" />
+          <CreateAccountLink next={page} />
         </p>
       </section>
     </>

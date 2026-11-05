@@ -4,7 +4,7 @@ import { MediaImage } from "@/components/public/media-image";
 import { Paragraphs } from "@/components/public/copy";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { Journeys, Team } from "@/components/public/trust";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { readPageImages, readSite, readTrust } from "@/modules/content/read";
 
 // A4 /about: mission, values, and only confirmed team members (CLAUDE.md: no unconfirmed bios).
@@ -55,7 +55,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       <Journeys items={trust.journeys} />
 
       <p className="cta-row">
-        <WhatsAppButton context={{ page: "/about" }} />
+        <CreateAccountLink next="/about" />
       </p>
     </>
   );

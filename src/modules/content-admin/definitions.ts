@@ -93,7 +93,7 @@ export interface TypeDef {
   steps?: boolean;
 }
 
-const PUBLIC_CATALOGUE = ["/", "/universities", "/fees", "/campus-tours", "/apply"] as const;
+const PUBLIC_CATALOGUE = ["/", "/universities", "/fees", "/campus-tours"] as const;
 const PUBLIC_TRUST = ["/", "/about"] as const;
 
 const text = (key: string, extra: Partial<FieldDef> = {}): FieldDef => ({ key, kind: "text", max: 200, ...extra });

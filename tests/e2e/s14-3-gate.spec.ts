@@ -1,86 +1,68 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * S14.3 (PRD_3 F20, architecture 22.2): every action needs an account. A signed-out visitor who taps Apply, a WhatsApp button or the
- * course finder's link sees the sign-in pop-up with both choices, and never reaches the form or the chat. A signed-in person (the
- * browser's hint, which the server does not trust) goes straight through. Public information stays readable without an account.
+ * S14.3 changed by S15.4 (PRD_4 F24, F26; architecture 23.5): the public site offers one action, "Create an account". There is no Apply
+ * form, no quick WhatsApp form, no chat link and no sign-in pop-up on any public page: applying and chatting live inside the account.
+ * Public information stays readable without an account. (The Worker's forward from the old `/apply` address is not there under
+ * `next start`; it is proven in tests/unit/s14-3-gate.test.ts. The return trip's `#signed-in` fragment becoming the signed-in hint was read
+ * by the pop-up script; the "My account" swap of S15.5 reads it again and carries that test.)
  */
 
 test.use({ serviceWorkers: "block" });
 
-const HINT = "scollarly:signed-in";
+const PAGES = ["/", "/universities", "/universities/alpha-university", "/process", "/about", "/faq", "/visa", "/contact"];
 
-async function signedIn(page: Page) {
-  await page.addInitScript((key) => window.localStorage.setItem(key, "1"), HINT);
-}
+const bodyLinks = (page: Page) => page.locator("main a, header a, footer a");
 
-test("public pages stay readable and show no form or chat to a signed-out visitor", async ({ page }) => {
-  await page.goto("/universities/alpha-university");
-  await expect(page.getByRole("heading", { name: "Alpha University" })).toBeVisible();
-  const chat = page.locator("a[data-wa-chat]").first();
-  await expect(chat).toHaveAttribute("href", /^\/sign-in\?next=/);
-  await expect(chat).toHaveAttribute("data-gate", "chat");
+test("every public page stays readable and offers Create an account, with no form, no chat link and no pop-up", async ({ page }) => {
+  for (const path of PAGES) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { level: 1 }).first(), path).toBeVisible();
+    await expect(page.getByRole("link", { name: "Create an account" }).first(), path).toHaveAttribute("href", /^\/sign-up(\?|$)/);
+    await expect(page.locator('a[href*="wa.me"]'), `${path}: a chat link`).toHaveCount(0);
+    await expect(page.locator("a[data-wa-chat], [data-gate], [data-gate-href]"), `${path}: a gate hook`).toHaveCount(0);
+    await expect(page.locator("dialog"), `${path}: a pop-up`).toHaveCount(0);
+    await expect(page.getByLabel("Your WhatsApp number"), `${path}: a form`).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /^Apply$|Start your application|Chat on WhatsApp|Ask about this university on WhatsApp/ }), path).toHaveCount(0);
+  }
 });
 
-test("tapping Apply signed out opens the pop-up with Sign up and Sign in that return to the page", async ({ page }) => {
+test("the header offers Sign in and Create an account to a signed-out visitor", async ({ page }) => {
   await page.goto("/process");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("link", { name: "Start your application" }).first().click();
-  const dialog = page.getByTestId("gate-dialog");
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId("gate-sign-up")).toHaveAttribute("href", "/sign-up?next=%2Fapply");
-  await expect(dialog.getByTestId("gate-sign-in")).toHaveAttribute("href", "/sign-in?next=%2Fapply");
-  await expect(page).toHaveURL(/\/process$/);
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
+  const header = page.locator("header.site-header");
+  await expect(header.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
+  await expect(header.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=%2F");
 });
 
-test("tapping a WhatsApp button signed out shows the pop-up and never opens the chat", async ({ page, context }) => {
-  const outside: string[] = [];
-  await context.route("https://wa.me/**", (route) => {
-    outside.push(route.request().url());
-    return route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>whatsapp</body></html>" });
-  });
+test("Create an account returns the person to the page they were on", async ({ page }) => {
+  await page.goto("/process");
+  await expect(page.locator("main").getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=%2Fprocess");
   await page.goto("/universities/alpha-university");
-  await page.waitForLoadState("networkidle");
-  await page.locator("a[data-wa-chat]").first().click();
-  await expect(page.getByTestId("gate-dialog")).toBeVisible();
-  await expect(page.getByTestId("gate-sign-in")).toHaveAttribute("href", /^\/sign-in\?next=%2Funiversities%2Falpha-university$/);
-  expect(outside).toEqual([]);
-  await expect(page.getByRole("dialog", { name: /quick/i })).toHaveCount(0);
+  await expect(page.locator("main").getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=%2Funiversities%2Falpha-university");
+  await page.goto("/faq");
+  await expect(page.locator("main").getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=%2Ffaq");
 });
 
-test("the course finder's link also asks for an account", async ({ page }) => {
+test("the Contact page still shows the WhatsApp number as text to copy, but no chat link", async ({ page }) => {
+  await page.goto("/contact");
+  await expect(page.getByText("+14155550100")).toBeVisible();
+  await expect(page.getByRole("button", { name: /copy/i })).toBeVisible();
+  await expect(page.locator('a[href*="wa.me"]')).toHaveCount(0);
+  await expect(bodyLinks(page).filter({ hasText: "WhatsApp" })).toHaveCount(0);
+});
+
+test("the course finder's link goes to sign-up with the course, and a course nobody lists points to it", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  await page.getByTestId("course-finder").getByLabel("Course").selectOption("commerce");
+  const select = page.getByTestId("course-finder").getByLabel("Course");
+  await select.selectOption("commerce");
   await page.getByTestId("finder-cta").click();
-  await expect(page.getByTestId("gate-dialog")).toBeVisible();
-});
-
-test("/apply signed out shows the account panel and no form", async ({ page }) => {
-  await page.goto("/apply");
-  const panel = page.getByTestId("require-account");
-  await expect(panel).toBeVisible();
-  await expect(panel.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/sign-up?next=%2Fapply");
-  await expect(page.getByLabel("Your full name")).toHaveCount(0);
-});
-
-test("a signed-in person goes straight to /apply and sees the form", async ({ page }) => {
-  await signedIn(page);
-  await page.goto("/process");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("link", { name: "Start your application" }).first().click();
-  await expect(page).toHaveURL(/\/apply$/);
-  await expect(page.getByTestId("require-account")).toHaveCount(0);
-  await expect(page.getByTestId("gate-dialog")).toBeHidden();
-});
-
-test("the return trip fragment becomes the signed-in hint and leaves the address clean", async ({ page }) => {
-  await page.goto("/apply#signed-in");
-  await expect(page.getByTestId("require-account")).toHaveCount(0);
-  await expect(page).toHaveURL(/\/apply$/);
-  expect(await page.evaluate((key) => window.localStorage.getItem(key), HINT)).toBe("1");
+  await expect(page).toHaveURL(/\/sign-up\?course=commerce$/);
+  await page.goBack();
+  await page.getByTestId("course-finder").getByLabel("Course").selectOption("law");
+  await expect(page.getByTestId("finder-none")).toContainText("Create an account");
+  await expect(page.locator('a[href*="wa.me"]')).toHaveCount(0);
 });
 
 test("the sign-in page carries a valid next and drops an invalid one", async ({ page }) => {

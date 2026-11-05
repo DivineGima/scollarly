@@ -83,7 +83,7 @@ const MAP: Record<string, { file: string; title: string }[]> = {
     { file: `${U}/s13-7-brand.test.ts`, title: "shows the black logo in the site header" },
   ],
   "FR-31": [
-    { file: `${E}/s13-7-landing.spec.ts`, title: "a course no university lists says so and offers WhatsApp" },
+    { file: `${E}/s13-7-landing.spec.ts`, title: "a course no university lists says so and points to Create an account" },
     { file: `${U}/s13-foundations.test.ts`, title: "files every programme in the real seed under a field and a level" },
   ],
   "FR-32": [

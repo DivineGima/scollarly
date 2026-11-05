@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { MarkdownView } from "@/components/public/markdown-view";
 import { MediaImage } from "@/components/public/media-image";
 import { PageLink } from "@/components/public/page-link";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { watDateString } from "@/lib/time";
 import { readBlog } from "@/modules/content/read";
 
@@ -44,7 +44,7 @@ export default async function PostPage({ params }: Props) {
       {post.cover ? <MediaImage media={post.cover} className="cover cover-large" eager /> : null}
       <MarkdownView source={post.body} />
       <p className="cta-row">
-        <WhatsAppButton context={{ page: `/blog/${post.slug}` }} />
+        <CreateAccountLink next={`/blog/${post.slug}`} />
       </p>
     </article>
   );

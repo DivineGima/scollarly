@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { CampusView } from "@/modules/content/types";
 import { CampusEmbed } from "./campus-embed";
-import { WhatsAppButton } from "./whatsapp-button";
 
 /** Campus videos and tours for a university (FR-3). Every item is a facade: nothing loads until a tap. */
 export async function CampusSection({ experiences, headingId = "campus-heading", withHeading = true }: { experiences: CampusView[]; headingId?: string; withHeading?: boolean }) {

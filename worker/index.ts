@@ -5,7 +5,7 @@
 import { applySecurityHeaders } from "../src/lib/security-headers";
 import { runScheduled } from "../src/server/edge/cron";
 import { handleAuthed } from "../src/server/edge/authed";
-import { handleLegacyRedirect } from "../src/server/edge/legacy-redirects";
+import { handleApplyForward, handleLegacyRedirect } from "../src/server/edge/legacy-redirects";
 import { authedDeps, landingDeps, mutationDeps } from "../src/server/edge/authed-runtime";
 import { classify, serveFastPath } from "../src/server/edge/fast-path";
 import { handleLanding } from "../src/server/edge/landing";
@@ -53,6 +53,10 @@ async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext
   // Old admin addresses that became sections of a hub (architecture 21.5): a tiny map, before any session check, so a bookmark keeps working at no cost.
   const moved = handleLegacyRedirect(request);
   if (moved) return moved;
+
+  // The old public Apply address forwards to the Apply screen inside the account, or to Sign in (PRD_4 F24); no database call.
+  const apply = handleApplyForward(request);
+  if (apply) return apply;
 
   const signIn = handleSignIn(request, env);
   if (signIn) return signIn;

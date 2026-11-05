@@ -95,6 +95,9 @@ function HomeBody({ catalogue, view, retry }: { catalogue: readonly CatalogueEnt
   const stageName = view.stage ? (stages.has(view.stage) ? stages(view.stage) : view.stage) : null;
   const whatsapp = view.ref && stageName ? buildWhatsAppUrl(view.whatsappE164, t("whatsappText", { ref: view.ref, stage: stageName })) : null;
   const chosen = view.courseFields.map((field) => courses(field)).join(", ");
+  // A student who has not applied can still message the team (PRD_4 F26): the message is written from the profile, so nothing is asked again.
+  const askText = view.firstName && chosen ? t("whatsappNoApplication", { name: view.firstName, courses: chosen }) : t("whatsappNoApplicationAnon");
+  const whatsappAsk = stageName ? null : buildWhatsAppUrl(view.whatsappE164, askText);
 
   return (
     <section>
@@ -137,6 +140,13 @@ function HomeBody({ catalogue, view, retry }: { catalogue: readonly CatalogueEnt
             <a className="me-button" href="/me/apply" data-testid="apply-button">
               {t("applyButton")}
             </a>
+            {whatsappAsk ? (
+              <a className="me-button me-button-quiet" href={whatsappAsk} target="_blank" rel="noopener noreferrer" data-testid="whatsapp">
+                {t("whatsappAsk")}
+              </a>
+            ) : view.fromPhone ? null : (
+              <p className="me-muted">{t("whatsappMissing")}</p>
+            )}
             <a className="me-button me-button-quiet" href="/me/progress">
               {t("progressLink")}
             </a>
