@@ -1,8 +1,6 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "npx next start -p 3101",
-      "startServerReadyPattern": "Ready",
       "url": [
         "http://localhost:3101/offline",
         "http://localhost:3101/",
@@ -18,7 +16,6 @@
         "http://localhost:3101/contact",
         "http://localhost:3101/privacy",
         "http://localhost:3101/terms",
-        "http://localhost:3101/apply",
         "http://localhost:3101/sign-in",
         "http://localhost:3101/sign-up"
       ],

@@ -51,6 +51,23 @@ export function realOnboardingSyncDeps(onSent?: SyncDeps["onSent"]): SyncDeps {
   };
 }
 
+/**
+ * The sync deps for the Apply screen (S15.3): only applications, which need no Turnstile (the session protects them). Like the onboarding
+ * deps, `getToken` rejects if it were ever called, so an older-form lead can never be sent from here by mistake.
+ */
+export function realApplicationSyncDeps(onSent?: SyncDeps["onSent"]): SyncDeps {
+  return {
+    list: async () => (await listLeads()).filter((item) => item.kind === "application"),
+    update: updateLead,
+    remove: removeLead,
+    now: () => Date.now(),
+    getToken: () => Promise.reject(new Error("no token for an application")),
+    send: (item, turnstileToken) => sendLead(item, turnstileToken),
+    withLock: browserLock(),
+    ...(onSent ? { onSent } : {}),
+  };
+}
+
 export function realSyncDeps(source: TokenSource, onSent?: SyncDeps["onSent"]): SyncDeps {
   return {
     list: listLeads,

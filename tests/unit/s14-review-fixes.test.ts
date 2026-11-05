@@ -53,7 +53,7 @@ describe("review fix 3: the lead endpoint limits before it looks the session up"
     vi.doMock("@/server/repositories/session-lookup", () => ({ resolveSession: (...a: unknown[]) => resolveSession(...a) }));
     vi.doMock("@/modules/leads/service", () => ({ createLead: (...a: unknown[]) => createLead(...a) }));
     vi.doMock("@/server/db/runtime", () => ({ getDb: () => ({}) }));
-    vi.doMock("@/server/repositories/lead-intake", () => ({ insertLead: vi.fn() }));
+    vi.doMock("@/server/repositories/lead-intake", () => ({ insertLead: vi.fn(), tokenHasApplication: vi.fn().mockResolvedValue(false) }));
     vi.doMock("@/server/security/rate-limit", () => ({ createDurableObjectLimiter: () => limiter, limiterKey: async (parts: { route: string }) => parts.route }));
     vi.doMock("@/server/edge/settings-cache", () => ({ cachedSlaSettings: vi.fn() }));
     return (await import("@/server/edge/leads")).handleLeadPost;

@@ -3,13 +3,15 @@ import { classifyLeadResponse, type QueuedLead } from "./logic";
 /** One attempt to send a queued lead to `POST /api/v1/leads` (architecture 8.2). It never throws: every outcome is a result. */
 
 export type SendResult =
-  | { verdict: "sent"; ref: string; replayed: boolean }
+  /** `alreadyApplied`: the server said this account had applied before (S15.3), so the screen says so instead of "sent". */
+  | { verdict: "sent"; ref: string; replayed: boolean; alreadyApplied?: true }
   | { verdict: "rejected"; status: number; code: string; fields: Record<string, string> }
   | { verdict: "limited"; retryAfterSeconds: number; reason: "number_limit" | "rate" }
   | { verdict: "retry"; status: number; code: string; retryAfterSeconds: number | null };
 
 export const LEADS_ENDPOINT = "/api/v1/leads";
 export const ONBOARDING_ENDPOINT = "/api/v1/me/onboarding";
+export const APPLICATION_ENDPOINT = "/api/v1/me/application";
 const REQUEST_TIMEOUT_MS = 20_000;
 
 /**
@@ -30,14 +32,17 @@ export async function sendLead(
   timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<SendResult> {
   const onboarding = item.kind === "onboarding";
+  const application = item.kind === "application";
+  // A signed-in person's item (onboarding, application) needs no Turnstile token: the session protects it.
+  const signedIn = onboarding || application;
   let response: Response;
   try {
-    response = await fetchImpl(onboarding ? ONBOARDING_ENDPOINT : LEADS_ENDPOINT, {
+    response = await fetchImpl(onboarding ? ONBOARDING_ENDPOINT : application ? APPLICATION_ENDPOINT : LEADS_ENDPOINT, {
       method: "POST",
       credentials: "same-origin",
       cache: "no-store",
       headers: { "Content-Type": "application/json", "Idempotency-Key": item.key },
-      body: JSON.stringify(onboarding ? item.payload : { ...item.payload, turnstile_token: turnstileToken }),
+      body: JSON.stringify(signedIn ? item.payload : { ...item.payload, turnstile_token: turnstileToken }),
       signal: timeoutSignal(timeoutMs),
     });
   } catch {
@@ -50,6 +55,12 @@ export async function sendLead(
     json = (await response.json()) as Body;
   } catch {
     // Not JSON (a proxy error page): treated by status below.
+  }
+
+  // This account already has an application (a second device, or this very request answered once and sent again): the application exists, so
+  // this item is done. The reference of the existing one rides in `fields.ref`.
+  if (application && response.status === 409 && json?.error?.code === "ALREADY_APPLIED") {
+    return { verdict: "sent", ref: json.error.fields?.ref ?? "", replayed: true, alreadyApplied: true };
   }
 
   const verdict = classifyLeadResponse(response.status);

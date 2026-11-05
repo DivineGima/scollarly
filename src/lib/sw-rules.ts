@@ -33,7 +33,7 @@ export function isMediaImage(pathname: string): boolean {
  * with Notifications and Profile (S13.6). The sign-in, sign-out and account pages, the questionnaire's API and every `/api/*`
  * route are not shells and are never kept.
  */
-export const KEPT_SHELL = new RegExp(`^(?:/(?:${locales.join("|")}))?/(?:me(?:/(?:universities|progress|help|notifications|profile|data|link-application|onboarding))?|admin(?:/(?:leads|content|insights|notifications|profile))?)/?$`);
+export const KEPT_SHELL = new RegExp(`^(?:/(?:${locales.join("|")}))?/(?:me(?:/(?:universities|progress|help|notifications|profile|data|link-application|onboarding|apply))?|admin(?:/(?:leads|content|insights|notifications|profile))?)/?$`);
 
 export function isKeptShell(pathname: string): boolean {
   return KEPT_SHELL.test(pathname);

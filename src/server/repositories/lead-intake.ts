@@ -14,6 +14,15 @@ export function pgArray(values: readonly string[]): string {
   return `{${values.map((v) => `"${v.replace(/[\\"]/g, "\\$&")}"`).join(",")}}`;
 }
 
+/**
+ * Whether the session behind `token` belongs to a student who already has an application (`app_token_has_application`, migration 0020).
+ * The older lead endpoint asks it so a second application cannot be made there (architecture 23.3). Read-only.
+ */
+export async function tokenHasApplication(db: Db, token: string): Promise<boolean> {
+  const [row] = rowsOf<{ has: boolean }>(await db.execute(sql`select public.app_token_has_application(${token}) as has`));
+  return row?.has === true;
+}
+
 export interface NewLead {
   id: string;
   idempotencyKey: string;

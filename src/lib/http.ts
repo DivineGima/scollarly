@@ -13,6 +13,8 @@ export type ErrorCode =
   | "STEP_UP_REQUIRED"
   | "ACCOUNT_NOT_CONFIRMED"
   | "ONBOARDING_REQUIRED"
+  /** This account already has an application (PRD_4 F24): one per account. The body's `fields.ref` is its reference. */
+  | "ALREADY_APPLIED"
   | "TURNSTILE_FAILED"
   | "IDEMPOTENCY_KEY_REUSED"
   | "PAYLOAD_TOO_LARGE"
@@ -62,6 +64,7 @@ export const STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   STEP_UP_REQUIRED: 403,
   ACCOUNT_NOT_CONFIRMED: 403,
   ONBOARDING_REQUIRED: 403,
+  ALREADY_APPLIED: 409,
   TURNSTILE_FAILED: 403,
   IDEMPOTENCY_KEY_REUSED: 409,
   PAYLOAD_TOO_LARGE: 413,

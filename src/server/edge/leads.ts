@@ -4,7 +4,7 @@ import { readSessionToken } from "@/server/auth/cookie";
 import { isTrustedSession, sessionNeedsOnboarding } from "@/server/auth/trusted-session";
 import { resolveSession } from "@/server/repositories/session-lookup";
 import { getDb } from "@/server/db/runtime";
-import { insertLead } from "@/server/repositories/lead-intake";
+import { insertLead, tokenHasApplication } from "@/server/repositories/lead-intake";
 import { createDurableObjectLimiter, limiterKey } from "@/server/security/rate-limit";
 import { logError } from "@/server/log";
 import { isMeasurementRequest } from "@/server/security/measurement";
@@ -66,6 +66,18 @@ export async function handleLeadPost(request: Request, env: CloudflareEnv): Prom
     // A student applies after the questionnaire, never instead of it (PRD_3 F15, ADR-053).
     if (sessionNeedsOnboarding(session)) {
       return errorResponse(403, "ONBOARDING_REQUIRED", "Finish your sign-up to continue.", requestId);
+    }
+    // One application per account (PRD_4 F24, architecture 23.3): this older endpoint is no longer used by any screen, but a request queued by
+    // an earlier version must not be able to make a second one. Only a student can have an application of their own to protect.
+    if (session.role === "student") {
+      try {
+        if (await tokenHasApplication(db, sessionToken)) {
+          return errorResponse(409, "ALREADY_APPLIED", "You already applied.", requestId);
+        }
+      } catch (error) {
+        logError(requestId, "leads", error);
+        return errorResponse(503, "TEMPORARILY_UNAVAILABLE", "Please try again in a moment.", requestId);
+      }
     }
   }
   const outcome = await createLead(

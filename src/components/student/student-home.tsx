@@ -134,6 +134,9 @@ function HomeBody({ catalogue, view, retry }: { catalogue: readonly CatalogueEnt
         ) : (
           <>
             <p>{t("noApplication")}</p>
+            <a className="me-button" href="/me/apply" data-testid="apply-button">
+              {t("applyButton")}
+            </a>
             <a className="me-button me-button-quiet" href="/me/progress">
               {t("progressLink")}
             </a>

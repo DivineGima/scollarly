@@ -13,6 +13,7 @@ import { profileDataCalls, profileMutations } from "@/modules/profile/endpoints"
 import { accountMutations } from "@/modules/account/endpoints";
 import { homeDataCalls, tourMutations } from "@/modules/dashboard/endpoints";
 import { notificationDataCalls, notificationMutations } from "@/modules/notifications/endpoints";
+import { applicationDataCalls, applicationMutations } from "@/modules/applications/endpoints";
 import { onboardingDataCalls, onboardingMutations } from "@/modules/onboarding/endpoints";
 import { studentDataCalls, studentMutations } from "@/modules/student/endpoints";
 import { teamDataCalls, teamMutations } from "@/modules/team/endpoints";
@@ -58,6 +59,7 @@ export function authedDeps(env: CloudflareEnv, rest: Pick<AuthedDeps, "cache" | 
       ...crmDataCalls(endpoint),
       ...studentDataCalls(endpoint),
       ...onboardingDataCalls(endpoint),
+      ...applicationDataCalls(endpoint),
       ...notificationDataCalls(endpoint),
       ...homeDataCalls(endpoint),
       ...paymentDataCalls(endpoint),
@@ -73,7 +75,7 @@ export function mutationDeps(env: CloudflareEnv): MutationDeps {
   return {
     checkSession: facadeFor(endpoint).checkSession,
     env: endpoint,
-    mutations: { ...accountMutations, ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...onboardingMutations, ...notificationMutations, ...tourMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
+    mutations: { ...accountMutations, ...authMutations, ...profileMutations, ...teamMutations, ...leadMutations, ...contentMutations, ...studentMutations, ...onboardingMutations, ...applicationMutations, ...notificationMutations, ...tourMutations, ...paymentMutations, ...settingsMutations, ...exportMutations },
     // The caller is hashed with a daily salt at once; the raw address is never stored or logged (ADR-027).
     limit: async (operation, request, max, windowMs) =>
       limiter(await limiterKey({ route: operation, ip: request.headers.get("cf-connecting-ip") }, env.RATE_LIMIT_SECRET), max, windowMs),

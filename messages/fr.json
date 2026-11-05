@@ -2272,14 +2272,56 @@
     }
   },
   "student": {
+    "apply": {
+      "title": "Postuler",
+      "intro": "Vos informations viennent de vos réponses : il ne reste qu'à choisir les programmes. Choisissez-en au moins {min}, dans l'ordre de votre préférence.",
+      "legend": "Programmes",
+      "suggested": "Suggéré pour vous",
+      "choice": "Choix {n}",
+      "count": "{count} choisi(s) (au moins {min} nécessaires)",
+      "minProgrammes": "Choisissez au moins {min} programmes pour continuer.",
+      "tooMany": "Vous pouvez choisir jusqu'à {max} programmes.",
+      "send": "Envoyer ma candidature",
+      "sending": "Envoi…",
+      "soon": "Les candidatures ouvrent bientôt. Vous les trouverez ici dès que des programmes seront publiés.",
+      "ref": "Votre référence : {ref}",
+      "go": "Aller à ma page",
+      "done": {
+        "title": "Votre candidature est envoyée",
+        "body": "Un conseiller vous écrira bientôt sur WhatsApp."
+      },
+      "already": {
+        "title": "Vous avez déjà postulé",
+        "body": "Votre candidature est chez un conseiller. Voici où elle en est.",
+        "stage": "Étape actuelle : {stage}"
+      },
+      "queued": {
+        "title": "Enregistré sur ce téléphone",
+        "offline": "Vous êtes hors ligne. Votre candidature est enregistrée et sera envoyée dès que vous serez de nouveau en ligne.",
+        "retry": "Nous n'avons pas encore pu l'envoyer. Nous réessaierons, ou vous pouvez réessayer maintenant.",
+        "signIn": "Votre session a pris fin. Connectez-vous pour envoyer votre candidature.",
+        "signInButton": "Se connecter",
+        "numberLimit": "Ce numéro WhatsApp a déjà servi à plusieurs candidatures aujourd'hui. Nous réessaierons plus tard.",
+        "finishSignUp": "Terminez d'abord votre inscription, puis votre candidature sera envoyée.",
+        "finishSignUpButton": "Terminer l'inscription",
+        "tryNow": "Réessayer maintenant"
+      },
+      "rejected": {
+        "title": "Nous n'avons pas pu envoyer votre candidature",
+        "body": "Veuillez vérifier vos programmes et réessayer.",
+        "noStorage": "Ce navigateur ne peut pas enregistrer votre candidature. Ouvrez cette page dans une fenêtre normale et réessayez.",
+        "review": "Revoir mes programmes"
+      }
+    },
     "home": {
       "greeting": "Bonjour {name}",
       "greetingNoName": "Bienvenue",
       "stageTitle": "Où vous en êtes",
       "stepOf": "Étape {position} sur {total}",
       "nextTitle": "Et ensuite",
-      "noApplication": "Nous faisons le lien avec votre dossier. Ouvrez Mon suivi pour en lier un que vous avez déjà fait.",
-      "progressLink": "Ouvrir Mon suivi",
+      "noApplication": "Vous n'avez pas encore postulé. Quand vous serez prêt, choisissez vos programmes et envoyez votre candidature.",
+      "applyButton": "Postuler",
+      "progressLink": "Lier une candidature déjà faite",
       "finishProfile": {
         "title": "Terminez votre profil",
         "body": "Quelques questions courtes nous permettent de vous montrer les universités qui conviennent à votre filière.",
