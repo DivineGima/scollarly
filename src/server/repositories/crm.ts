@@ -41,6 +41,11 @@ export interface CrmOverview {
   days: { day: string; n: number }[];
   countries: { key: string; count: number }[];
   sources: { key: string; count: number }[];
+  /**
+   * Profiles finished in the range, and how many of them have applied by now (PRD_4 F27, architecture 23.6). Null when a filter is set that a
+   * profile does not have (a source page, an assigned admin): the numbers would be about different people than the rest of the screen.
+   */
+  onboarding: { onboarded: number; applied: number } | null;
 }
 
 export async function crmOverview(db: Db, actor: Actor, f: CrmFilters): Promise<CrmOverview> {
@@ -52,7 +57,8 @@ export async function crmOverview(db: Db, actor: Actor, f: CrmFilters): Promise<
   const inPrev = sql`l.received_at >= ${prevStart}::timestamptz and l.received_at < ${start}::timestamptz`;
   const minutes = sql`extract(epoch from (l.first_response_at - l.received_at)) / 60.0`;
 
-  const [summary, stages, days, countries, sources] = await runAs(
+  const profilesApply = f.source === null && f.assigned === "all";
+  const [summary, stages, days, countries, sources, profiles] = await runAs(
     db,
     actor,
     db.execute(sql`
@@ -79,6 +85,14 @@ export async function crmOverview(db: Db, actor: Actor, f: CrmFilters): Promise<
       select l.country_code as key, count(*)::int as n from lead l where ${where} and ${inCur} group by 1 order by 2 desc limit 40`),
     db.execute(sql`
       select coalesce(l.source ->> 'page', 'unknown') as key, count(*)::int as n from lead l where ${where} and ${inCur} group by 1 order by 2 desc limit 40`),
+    // Profiles, not leads: a profile is not a lead, so nothing above is changed by this one (it only counts students who finished onboarding).
+    profilesApply
+      ? db.execute(sql`
+          select count(*)::int as onboarded, count(*) filter (where sp.lead_id is not null)::int as applied
+            from student_profile sp
+           where sp.onboarded_at >= ${start}::timestamptz and sp.onboarded_at < ${end}::timestamptz
+             ${f.country ? sql`and sp.applicant_country = ${f.country}` : sql``}`)
+      : db.execute(sql`select 0::int as onboarded, 0::int as applied`),
   );
 
   const s = rowsOf<Record<string, unknown>>(summary)[0] ?? {};
@@ -91,6 +105,7 @@ export async function crmOverview(db: Db, actor: Actor, f: CrmFilters): Promise<
     days: rowsOf<{ day: string; n: number }>(days).map((row) => ({ day: row.day, n: n(row.n) })),
     countries: rowsOf<{ key: string; n: number }>(countries).map((row) => ({ key: row.key, count: n(row.n) })),
     sources: rowsOf<{ key: string; n: number }>(sources).map((row) => ({ key: row.key, count: n(row.n) })),
+    onboarding: profilesApply ? { onboarded: n(rowsOf<Record<string, unknown>>(profiles)[0]?.onboarded), applied: n(rowsOf<Record<string, unknown>>(profiles)[0]?.applied) } : null,
   };
 }
 

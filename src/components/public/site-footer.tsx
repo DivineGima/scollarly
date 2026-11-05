@@ -19,7 +19,9 @@ export async function SiteFooter() {
             <PageLink href="/contact">{t("nav.contact")}</PageLink>
           </li>
           <li>
-            <PageLink href="/sign-in">{t("signIn")}</PageLink>
+            <PageLink href="/account" data-sign-in-link>
+              {t("signIn")}
+            </PageLink>
           </li>
         </ul>
       </div>

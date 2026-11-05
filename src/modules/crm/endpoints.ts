@@ -9,7 +9,7 @@ import { writeAudit } from "@/server/repositories/audit";
 import { crmOverview, exportLeads, pipelineBoard } from "@/server/repositories/crm";
 import { fillSeries } from "@/modules/dashboard/periods";
 import { readCrmFilters } from "./filters";
-import { formatMinutes, funnelFromStages, percentOf, toCsv, topSlices } from "./metrics";
+import { formatMinutes, funnelFromStages, percentOf, toCsv, topSlices, withOnboardedStep } from "./metrics";
 
 /**
  * The CRM screens (PRD_3 F18 amended, architecture 22.8, ADR-057, ADR-058): plain data calls in the Worker entry (ADR-040), staff only, checked by
@@ -74,10 +74,13 @@ export function crmDataCalls(env: EndpointEnv): Record<string, DataCall> {
           overdue: data.overdue,
           arrived: data.arrived,
           arrivedPercent: percentOf(data.arrived, data.current.leads),
+          onboarded: data.onboarding?.onboarded ?? null,
+          appliedOfOnboarded: data.onboarding?.applied ?? null,
+          appliedOfOnboardedPercent: data.onboarding ? percentOf(data.onboarding.applied, data.onboarding.onboarded) : null,
         },
         series: fillSeries(daysBetween(f.range.from, f.range.to), data.days),
         stages: data.stages.map((stage) => ({ code: stage.code, label: labelOf.get(stage.code) ?? stage.code, count: stage.count })),
-        funnel: funnel.map((step) => ({ ...step, label: labelOf.get(step.code) ?? step.code })),
+        funnel: withOnboardedStep(funnel, data.onboarding?.onboarded ?? null).map((step) => ({ ...step, label: labelOf.get(step.code) ?? step.code })),
         countries: topSlices(data.countries, 8),
         sources: topSlices(data.sources, 8),
         admins:

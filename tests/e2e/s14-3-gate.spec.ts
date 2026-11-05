@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
  * form, no quick WhatsApp form, no chat link and no sign-in pop-up on any public page: applying and chatting live inside the account.
  * Public information stays readable without an account. (The Worker's forward from the old `/apply` address is not there under
  * `next start`; it is proven in tests/unit/s14-3-gate.test.ts. The return trip's `#signed-in` fragment becoming the signed-in hint was read
- * by the pop-up script; the "My account" swap of S15.5 reads it again and carries that test.)
+ * by the pop-up script; the "My account" swap of S15.5 reads it again; its test is in tests/e2e/s15-5-account.spec.ts.)
  */
 
 test.use({ serviceWorkers: "block" });
@@ -31,7 +31,7 @@ test("every public page stays readable and offers Create an account, with no for
 test("the header offers Sign in and Create an account to a signed-out visitor", async ({ page }) => {
   await page.goto("/process");
   const header = page.locator("header.site-header");
-  await expect(header.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
+  await expect(header.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/account");
   await expect(header.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=%2F");
 });
 

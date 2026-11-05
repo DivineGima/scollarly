@@ -129,7 +129,9 @@ describe("the data calls", () => {
     expect(json.totals).toMatchObject({ leads: 6, previousLeads: 2, answered: 1, answeredPercent: 17, arrived: 1 });
     expect(json.series).toHaveLength(30);
     expect(json.series.reduce((sum: number, p: { value: number }) => sum + p.value, 0)).toBe(6);
-    expect(json.funnel[0]).toMatchObject({ code: "share_results", reached: 6, ofAll: 100 });
+    // S15.6: the funnel starts with the students who finished their profile (none here); the stage steps follow, unchanged.
+    expect(json.funnel[0]).toMatchObject({ code: "profile_onboarded", reached: 0 });
+    expect(json.funnel[1]).toMatchObject({ code: "share_results", reached: 6, ofAll: 100 });
     expect(json.funnel.at(-1)).toMatchObject({ code: "arrived", reached: 1 });
     expect(json.filters).toEqual({ country: null, source: null, assigned: "all" });
   });

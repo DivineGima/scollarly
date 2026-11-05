@@ -29,7 +29,8 @@ export async function SiteHeader() {
           {t("name")}
         </PageLink>
         <div className="bar-actions">
-          <PageLink href="/sign-in" className="link-quiet">
+          {/* `/account` sends a signed-out visitor to Sign in; the account-link island hides this link for a signed-in browser, where the button beside it reads "My account" (PRD_4 F25). */}
+          <PageLink href="/account" className="link-quiet" data-sign-in-link data-hide-signed-in>
             {t("signIn")}
           </PageLink>
           <CreateAccountLink next="/" size="small" />

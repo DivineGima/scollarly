@@ -523,6 +523,18 @@
         "generic": "Something went wrong. Try again."
       }
     },
+    "notApplied": {
+      "title": "Not applied yet",
+      "purpose": "Students who finished their profile and have not applied. They are not leads: they have no reference and are not on the response clock.",
+      "empty": "Everyone who finished their profile has applied.",
+      "count": "{count, plural, one {# student has} other {# students have}} not applied yet.",
+      "showing": "Showing the newest {shown} of {total} students who have not applied yet.",
+      "unknownStudent": "A student",
+      "noCourses": "No courses chosen",
+      "finished": "Finished their profile: {when}",
+      "chat": "Message on WhatsApp",
+      "message": "Hello {name}, this is Scollarly. You finished your profile, and the next step is to choose your programmes and apply. Can we help you with that?"
+    },
     "linkRequests": {
       "title": "Link requests",
       "intro": "Students who asked to link their account to an application. Nothing is linked unless you approve it.",
@@ -1374,7 +1386,8 @@
         "leads": "Leads",
         "linkRequests": "Link requests",
         "dataRequests": "Data requests",
-        "pipeline": "Pipeline"
+        "pipeline": "Pipeline",
+        "notApplied": "Not applied yet"
       },
       "content": {
         "overview": "All content",
@@ -1475,7 +1488,11 @@
         "overdue": "Overdue",
         "overdueNote": "Not answered in time, still open",
         "arrived": "Arrived in India",
-        "arrivedOf": "{arrived} of {leads} leads"
+        "arrivedOf": "{arrived} of {leads} leads",
+        "onboarded": "Finished their profile",
+        "onboardedNote": "Students who finished onboarding in this period. Not leads.",
+        "appliedOfOnboarded": "Applied, of those",
+        "appliedOfOnboardedOf": "{applied} of {onboarded} students"
       },
       "change": {
         "up": "Up {percent}% on the period before",
@@ -1499,7 +1516,8 @@
         "totalLabel": "leads",
         "funnel": "How far leads get",
         "funnelExplain": "Each bar is the leads that reached that step or went past it. The percentage is how many of the step before made it.",
-        "funnelCaption": "Leads that reached each stage",
+        "onboardedStep": "Finished their profile",
+        "funnelCaption": "Students who finished their profile, then the leads that reached each stage",
         "ofPrevious": "{percent}% of the step before",
         "countries": "Where students are from",
         "countriesExplain": "The countries with the most leads. The rest are grouped as Other.",
@@ -1544,6 +1562,7 @@
     "skip": "Skip to main content",
     "createAccount": "Create an account",
     "signIn": "Sign in",
+    "myAccount": "My account",
     "nav": {
       "label": "Main",
       "home": "Home",

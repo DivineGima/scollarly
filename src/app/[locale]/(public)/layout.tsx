@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { AccountLinkSwap } from "@/components/public/account-link-swap";
 import { ClientShell } from "@/components/public/client-shell";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
@@ -33,6 +34,7 @@ export default async function PublicLayout({ children, params }: { children: Rea
         {children}
       </main>
       <SiteFooter />
+      <AccountLinkSwap label={t("myAccount")} />
       <ClientShell locale={locale} />
     </div>
   );

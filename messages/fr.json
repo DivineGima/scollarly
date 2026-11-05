@@ -523,6 +523,18 @@
         "generic": "Une erreur est survenue. Réessayez."
       }
     },
+    "notApplied": {
+      "title": "Pas encore candidats",
+      "purpose": "Les étudiants qui ont terminé leur profil sans déposer de candidature. Ce ne sont pas des demandes : pas de référence, pas de délai de réponse.",
+      "empty": "Tous ceux qui ont terminé leur profil ont déposé une candidature.",
+      "count": "{count, plural, one {# étudiant n'a} other {# étudiants n'ont}} pas encore déposé de candidature.",
+      "showing": "Les {shown} plus récents sur {total} étudiants qui n'ont pas encore déposé de candidature.",
+      "unknownStudent": "Un étudiant",
+      "noCourses": "Aucun cours choisi",
+      "finished": "Profil terminé : {when}",
+      "chat": "Écrire sur WhatsApp",
+      "message": "Bonjour {name}, ici Scollarly. Vous avez terminé votre profil ; l'étape suivante est de choisir vos programmes et de déposer votre candidature. Pouvons-nous vous aider ?"
+    },
     "linkRequests": {
       "title": "Demandes de rattachement",
       "intro": "Des étudiants demandent à rattacher leur compte à une candidature. Rien n’est rattaché sans votre accord.",
@@ -1374,7 +1386,8 @@
         "leads": "Contacts",
         "linkRequests": "Demandes de lien",
         "dataRequests": "Demandes de données",
-        "pipeline": "Parcours"
+        "pipeline": "Parcours",
+        "notApplied": "Pas encore candidats"
       },
       "content": {
         "overview": "Tout le contenu",
@@ -1475,7 +1488,11 @@
         "overdue": "En retard",
         "overdueNote": "Sans réponse à temps, encore ouverts",
         "arrived": "Arrivés en Inde",
-        "arrivedOf": "{arrived} sur {leads} dossiers"
+        "arrivedOf": "{arrived} sur {leads} dossiers",
+        "onboarded": "Profil terminé",
+        "onboardedNote": "Étudiants qui ont terminé leur profil sur la période. Pas des dossiers.",
+        "appliedOfOnboarded": "Ont candidaté, parmi eux",
+        "appliedOfOnboardedOf": "{applied} sur {onboarded} étudiants"
       },
       "change": {
         "up": "En hausse de {percent} % sur la période d'avant",
@@ -1499,7 +1516,8 @@
         "totalLabel": "dossiers",
         "funnel": "Jusqu'où vont les dossiers",
         "funnelExplain": "Chaque barre est le nombre de dossiers qui ont atteint cette étape ou l'ont dépassée. Le pourcentage est la part de l'étape d'avant qui y est arrivée.",
-        "funnelCaption": "Dossiers qui ont atteint chaque étape",
+        "onboardedStep": "Profil terminé",
+        "funnelCaption": "Étudiants qui ont terminé leur profil, puis dossiers qui ont atteint chaque étape",
         "ofPrevious": "{percent} % de l'étape d'avant",
         "countries": "D'où viennent les étudiants",
         "countriesExplain": "Les pays avec le plus de dossiers. Les autres sont regroupés.",
@@ -1544,6 +1562,7 @@
     "skip": "Aller au contenu principal",
     "createAccount": "Créer un compte",
     "signIn": "Se connecter",
+    "myAccount": "Mon compte",
     "nav": {
       "label": "Principal",
       "home": "Accueil",

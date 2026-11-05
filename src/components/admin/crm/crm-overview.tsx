@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { changeOf } from "@/modules/dashboard/periods";
-import type { Slice } from "@/modules/crm/metrics";
+import { ONBOARDED_STEP, type Slice } from "@/modules/crm/metrics";
 import { BarChart } from "../charts/bar-chart";
 import { DonutChart } from "../charts/donut-chart";
 import { LineChart } from "../charts/line-chart";
@@ -24,6 +24,10 @@ interface CrmData {
     overdue: number;
     arrived: number;
     arrivedPercent: number | null;
+    /** Students who finished onboarding in the range, and the share who applied; null when a filter a profile does not have is set. */
+    onboarded: number | null;
+    appliedOfOnboarded: number | null;
+    appliedOfOnboardedPercent: number | null;
   };
   series: { label: string; value: number }[];
   stages: { code: string; label: string; count: number }[];
@@ -97,6 +101,17 @@ function Body({ data, applied }: { data: CrmData; applied: AppliedFilters }) {
         <Tile testid="tile-response" label={t("tiles.response")} value={response} />
         <Tile testid="tile-overdue" label={t("tiles.overdue")} value={String(totals.overdue)} change={t("tiles.overdueNote")} />
         <Tile testid="tile-arrived" label={t("tiles.arrived")} value={totals.arrivedPercent === null ? "–" : `${totals.arrivedPercent}%`} change={t("tiles.arrivedOf", { arrived: totals.arrived, leads: totals.leads })} />
+        {typeof totals.onboarded !== "number" ? null : (
+          <>
+            <Tile testid="tile-onboarded" label={t("tiles.onboarded")} value={String(totals.onboarded)} change={t("tiles.onboardedNote")} />
+            <Tile
+              testid="tile-applied-of-onboarded"
+              label={t("tiles.appliedOfOnboarded")}
+              value={totals.appliedOfOnboardedPercent === null ? "–" : `${totals.appliedOfOnboardedPercent}%`}
+              change={t("tiles.appliedOfOnboardedOf", { applied: totals.appliedOfOnboarded ?? 0, onboarded: totals.onboarded })}
+            />
+          </>
+        )}
       </ul>
 
       <p>
@@ -122,7 +137,7 @@ function Body({ data, applied }: { data: CrmData; applied: AppliedFilters }) {
           <p className="crm-explain">{t("charts.funnelExplain")}</p>
           <BarChart
             id="crm-funnel"
-            rows={data.funnel.map((step) => ({ key: step.code, label: step.label, value: step.reached, note: step.ofPrevious === null ? undefined : t("charts.ofPrevious", { percent: step.ofPrevious }) }))}
+            rows={data.funnel.map((step) => ({ key: step.code, label: step.code === ONBOARDED_STEP ? t("charts.onboardedStep") : step.label, value: step.reached, note: step.ofPrevious === null ? undefined : t("charts.ofPrevious", { percent: step.ofPrevious }) }))}
             caption={t("charts.funnelCaption")}
             columns={{ label: t("columns.stage"), value: t("columns.reached") }}
             empty={t("empty")}
