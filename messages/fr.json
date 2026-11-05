@@ -1517,7 +1517,7 @@
         "funnel": "Jusqu'où vont les dossiers",
         "funnelExplain": "Chaque barre est le nombre de dossiers qui ont atteint cette étape ou l'ont dépassée. Le pourcentage est la part de l'étape d'avant qui y est arrivée.",
         "onboardedStep": "Profil terminé",
-        "funnelCaption": "Étudiants qui ont terminé leur profil, puis dossiers qui ont atteint chaque étape",
+        "funnelCaption": "Dossiers qui ont atteint chaque étape",
         "ofPrevious": "{percent} % de l'étape d'avant",
         "countries": "D'où viennent les étudiants",
         "countriesExplain": "Les pays avec le plus de dossiers. Les autres sont regroupés.",

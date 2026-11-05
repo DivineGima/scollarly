@@ -1517,7 +1517,7 @@
         "funnel": "How far leads get",
         "funnelExplain": "Each bar is the leads that reached that step or went past it. The percentage is how many of the step before made it.",
         "onboardedStep": "Finished their profile",
-        "funnelCaption": "Students who finished their profile, then the leads that reached each stage",
+        "funnelCaption": "Leads that reached each stage",
         "ofPrevious": "{percent}% of the step before",
         "countries": "Where students are from",
         "countriesExplain": "The countries with the most leads. The rest are grouped as Other.",
