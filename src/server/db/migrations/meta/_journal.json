@@ -141,6 +141,13 @@
       "when": 1793566400000,
       "tag": "0019_profile_only_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793652800000,
+      "tag": "0020_apply_from_profile",
+      "breakpoints": true
     }
   ]
 }

@@ -2272,14 +2272,56 @@
     }
   },
   "student": {
+    "apply": {
+      "title": "Apply",
+      "intro": "Your details come from your answers, so you only choose the programmes. Pick at least {min}, and tick them in the order you prefer.",
+      "legend": "Programmes",
+      "suggested": "Suggested for you",
+      "choice": "Choice {n}",
+      "count": "{count} chosen (at least {min} needed)",
+      "minProgrammes": "Choose at least {min} programmes to continue.",
+      "tooMany": "You can choose up to {max} programmes.",
+      "send": "Send my application",
+      "sending": "Sending…",
+      "soon": "Applications open soon. You will find them here as soon as programmes are published.",
+      "ref": "Your reference: {ref}",
+      "go": "Go to my page",
+      "done": {
+        "title": "Your application is sent",
+        "body": "An adviser will message you on WhatsApp soon."
+      },
+      "already": {
+        "title": "You already applied",
+        "body": "Your application is with an adviser. Here is where it stands.",
+        "stage": "Current step: {stage}"
+      },
+      "queued": {
+        "title": "Saved on this phone",
+        "offline": "You are offline. Your application is saved and will be sent when you are back online.",
+        "retry": "We could not send it yet. We will try again, or you can try now.",
+        "signIn": "Your session ended. Sign in to send your application.",
+        "signInButton": "Sign in",
+        "numberLimit": "This WhatsApp number has already been used for several applications today. We will try again later.",
+        "finishSignUp": "Finish your sign-up first, then your application will be sent.",
+        "finishSignUpButton": "Finish sign-up",
+        "tryNow": "Try now"
+      },
+      "rejected": {
+        "title": "We could not send your application",
+        "body": "Please check your programmes and try again.",
+        "noStorage": "This browser cannot save your application. Please open this page in a normal window and try again.",
+        "review": "Review my programmes"
+      }
+    },
     "home": {
       "greeting": "Hi {name}",
       "greetingNoName": "Welcome",
       "stageTitle": "Where you are",
       "stepOf": "Step {position} of {total}",
       "nextTitle": "What happens next",
-      "noApplication": "We are matching your application. Open My progress to link one you already made.",
-      "progressLink": "Open My progress",
+      "noApplication": "You have not applied yet. When you are ready, choose your programmes and send your application.",
+      "applyButton": "Apply",
+      "progressLink": "Link an application I already made",
       "finishProfile": {
         "title": "Finish your profile",
         "body": "A few short questions let us show the universities that fit your course.",

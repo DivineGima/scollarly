@@ -95,3 +95,68 @@
   font-weight: 600;
   text-decoration: none;
 }
+
+/* The Apply screen (S15.3): one row per programme, thumb-sized, readable at 320 px. */
+.apply-programmes {
+  min-width: 0;
+  margin: var(--space-4) 0 var(--space-2);
+  padding: 0;
+  border: 0;
+}
+
+.apply-programmes legend {
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.apply-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.apply-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--touch-target, 2.75rem);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.apply-row input {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.125rem;
+}
+
+.apply-row label {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.apply-name {
+  font-weight: 600;
+}
+
+.apply-meta {
+  font-size: var(--text-sm);
+}
+
+.apply-tag,
+.apply-rank {
+  justify-self: start;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}

@@ -22,8 +22,8 @@ export type QueuedLeadStatus = "pending" | "sending" | "sent" | "failed";
 
 /** A lead in the browser's queue. `payload` is the request body without the Turnstile token, which is fresh on every attempt. */
 export interface QueuedLead {
-  /** What the item is. Missing means a lead from the apply forms; `onboarding` is a finished questionnaire (S13.3). */
-  kind?: "lead" | "onboarding";
+  /** What the item is. Missing means a lead from the older apply forms; `onboarding` is a finished questionnaire (S13.3); `application` is the application made from the profile (S15.3). */
+  kind?: "lead" | "onboarding" | "application";
   /** The idempotency key (a UUID). It never changes, so every retry is the same request. */
   key: string;
   payload: Record<string, unknown>;
