@@ -6,8 +6,8 @@ import { type AnswerField, validateAnswers } from "./validate";
 
 /**
  * The body of `POST /api/v1/me/onboarding` (architecture 21.6). Unknown fields are refused. The shape is checked here; every rule about
- * the answers is `validateAnswers`, the same function the phone runs before it lets a person press Next. The idempotency key is a
- * header, like `POST /api/v1/leads`, so it is not part of the payload hash.
+ * the answers is `validateAnswers`, the same function the phone runs before it lets a person press Next. Finishing stores the profile only
+ * (S15.2); the `Idempotency-Key` header of an earlier version is no longer needed.
  */
 export const onboardingBodySchema = z
   .strictObject({
@@ -23,9 +23,9 @@ export const onboardingBodySchema = z
     course_fields: z.array(z.string({ error: V.UNKNOWN_VALUE }), { error: V.REQUIRED }),
     intake_year: z.number({ error: V.REQUIRED }),
     locale: localeSchema,
-    /** The device-generated reference, `SC-XXXXX-XXXXX` (ADR-006). */
-    client_ref: z.string().regex(REF_PATTERN, V.INVALID),
-    client_created_at: isoDateTimeSchema,
+    /** Sent by earlier versions, when finishing onboarding also made a lead. Accepted so a request queued on a phone still works; ignored. */
+    client_ref: z.string().regex(REF_PATTERN, V.INVALID).optional(),
+    client_created_at: isoDateTimeSchema.optional(),
     consent: z.strictObject({ notice_version: requiredText(32) }),
   })
   .superRefine((body, ctx) => {

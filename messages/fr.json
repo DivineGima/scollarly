@@ -2240,15 +2240,20 @@
       "CONSENT_REQUIRED": "Veuillez cocher la case pour continuer."
     },
     "sent": {
-      "title": "Merci, c'est fait",
-      "body": "Un conseiller vous écrira bientôt sur WhatsApp.",
       "ref": "Votre référence : {ref}",
       "go": "Aller à ma page",
       "goBack": "Continuer"
     },
+    "applyChoice": {
+      "title": "Votre compte est prêt",
+      "body": "Voulez-vous postuler maintenant ? Il vous suffit de choisir les programmes qui vous plaisent ; le reste vient de vos réponses. Vous pouvez aussi postuler plus tard depuis votre page.",
+      "apply": "Postuler maintenant",
+      "later": "Pas maintenant"
+    },
     "already": {
       "title": "Vous avez déjà terminé",
-      "body": "Vos réponses ont déjà été envoyées. Un conseiller vous écrira sur WhatsApp."
+      "body": "Vos réponses sont enregistrées sur votre compte.",
+      "apply": "Postuler maintenant"
     },
     "queued": {
       "title": "Enregistré sur ce téléphone",

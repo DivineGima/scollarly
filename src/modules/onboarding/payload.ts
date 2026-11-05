@@ -1,7 +1,6 @@
 import type { ProfileRelationship } from "@/lib/constants";
 import { type CourseField, isCourseField } from "@/lib/courses";
 import { CONSENT_NOTICE_VERSION } from "@/lib/lead-form";
-import { generateRef } from "@/lib/ref";
 import { effectiveAnswers } from "./questions";
 
 /**
@@ -50,11 +49,9 @@ export function courseFromSearch(search: string): CourseField | null {
 
 export interface PayloadContext {
   locale: string;
-  now?: Date;
-  ref?: string;
 }
 
-/** The body of `POST /api/v1/me/onboarding`. The idempotency key travels in the header, as for every lead. */
+/** The body of `POST /api/v1/me/onboarding` (profile only since S15.2: no reference, no device time). */
 export function buildOnboardingPayload(values: OnboardingValues, context: PayloadContext) {
   const answers = effectiveAnswers(values);
   return {
@@ -70,8 +67,6 @@ export function buildOnboardingPayload(values: OnboardingValues, context: Payloa
     course_fields: values.course_fields,
     intake_year: values.intake_year,
     locale: context.locale,
-    client_ref: context.ref ?? generateRef(),
-    client_created_at: (context.now ?? new Date()).toISOString(),
     consent: { notice_version: CONSENT_NOTICE_VERSION },
   };
 }

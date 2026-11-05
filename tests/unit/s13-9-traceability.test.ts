@@ -44,13 +44,14 @@ const MAP: Record<string, { file: string; title: string }[]> = {
     { file: `${E}/s13-2-sign-up.spec.ts`, title: "is not served to someone who is signed out" },
   ],
   "FR-24": [
-    { file: `${I}/s13-3-onboarding.test.ts`, title: "answers the same request again with the same lead" },
+    // Changed by PRD_4 (S15.2): onboarding saves the profile once and makes no lead; the application is FR-34.
+    { file: `${I}/s13-3-onboarding.test.ts`, title: "answers the same request again with 200 and writes nothing more" },
     { file: `${I}/s13-3-onboarding.test.ts`, title: "lets a second device carry on" },
-    { file: `${I}/s13-3-onboarding.test.ts`, title: "still creates the lead, and shows both to admins as a duplicate, never merged" },
+    { file: `${I}/s13-3-onboarding.test.ts`, title: "shows two leads from one number to admins as a duplicate, never merged" },
     { file: `${E}/s13-3-onboarding.spec.ts`, title: "offline: saves on the phone, then sends exactly once" },
   ],
   "FR-25": [
-    { file: `${I}/s13-3-onboarding.test.ts`, title: "the profile the relationship" },
+    { file: `${I}/s13-3-onboarding.test.ts`, title: "with the parent's own name and number, and the relationship" },
     { file: `${I}/s13-3-onboarding.test.ts`, title: "refuses a staff account: only a student-role account has an onboarding" },
   ],
   "FR-26": [

@@ -18,6 +18,7 @@ import { clearDraft, newDraft, readDraft, saveDraft } from "@/offline/onboarding
 import { realOnboardingSyncDeps } from "@/offline/real-deps";
 import { syncOnce } from "@/offline/sync-engine";
 import { MeStatus, useMeData } from "@/components/student/use-me-data";
+import { APPLY_PATH, ApplyChoice } from "./apply-choice";
 import { StepBody } from "./onboarding-steps";
 
 interface OnboardingState {
@@ -34,7 +35,8 @@ type Phase =
   /** Finished and saved on this phone, waiting for a connection or a session. `reason` is the last error code. */
   | { name: "queued"; reason: string | null }
   | { name: "rejected"; reason: string }
-  | { name: "done"; ref: string };
+  /** The profile is saved. No application exists yet: the person chooses "Apply now" or "Not yet" (PRD_4 F24). */
+  | { name: "done" };
 
 const SAVE_DELAY_MS = 300;
 
@@ -62,9 +64,10 @@ function AfterLink({ after }: { after: string | null }) {
 
 /**
  * The questionnaire for a new student or parent (architecture 21.6, ADR-043). One screen per question group; the answers are kept on
- * the phone after every change and nothing is sent until the last screen. Finishing puts one item in the lead queue
+ * the phone after every change and nothing is sent until the last screen. Finishing puts one item in the queue
  * (`kind = "onboarding"`, the same idempotency key every time) and sends it: online it arrives at once, offline it waits on the phone
- * and is sent when the connection returns, and a retry or a second device can never make a second lead.
+ * and is sent when the connection returns, and a retry or a second device can never make a second profile. It saves the profile only;
+ * the person then chooses "Apply now" or "Not yet" (PRD_4 F24, S15.2).
  */
 export function OnboardingFlow() {
   const t = useTranslations("onboarding");
@@ -78,6 +81,11 @@ export function OnboardingFlow() {
         <h1 id="ob-done-title">{t("already.title")}</h1>
         <p>{t("already.body")}</p>
         {state.data.ref ? <p className="ob-ref">{t("sent.ref", { ref: state.data.ref })}</p> : null}
+        {state.data.ref ? null : (
+          <a className="me-button" href={APPLY_PATH} data-testid="apply-now">
+            {t("already.apply")}
+          </a>
+        )}
         <AfterLink after={after} />
       </section>
     );
@@ -153,16 +161,15 @@ function Questionnaire({ userId }: { userId: string }) {
   const runSync = useCallback(async () => {
     if (syncing.current) return;
     syncing.current = true;
-    let sentRef: string | null = null;
     try {
       if (navigator.onLine) {
-        await syncOnce(realOnboardingSyncDeps((_item, result) => (sentRef = result.ref)));
+        await syncOnce(realOnboardingSyncDeps());
       }
       const left = (await safeList()).find((item) => item.kind === "onboarding");
       if (!left) {
         // The server has it (or another device already finished): the draft is no longer needed.
         await clearDraft();
-        setPhase({ name: "done", ref: sentRef ?? "" });
+        setPhase({ name: "done" });
       } else if (left.status === "failed") {
         setPhase({ name: "rejected", reason: left.lastError ?? "REJECTED" });
       } else {
@@ -232,7 +239,7 @@ function Questionnaire({ userId }: { userId: string }) {
     }
     if (!draft) return;
     setPhase({ name: "sending" });
-    const payload = buildOnboardingPayload(values, { locale, ref: draft.ref });
+    const payload = buildOnboardingPayload(values, { locale });
     const timestamp = Date.now();
     const item: QueuedLead = { kind: "onboarding", key: draft.key || randomUuid(), payload, ref: draft.ref, createdAt: timestamp, attempts: 0, lastError: null, status: "pending", nextAttemptAt: 0, updatedAt: timestamp };
     try {
@@ -245,18 +252,7 @@ function Questionnaire({ userId }: { userId: string }) {
     await runSync();
   }
 
-  if (phase.name === "done") {
-    return (
-      <section className="me-card" aria-labelledby="ob-done-title">
-        <h1 id="ob-done-title" ref={heading} tabIndex={-1}>
-          {t("sent.title")}
-        </h1>
-        <p>{t("sent.body")}</p>
-        {phase.ref ? <p className="ob-ref">{t("sent.ref", { ref: phase.ref })}</p> : null}
-        <AfterLink after={after} />
-      </section>
-    );
-  }
+  if (phase.name === "done") return <ApplyChoice after={after} />;
 
   if (phase.name === "queued") {
     const message = phase.reason === "UNAUTHENTICATED" ? t("queued.signIn") : phase.reason === "NUMBER_LIMIT" ? t("queued.numberLimit") : phase.reason === "NETWORK" || phase.reason === null ? t("queued.offline") : t("queued.retry");

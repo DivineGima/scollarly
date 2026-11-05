@@ -8,7 +8,7 @@ import type { EndpointEnv } from "@/server/edge/endpoint-env";
 import { handleMutation } from "@/server/edge/mutations";
 import { resolveSession } from "@/server/repositories/identity";
 import { createTestDb, type SignedInUser, type TestDb } from "./helpers/db";
-import { q } from "./helpers/fixtures";
+import { applyForProfile, q } from "./helpers/fixtures";
 
 /**
  * S13.4 (architecture 21.4): `me/home` and `me/preferences` return only the caller's own data, as the runtime role, so row level security
@@ -50,6 +50,8 @@ async function onboard(user: SignedInUser, values: OnboardingValues): Promise<vo
   } finally {
     await t.asOwner();
   }
+  // Onboarding makes no lead any more (S15.2). These tests are about a student who has applied, so the account gets the lead an application makes.
+  await applyForProfile(t, user.userId, { name: values.applicant_name, whatsapp_e164: values.contact_whatsapp });
 }
 
 type Call = "me/home" | "me/preferences";
