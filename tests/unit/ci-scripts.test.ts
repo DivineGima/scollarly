@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain .mjs helper with no type declarations
 import { buildRuntimeUrl, cpuStats, D1_PLACEHOLDER, drainJsonObjects, KV_PLACEHOLDER, markdownTable, parseSeedSha, patchWranglerConfig, quantile, workersDevUrl } from "../../scripts/ci/lib.mjs";
@@ -144,5 +145,22 @@ describe("buildRuntimeUrl (ADR-038: the Worker never connects as the owner)", ()
   it("refuses a string that is not a Postgres URL", () => {
     expect(() => buildRuntimeUrl("not a url", "x")).toThrow();
     expect(() => buildRuntimeUrl("https://example.com/db", "x")).toThrow("Postgres");
+  });
+});
+
+describe("the deploy workflow's inline node scripts", () => {
+  // A script inside `node -e '...'` is one shell string in single quotes: an apostrophe anywhere in it, even in a comment, ends the string and the
+  // step fails with a shell syntax error (it did once, in the step that sets the Worker secrets, after the deploy had already gone out).
+  it("hold no apostrophe, so the shell string is not closed early", () => {
+    const lines = readFileSync(".github/workflows/stage0-deploy.yml", "utf8").split(String.fromCharCode(10)).map((line) => line.split(String.fromCharCode(13)).join(""));
+    let checked = 0;
+    for (let i = 0; i < lines.length; i += 1) {
+      if (!/node -e '\s*$/.test(lines[i] ?? "")) continue;
+      const end = lines.findIndex((line, j) => j > i && /^\s*'\s*$/.test(line));
+      expect(end, `the script that starts on line ${i + 1} is never closed`).toBeGreaterThan(i);
+      for (let j = i + 1; j < end; j += 1) expect(lines[j], `line ${j + 1} has an apostrophe inside a node -e '...' script`).not.toContain("'");
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThanOrEqual(2);
   });
 });
