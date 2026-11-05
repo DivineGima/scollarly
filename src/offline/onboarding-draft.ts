@@ -49,11 +49,15 @@ export async function clearDraft(): Promise<void> {
   }
 }
 
-/** Sign-out and erasure: forget the draft and any finished-but-unsent questionnaire, so the next person on this phone cannot send it as themselves. */
+/**
+ * Sign-out and erasure: forget the draft and anything the signed-in person queued and the server has not taken yet (a finished questionnaire, an
+ * application), so the next person on this phone cannot send it as themselves. Queue items are not tied to a user, and both kinds are sent with
+ * whoever's session is open. A public lead (no `kind`) is anonymous and stays.
+ */
 export async function clearOnboardingOnDevice(): Promise<void> {
   await clearDraft();
   try {
-    for (const item of await listLeads()) if (item.kind === "onboarding") await removeLead(item.key);
+    for (const item of await listLeads()) if (item.kind === "onboarding" || item.kind === "application") await removeLead(item.key);
   } catch {
     // No storage: nothing was kept.
   }

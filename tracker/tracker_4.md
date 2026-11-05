@@ -60,6 +60,10 @@ Built against: `essentials/system_architecture_essential_4.md` and `system_archi
 
 Pull request #82 passed all six checks (slowest 3 min 41 s) after two fixes found by CI: the longer funnel caption made the CRM overview scroll sideways at phone width, and the header Sign in link was not hidden for a signed-in browser. One Lighthouse run scored a page 0.71 once and passed on the rerun with no code change. The deploy workflow now runs a short measurement by default (the Stage 15 calls and the screens they touch), skips the image upload and the 70 second wait unless a scenario needs them, and uses the Next build cache; pass `cpu_scenarios` as `all` for the full 35 minute run.
 
+### 2026-11-05: Session 4 (code review of Stage 0 to S15.7)
+
+Built against: `essentials/system_architecture_essential_4.md` and `system_architecture_4.md` (section 23.13). A review of the whole code found six real issues, all fixed in one pull request, and left alone what was not an error (the unverified-email password sign-up is the owner's decision F30; the per-email limit window resetting at UTC midnight is the daily-salt privacy design; the `phase0` stubs are the measurement fixtures). Fixed: a queued application was not cleared on sign-out; a contact name stayed in an erased lead (migration 0021); the Durable Object restore wrote 129 pairs; Insights ignored the university of the programmes a lead chose; the deploy could put the Turnstile test secret on the live Worker; concurrent settings reads each hit the database. No module status changes. The source-of-truth files were otherwise found to match the built work.
+
 ### 2026-11-05: owner confirmations
 
 The owner said: R1 (Google app published) is done, the Turnstile keys are in the repository secrets, and PRD_4, architecture 4 and essentials 4 are signed off. The owner had already run the section D checks of the pre-launch checklist; on request Claude Code ran the weekly backup (run 41998644962, green in 53 s) and the uptime check (run 41998654128, green in 10 s) again, without forcing a failure. The owner will do the domain and the private repository (H20) at the end.

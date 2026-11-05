@@ -172,16 +172,11 @@ jobs:
             const names = ["DATABASE_URL","NEON_AUTH_BASE_URL","NEON_AUTH_COOKIE_SECRET","TOTP_ENCRYPTION_KEY","RATE_LIMIT_SECRET","NEON_STORAGE_ENDPOINT","NEON_STORAGE_REGION","NEON_STORAGE_ACCESS_KEY_ID","NEON_STORAGE_SECRET_ACCESS_KEY","OWNER_EMAIL","PHASE0_PROBE_TOKEN"];
             const out = {};
             for (const n of names) { if (!process.env[n]) { console.error("::error::" + n + " is empty"); process.exit(1); } out[n] = process.env[n]; }
-            // The real Turnstile secret is set from the first deploy, and stays. The CPU measurement does not need a weaker secret: it sends
-            // the measurement header, which the Worker accepts only with PHASE0_PROBE_TOKEN (src/server/security/measurement.ts).
-            // Until the owner adds the widget secret (docs/stage-4-runbook.md), the always-pass test secret documented by Cloudflare is used and
-            // the lead form is NOT protected from scripts: the warning below says so on every run.
-            if (process.env.REAL_TURNSTILE_SECRET) {
-              out.TURNSTILE_SECRET_KEY = process.env.REAL_TURNSTILE_SECRET;
-            } else {
-              console.log("::warning::TURNSTILE_SECRET_KEY repository secret is missing. The always-pass test secret is on the Worker, so the lead form accepts any token. Add the real widget secret before launch.");
-              out.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
-            }
+            // The real Turnstile secret is required. The CPU measurement does not need a weaker one: it sends the measurement header, which the
+            // Worker accepts only with PHASE0_PROBE_TOKEN (src/server/security/measurement.ts). A missing secret stops the deploy: putting
+            // Cloudflare's always-pass test secret on the live Worker would let any script past the lead form without anyone being told.
+            if (!process.env.REAL_TURNSTILE_SECRET) { console.error("::error::The TURNSTILE_SECRET_KEY repository secret is missing. Add the real widget secret (docs/stage-3-4-runbook.md) and run the deploy again."); process.exit(1); }
+            out.TURNSTILE_SECRET_KEY = process.env.REAL_TURNSTILE_SECRET;
             require("fs").writeFileSync("secrets.json", JSON.stringify(out));
           '
           npx wrangler secret bulk secrets.json

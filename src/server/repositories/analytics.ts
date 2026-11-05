@@ -4,6 +4,7 @@ import type { Db } from "@/server/db/client";
 import { rowsOf } from "@/server/db/rows";
 import type { StageInfo } from "@/modules/analytics/funnel";
 import { runAs } from "./as-actor";
+import { leadInUniversity } from "./lead-filters";
 import { teamMembersOf, teamQuery } from "./team";
 
 /**
@@ -44,7 +45,7 @@ export interface FunnelData {
 function leadConditions(f: AnalyticsFilter): SQL {
   const parts: SQL[] = [sql`l.received_at >= ${f.start.toISOString()}::timestamptz`, sql`l.received_at < ${f.end.toISOString()}::timestamptz`, sql`l.merged_into_id is null`];
   if (f.country) parts.push(sql`l.country_code = ${f.country}`);
-  if (f.universityId) parts.push(sql`l.source->>'university_id' = ${f.universityId}`);
+  if (f.universityId) parts.push(leadInUniversity(sql`l.id`, sql`l.source`, f.universityId));
   return sql.join(parts, sql` and `);
 }
 
@@ -62,10 +63,22 @@ export async function funnelData(db: Db, actor: Actor, f: AnalyticsFilter): Prom
     db.execute(sql`select a.type, coalesce(sum(a.count), 0)::bigint as n from event_daily_agg a where ${aggConditions(f)} and a.type in ('page_view', 'wa_tap') group by a.type`),
     db.execute(sql`select l.stage_code, count(*)::int as n from lead l where ${leadConditions(f)} group by l.stage_code`),
     db.execute(sql`select l.country_code, count(*)::int as n from lead l where ${leadConditions(f)} group by l.country_code order by n desc, l.country_code`),
+    // A lead counts under each university it chose (its page's university, or the university of every programme it picked), once each. A lead that
+    // named none is one row with no university.
     db.execute(sql`
-      select u.id as university_id, u.name, count(*)::int as n
-        from lead l left join university u on u.id::text = l.source->>'university_id'
-       where ${leadConditions(f)} group by u.id, u.name order by n desc, u.name nulls last limit 30`),
+      select u.id as university_id, u.name, count(distinct x.lead_id)::int as n
+        from (
+          select l.id as lead_id, l.source->>'university_id' as uid from lead l
+           where ${leadConditions(f)}
+             and ((l.source->>'university_id') is not null or not exists (select 1 from lead_programme_pref pp where pp.lead_id = l.id))
+          union
+          select l.id, p.university_id::text from lead l
+            join lead_programme_pref pp on pp.lead_id = l.id join programme p on p.id = pp.programme_id
+           where ${leadConditions(f)}
+        ) x
+        left join university u on u.id::text = x.uid
+       ${f.universityId ? sql`where x.uid = ${f.universityId}` : sql``}
+       group by u.id, u.name order by n desc, u.name nulls last limit 30`),
     db.execute(sql`select l.source->>'page' as page, count(*)::int as n from lead l where ${leadConditions(f)} group by 1 order by n desc, page nulls last limit 15`),
     db.execute(sql`select value from site_setting where key = 'collect_page_views'`),
     db.execute(sql`select code, position, name from pipeline_stage order by position`),

@@ -99,6 +99,15 @@ Unit: apply decision table (every outcome), at-least-three-programmes rule, `nex
 
 Visitor: any public page -> "Create an account" -> sign up -> onboarding (no tabs) -> "Sign up" -> **"Apply now / Not yet"** -> Apply screen (programmes only) or dashboard -> Applied. Signed-in: header "My account" -> home; WhatsApp from Home, Progress or Help. `/apply` forwards. Admin: Leads has Not applied yet.
 
+### 23.13 Fixes from the code review of Stage 0 to S15.7 (as built)
+
+- **Queued work and sign-out.** `clearOnboardingOnDevice` removes queued `onboarding` and `application` items as well as the draft. Queue items are not tied to a user and are sent with whoever's session is open, so they must not outlive the person who made them. Anonymous public leads (no `kind`) stay.
+- **Erasure and `lead.source`.** `lead.source` holds the applicant's contact name. Migration `0021` adds a trigger that removes `contact_name` from `source` whenever a lead becomes anonymised (by `app_erase_lead`, `app_erase_my_account` or any later way) and cleans leads that were anonymised before. The two erasure functions are not rewritten. The page, relationship and course fields stay.
+- **University in Insights.** One rule, `leadInUniversity` (`src/server/repositories/lead-filters.ts`): a lead belongs to a university when its source names it or a programme it chose is that university's. The Leads list filter and the Insights filter and "By university" breakdown both use it. A lead counts once under each university it chose, so the breakdown can add up to more than the number of leads; a lead that chose none is one row with no university.
+- **Anonymous counts.** A Durable Object `put` takes at most 128 pairs and a batch of new `agg:` keys also writes the key counter, so a batch holds 127 counts (`AGG_BATCH` in `worker/collector.ts`), including when counts are restored after a failed rollup.
+- **Settings read.** Requests that miss `cachedSettings` together share one database read.
+- **Deploy.** The deploy stops when `TURNSTILE_SECRET_KEY` is missing instead of putting Cloudflare's always-pass test secret on the live Worker.
+
 ---
 
 ## Part B: the full text of system_architecture_3.md (sections 22 and the whole of version 2)
