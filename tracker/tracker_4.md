@@ -11,9 +11,9 @@ This tracker starts version 4 (PRD_4, architecture 4, essentials 4). `tracker_3.
 | Current PRD | `PRD_4.md` (2026-11-05, full copy: part A amendments, part B the whole of PRD_3) |
 | Current architecture | `system_architecture_4.md` (2026-11-05, derived from `PRD_4.md`; section 23 wins over older text) |
 | Essentials file | `essentials/system_architecture_essential_4.md` (Stage 15, one stage) |
-| Phase | Stage 14 built, merged and deployed (see tracker_3); its owner-paced items are carried into S15.7. **Stage 15 documents written 2026-11-05 (PRD_4, architecture 4, essentials 4).** S15.1 (PR #75), S15.2 (PR #79), S15.3 (PR #80) and S15.4 (PR #81) are complete and merged; S15.5 and S15.6 are in review and S15.7 is in progress (its deploy and CPU measurement wait for the merge). The owner's sign-off row below is still open until the owner says it is done. |
-| Next module | S15.7: merge, then one deploy with the CPU measurement on (`run_cpu_measurement`). |
-| Blocked by | The merge of the S15.5 to S15.7 pull request, and the owner's go-ahead for the deploy. The owner's recorded sign-off of the three documents is still open (owner action). |
+| Phase | Stage 14 built, merged and deployed (see tracker_3); its owner-paced items are carried into S15.7. **Stage 15 documents written 2026-11-05 (PRD_4, architecture 4, essentials 4).** S15.1 to S15.7 are built, merged (PR #75, #79, #80, #81, #82) and deployed; the CPU rows are recorded below (all pass). Stage 15 stays `in-progress` only for the carried owner items. |
+| Next module | None in the code. Waiting on the owner-paced items (see Owner actions); the next version needs new documents. |
+| Blocked by | The owner's actions (sign-off row, R1, R4, R5, R6, H11, H19 / E5 and the watched test). |
 
 ## Start-of-task check results (CLAUDE.md steps 1 to 7), 2026-11-05
 
@@ -40,9 +40,9 @@ This tracker starts version 4 (PRD_4, architecture 4, essentials 4). `tracker_3.
 | S15.2 | Profile-only onboarding | complete, merged as PR #79, CI green (migration 0019 `app_complete_profile`; onboarding saves the profile only and ends with the Apply now / Not yet choice). Local: typecheck, 1026 unit, 16 integration (s13-3), s13-4 and s13-5 integration, 14 browser tests pass. | Session 2 |
 | S15.3 | Apply from the account | complete, merged as PR #80, CI green (migration 0020 `app_apply_from_profile` and `app_token_has_application`; `POST me/application`, `GET me/application-context`; the `/me/apply` screen; the Home Apply button; the guard on the older lead endpoint; the offline `application` item). Local: typecheck, unit (s15-3), 16 integration tests pass. | Session 2 |
 | S15.4 | Public pages and WhatsApp | complete, merged as PR #81, CI green (every Apply and WhatsApp button on the public pages is "Create an account"; the Apply form, quick WhatsApp form, `WhatsAppButton` and the sign-in pop-up are removed; `/apply` forwards in the Worker; the student Home and My progress offer the chat while nothing is applied). Local: typecheck, 1058 unit, 771 integration. | Session 2 |
-| S15.5 | My account | in review (`GET /account`, the `/sign-in` and `/sign-up` forward for a signed-in person, in `src/server/edge/account.ts`; the header and footer link to `/account` and the `AccountLinkSwap` island shows "My account" from the signed-in hint). Local: typecheck, unit (s15-5, 11 tests). | Session 3 |
-| S15.6 | Not applied yet | in review (`GET admin/not-applied`, one query on profiles; the Leads tab "Not applied yet"; Insights overview gains the Onboarded tile, the applied-of-onboarded tile and the first funnel step; no migration). Local: typecheck, unit (s15-6), 6 integration tests pass. | Session 3 |
-| S15.7 | QA, deploy and carry-over | in-progress: the FR-33 to FR-38 traceability test (`tests/unit/s15-7-traceability.test.ts`), the new CPU scenarios (`admin-not-applied`, `account-route`, `me-application-context`), the checklist section E4 and this tracker are done. The deploy with the CPU measurement is not run yet. | Session 3 |
+| S15.5 | My account | complete, merged as PR #82, CI green (`GET /account`, the `/sign-in` and `/sign-up` forward for a signed-in person, in `src/server/edge/account.ts`; the header and footer link to `/account` and the `AccountLinkSwap` island shows "My account" from the signed-in hint). Local: typecheck, unit (s15-5, 11 tests). | Session 3 |
+| S15.6 | Not applied yet | complete, merged as PR #82, CI green (`GET admin/not-applied`, one query on profiles; the Leads tab "Not applied yet"; Insights overview gains the Onboarded tile, the applied-of-onboarded tile and the first funnel step; no migration). Local: typecheck, unit (s15-6), 6 integration tests pass. | Session 3 |
+| S15.7 | QA, deploy and carry-over | complete for the code and the measurement (the carried owner items stay `in-progress`): the FR-33 to FR-38 traceability test (`tests/unit/s15-7-traceability.test.ts`), the new CPU scenarios (`admin-not-applied`, `account-route`, `me-application-context`), the checklist section E4 and this tracker are done. The deploy with the CPU measurement ran on 2026-11-05 (run 41995979416) and took 6 min 7 s on a cold cache, against about 35 minutes before; all rows pass. | Session 3 |
 
 Carried and still `in-progress` (owner-paced, see tracker_3 and tracker_2): S14.8 (owner items), S13.7, S13.8, S13.9, S10.2, S11.4, S11.6.
 
@@ -55,6 +55,10 @@ Built against: no essentials file yet (the documents were being written). The ow
 ### 2026-11-05: Session 3 (S15.5 to S15.7, one pull request)
 
 Built against: `essentials/system_architecture_essential_4.md` and `system_architecture_4.md` (sections 23.6 to 23.9), PRD_4. Module status: S15.5 in review, S15.6 in review, S15.7 in-progress (see the registry). Also corrected in this change: the phase lines and the S15.3 and S15.4 rows of this tracker (both were merged), and the Apply screen sentence of architecture 23.3 (it shows the "You already applied" panel itself and does not redirect). The CI pipeline was left as it is: it already cancels superseded runs, skips docs-only changes, caches the build and the Playwright browser, runs two browser shards and measures six Lighthouse pages on a pull request (the S15.1 run took 3 min 49 s at the slowest job).
+
+### 2026-11-05: Session 3 close (CI and deploy)
+
+Pull request #82 passed all six checks (slowest 3 min 41 s) after two fixes found by CI: the longer funnel caption made the CRM overview scroll sideways at phone width, and the header Sign in link was not hidden for a signed-in browser. One Lighthouse run scored a page 0.71 once and passed on the rerun with no code change. The deploy workflow now runs a short measurement by default (the Stage 15 calls and the screens they touch), skips the image upload and the 70 second wait unless a scenario needs them, and uses the Next build cache; pass `cpu_scenarios` as `all` for the full 35 minute run.
 
 ## Flags (need the owner)
 
@@ -76,11 +80,12 @@ Gate: warm p95 at most 8 ms, none cut.
 
 | Row | Warm p50 | Warm p95 | Worst | Cut | Gate | Run |
 |---|---|---|---|---|---|---|
-| `POST me/application` (create, replay) (S15.3) | | | | | | Not run yet |
-| `GET me/application-context` (S15.3) | | | | | | Not run yet (scenario `me-application-context`) |
-| `GET admin/not-applied` (S15.6) | | | | | | Not run yet (scenario `admin-not-applied`) |
-| `GET /account` with a session (S15.5) | | | | | | Not run yet (scenario `account-route`) |
-| `GET /sign-in` with a session (S15.5) | | | | | | Not run yet: the same code path as `GET /account` (one session read, then a 302); watched in Workers Logs |
+| `POST me/application` (create, replay) (S15.3) | | | | | | Not measured: it makes a lead and is limited to one per account, so it is watched in Workers Logs (the same shape as the measured lead writes) |
+| `GET me/application-context` (S15.3) | 1 | 2 | 2 | 0 | PASS | 2026-11-05, 50 requests, measured as a student with no profile yet (the lighter path) |
+| `GET admin/not-applied` (S15.6) | 2 | 3 | 3 | 0 | PASS | 2026-11-05, 50 requests |
+| `GET /account` with a session (S15.5) | 1 | 3 | 3 | 0 | PASS | 2026-11-05, 50 requests |
+| `GET /sign-in` with a session (S15.5) | | | | | | Not measured on its own: the same code path as `GET /account` (one session read, then a 302) |
+| `GET admin/crm` (changed in S15.6: one more query) | 3 | 5 | 8 | 0 | PASS | 2026-11-05, 50 requests; `admin/overview` 3 / 6 / 28 (first request of an instance), 0 over the gate |
 
 ## Owner actions (human, never marked done by Claude Code)
 
