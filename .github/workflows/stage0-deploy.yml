@@ -14,17 +14,17 @@ on:
   workflow_dispatch:
     inputs:
       run_cpu_measurement:
-        description: "Run the CPU measurement after the deploy (adds about 35 minutes; leave off for an ordinary deploy of about 4 minutes)"
+        description: "Run the CPU measurement after the deploy (the default scenarios add about 2 minutes; an empty scenario list runs everything and adds about 35 minutes)"
         required: false
         default: false
         type: boolean
       cpu_scenarios:
-        description: "Only these CPU scenarios, comma separated (for example: lead). Empty runs all of them"
+        description: "Only these CPU scenarios, comma separated (for example: lead). The default is the Stage 15 calls and the screens they touch; write all to run every scenario"
         required: false
-        default: ""
+        default: "admin-not-applied,account-route,me-application-context,crm,overview,me-home"
         type: string
       lead_samples:
-        description: "Lead requests to measure, sent 12.5 seconds apart (50 takes about 10 minutes)"
+        description: "Lead requests to measure, sent 12.5 seconds apart (50 takes about 10 minutes; only used when the lead scenario is selected)"
         required: false
         default: "30"
         type: string
@@ -54,6 +54,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - run: npm ci
+      # The same Next build cache the CI jobs use, so the Worker build skips the compile work that did not change.
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'messages/**') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
       - name: Check the Cloudflare token and all repository secrets exist
         env:
@@ -114,7 +120,8 @@ jobs:
 
       - name: Store 10 test images (about 300 KB each) in Neon Object Storage
         id: seed
-        if: ${{ inputs.run_cpu_measurement }}
+        # Only the image scenarios read these images; a short run (the default list) skips the upload.
+        if: ${{ inputs.run_cpu_measurement && (inputs.cpu_scenarios == 'all' || contains(inputs.cpu_scenarios, 'media')) }}
         env:
           DATABASE_URL: ${{ secrets.PHASE0_MIGRATION_DATABASE_URL }}
           NEON_STORAGE_ENDPOINT: ${{ secrets.PHASE0_NEON_STORAGE_ENDPOINT }}
@@ -197,9 +204,13 @@ jobs:
           PHASE0_PROBE_TOKEN: ${{ secrets.PHASE0_PROBE_TOKEN }}
           CPU_SCENARIOS: ${{ inputs.cpu_scenarios }}
           LEAD_SAMPLES: ${{ inputs.lead_samples }}
+          MEDIA_SHA: ${{ steps.seed.outputs.sha }}
         run: |
-          sleep 70
-          node scripts/measure-cpu.mjs ${CPU_SCENARIOS:+--only "$CPU_SCENARIOS"} --lead-samples "${LEAD_SAMPLES:-50}" --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 --media "${{ steps.seed.outputs.sha }}" --media-list scripts/.generated/phase0-images.json --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
+          # "all" means every scenario (the script's own default list). The 70 second wait lets the rate-limit window of the deploy's health checks
+          # pass; only the lead and sign-in style scenarios hit a limiter, so a run without them starts at once.
+          ONLY="$CPU_SCENARIOS"; [ "$ONLY" = "all" ] && ONLY=""
+          if [ -z "$ONLY" ] || echo ",$ONLY," | grep -qE ",(lead|events|onboarding|account-confirm),"; then sleep 70; fi
+          node scripts/measure-cpu.mjs ${ONLY:+--only "$ONLY"} --lead-samples "${LEAD_SAMPLES:-50}" --base "${{ steps.url.outputs.url }}" --worker "$WORKER_NAME" --samples 50 ${MEDIA_SHA:+--media "$MEDIA_SHA" --media-list scripts/.generated/phase0-images.json} --sessions scripts/.generated/probe-sessions.json | tee /tmp/measure.txt
           { echo; echo "### CPU measurement (milliseconds of Worker CPU, from wrangler tail)"; echo; echo '```'; cat /tmp/measure.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Remove the throwaway Neon Auth users, sessions and probe leads
