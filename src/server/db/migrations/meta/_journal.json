@@ -134,6 +134,13 @@
       "when": 1793480000000,
       "tag": "0018_staff_no_password_login",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793566400000,
+      "tag": "0019_profile_only_onboarding",
+      "breakpoints": true
     }
   ]
 }

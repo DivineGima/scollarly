@@ -9,7 +9,7 @@ import type { EndpointEnv } from "@/server/edge/endpoint-env";
 import { handleMutation } from "@/server/edge/mutations";
 import { resolveSession } from "@/server/repositories/identity";
 import { createTestDb, type SignedInUser, type TestDb } from "./helpers/db";
-import { leadRow, programmeRow, q, uni } from "./helpers/fixtures";
+import { applyForProfile, leadRow, programmeRow, q, uni } from "./helpers/fixtures";
 
 /**
  * S13.5 (architecture 21.8, ADR-045), against a real database as the runtime role: each person's notifications are derived from rows they may
@@ -77,7 +77,8 @@ const student = (over: Partial<OnboardingValues> = {}): OnboardingValues => ({
 async function onboard(user: SignedInUser, values: OnboardingValues = student()): Promise<string> {
   const response = await post(user, "/api/v1/me/onboarding", buildOnboardingPayload(values, { locale: "en" }), { "idempotency-key": randomUUID() });
   expect(response.status).toBe(201);
-  return ((await t.run(`select id from lead where user_id = ${q(user.userId)}`)) as { id: string }[])[0]?.id ?? "";
+  // Onboarding makes no lead any more (S15.2). These tests are about a student who has applied, so the account gets the lead an application makes.
+  return applyForProfile(t, user.userId, { name: values.applicant_name, whatsapp_e164: values.contact_whatsapp });
 }
 
 type Item = { id: string; kind: string; unread: boolean; at: string; ref?: string; stage?: string; slug?: string; university?: string; count?: number; overdue?: boolean; leadId?: string; amountUsdCents?: number };

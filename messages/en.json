@@ -2240,15 +2240,20 @@
       "CONSENT_REQUIRED": "Please tick the box to continue."
     },
     "sent": {
-      "title": "Thank you, you are all set",
-      "body": "An adviser will message you on WhatsApp soon.",
       "ref": "Your reference: {ref}",
       "go": "Go to my page",
       "goBack": "Continue"
     },
+    "applyChoice": {
+      "title": "Your account is ready",
+      "body": "Would you like to apply now? You only choose the programmes you like; the rest comes from your answers. You can also apply later from your page.",
+      "apply": "Apply now",
+      "later": "Not yet"
+    },
     "already": {
       "title": "You have already finished",
-      "body": "Your answers were sent before. An adviser will message you on WhatsApp."
+      "body": "Your answers are saved on your account.",
+      "apply": "Apply now"
     },
     "queued": {
       "title": "Saved on this phone",

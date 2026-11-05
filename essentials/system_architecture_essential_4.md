@@ -23,7 +23,7 @@ Built by this file: section 23 (all of it). Rules obeyed, not rebuilt: sections 
 1. One stage, modules in order; a module starts when the one before has tests passing in CI. S15.1 is already built.
 2. A feature branch and pull request per module. Never push to `main`.
 3. Module IDs (`S15.1`) with status `in-progress` or `complete` in `tracker_4.md` (entries name this file and architecture 4).
-4. Tests with each module. Additive-first migrations (one migration, `0019`, in S15.2 and S15.6; nothing is dropped). All text through translation keys. No paid service, third-party script, hotlinked image or charting library.
+4. Tests with each module. Additive-first migrations (`0019` in S15.2 and `0020` in S15.3; S15.6 needs none; nothing is dropped). All text through translation keys. No paid service, third-party script, hotlinked image or charting library.
 5. Human actions (Google console, legal review, tour video review, owner sign-offs, the real Turnstile secret) are recorded only when the owner says so.
 6. A new CPU row for every new function (gate 8 ms warm p95), measured with the deploy workflow's opt-in measurement before the stage is closed.
 7. If a conflict appears, stop and flag.
@@ -35,7 +35,7 @@ Built by this file: section 23 (all of it). Rules obeyed, not rebuilt: sections 
 | ID | Module | What is built | Tests |
 |---|---|---|---|
 | S15.1 | Faster pipeline | Lighthouse measures six pages once on a pull request and every public page once on `main`; the Next build cache in the build, Playwright and Lighthouse jobs. (Merged as PR #75.) | The pull request's own run is timed and recorded in the tracker. |
-| S15.2 | Profile-only onboarding | 23.2 migration `0019` function `app_complete_profile` and the staff read policy; `POST me/onboarding` calls it; the "Apply now / Not yet" dialog (23.4). | Integration: no lead made, replay, second device; unit: dialog choices; e2e: onboarding end at phone width. |
+| S15.2 | Profile-only onboarding | 23.2 migration `0019` function `app_complete_profile` (the staff read policy already exists, migration 0013); `POST me/onboarding` calls it; the "Apply now / Not yet" dialog (23.4). | Integration: no lead made, replay, second device; unit: dialog choices; e2e: onboarding end at phone width. |
 | S15.3 | Apply from the account | 23.2 function `app_apply_from_profile`; `POST me/application` and `GET me/application-context` (23.3); `/me/apply` screen; the guard on `POST /leads`; the offline queue entry; the Home Apply and Applied states; the student reminder. | Unit decision table; integration (details from the profile, one lead per account, `already_applied`, number limit); e2e apply with three programmes, a second attempt refused, offline apply. |
 | S15.4 | Public pages and WhatsApp | 23.5: "Create an account" links replace Apply and WhatsApp buttons everywhere; the two client islands, `WhatsAppButton`, the apply and chat gate kinds and the public apply page are removed; `GET /apply` forwards; the signed-in WhatsApp button on Home, Progress and Help with the profile message. | Unit: no Apply form or chat link in any public HTML, message builder; e2e: signed-out pages; public bundle check smaller; axe. |
 | S15.5 | My account | 23.7: `GET /account`, the `/sign-in` and `/sign-up` forward, the header and footer label swap. | Unit decisions (no cookie, valid, forged); e2e swap with and without the hint. |

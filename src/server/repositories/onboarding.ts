@@ -6,19 +6,13 @@ import { runAs } from "./as-actor";
 import { pgArray } from "./lead-intake";
 
 /**
- * Onboarding (architecture 21.6, ADR-043; S13.3). The write is one database function, `app_complete_onboarding` (migration 0014): it
- * creates the lead of kind `onboarding`, links it to the caller, stores the profile and an audit row in a single transaction, and a
- * replay of the same idempotency key answers with the same lead. The caller is read from the row level security context, never from an
- * argument, so one person cannot onboard as another.
+ * Onboarding (architecture 21.6, 23.2, ADR-043, ADR-062; S15.2). The write is one database function, `app_complete_profile` (migration 0019):
+ * it stores the profile and an audit row in a single transaction and makes NO lead; the application is a separate act (PRD_4 F24). The
+ * caller is read from the row level security context, never from an argument, so one person cannot onboard as another, and a replay
+ * (a retry, a double tap, a second device) finds the profile already there and writes nothing.
  */
 
-export interface NewOnboarding {
-  id: string;
-  idempotencyKey: string;
-  payloadHash: string;
-  /** Candidate references in order of preference; the first is the one the device made. */
-  refs: readonly string[];
-  clientRef: string;
+export interface NewProfile {
   /** The applicant: the student, or the child. */
   name: string;
   /** The contact's WhatsApp number in E.164: the student's own, or the parent's. */
@@ -26,16 +20,8 @@ export interface NewOnboarding {
   countryCode: string;
   qualificationType: string;
   results: readonly { subject: string; grade: string }[];
-  source: Record<string, unknown>;
-  locale: string;
   consentNoticeVersion: string;
   consentAt: Date;
-  clientCreatedAt: Date;
-  receivedAt: Date;
-  slaDueAt: Date;
-  slaHoursApplied: number;
-  /** Leads allowed per WhatsApp number in 24 hours. */
-  numberLimit: number;
   relationship: string;
   contactName: string;
   level: string;
@@ -43,39 +29,22 @@ export interface NewOnboarding {
   intakeYear: number;
 }
 
-export type OnboardingOutcome =
-  | { kind: "created" | "existing"; id: string; ref: string; storedHash: string }
-  | { kind: "already_onboarded" | "not_allowed" | "number_limited" | "ref_exhausted" };
+export type ProfileOutcome = "created" | "already_onboarded" | "not_allowed";
 
-interface OutcomeRow {
-  out_outcome: string;
-  out_lead_id: string | null;
-  out_lead_ref: string | null;
-  out_stored_hash: string | null;
-}
-
-export async function completeOnboarding(db: Db, actor: Actor, row: NewOnboarding): Promise<OnboardingOutcome> {
+export async function completeProfile(db: Db, actor: Actor, row: NewProfile): Promise<ProfileOutcome> {
   const [result] = await runAs(
     db,
     actor,
-    db.execute(sql`select * from public.app_complete_onboarding(
-      ${row.id}::uuid, ${row.idempotencyKey}::uuid, ${row.payloadHash}, ${pgArray(row.refs)}::text[], ${row.clientRef},
+    db.execute(sql`select * from public.app_complete_profile(
       ${row.name}, ${row.whatsappE164}, ${row.countryCode}, ${row.qualificationType}, ${JSON.stringify(row.results)}::jsonb,
-      ${JSON.stringify(row.source)}::jsonb, ${row.locale}, ${row.consentNoticeVersion}, ${row.consentAt.toISOString()}::timestamptz,
-      ${row.clientCreatedAt.toISOString()}::timestamptz, ${row.receivedAt.toISOString()}::timestamptz, ${row.slaDueAt.toISOString()}::timestamptz,
-      ${row.slaHoursApplied}::integer, ${row.numberLimit}::integer, ${row.relationship}, ${row.contactName}, ${row.level},
+      ${row.consentNoticeVersion}, ${row.consentAt.toISOString()}::timestamptz, ${row.relationship}, ${row.contactName}, ${row.level},
       ${pgArray(row.courseFields)}::text[], ${row.intakeYear}::smallint
     )`),
   );
-  const [out] = rowsOf<OutcomeRow>(result);
-  if (!out) throw new Error("app_complete_onboarding returned no row");
-  if ((out.out_outcome === "created" || out.out_outcome === "existing") && out.out_lead_id && out.out_lead_ref && out.out_stored_hash) {
-    return { kind: out.out_outcome, id: out.out_lead_id, ref: out.out_lead_ref, storedHash: out.out_stored_hash };
-  }
-  if (out.out_outcome === "already_onboarded" || out.out_outcome === "not_allowed" || out.out_outcome === "number_limited" || out.out_outcome === "ref_exhausted") {
-    return { kind: out.out_outcome };
-  }
-  throw new Error(`unexpected app_complete_onboarding outcome: ${out.out_outcome}`);
+  const [out] = rowsOf<{ out_outcome: string }>(result);
+  if (!out) throw new Error("app_complete_profile returned no row");
+  if (out.out_outcome === "created" || out.out_outcome === "already_onboarded" || out.out_outcome === "not_allowed") return out.out_outcome;
+  throw new Error(`unexpected app_complete_profile outcome: ${out.out_outcome}`);
 }
 
 export interface OnboardingState {

@@ -67,3 +67,13 @@ export const paymentRow = (t: TestDb, universityId: string, overrides: Record<st
     { id: uuidv7(), submission_token: randomUUID(), university_id: universityId, amount_usd_cents: 150000, received_on: "2026-10-01", entered_by: "someone" },
     overrides,
   );
+
+/**
+ * A student who has applied: a lead that belongs to the account, linked from the profile. This is what `app_apply_from_profile` does (S15.3,
+ * tested on its own); the tests that are about something else (the student's Home, notifications) use this to start from "has applied".
+ */
+export async function applyForProfile(t: TestDb, userId: string, overrides: Record<string, unknown> = {}): Promise<string> {
+  const id = await leadRow(t, { user_id: userId, ...overrides });
+  await t.run(`update student_profile set lead_id = ${q(id)} where user_id = ${q(userId)}`);
+  return id;
+}

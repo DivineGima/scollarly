@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { COURSE_FIELDS } from "@/lib/courses";
 import { CONSENT_NOTICE_VERSION } from "@/lib/lead-form";
-import { REF_PATTERN } from "@/lib/ref";
 import { fieldErrors } from "@/lib/http";
 import { buildOnboardingPayload, courseFromSearch, emptyValues, type OnboardingValues } from "@/modules/onboarding/payload";
 import { effectiveAnswers, firstIncompleteStep, progressOf, STEP_FIELDS, STEPS_FOR, validateStep } from "@/modules/onboarding/questions";
@@ -9,7 +8,7 @@ import { onboardingBodySchema } from "@/modules/onboarding/schema";
 import { completeOnboarding, type CompleteOnboardingDeps } from "@/modules/onboarding/service";
 import { toResponse } from "@/modules/onboarding/endpoints";
 import { intakeYears, validateAnswers } from "@/modules/onboarding/validate";
-import type { NewOnboarding, OnboardingOutcome } from "@/server/repositories/onboarding";
+import type { NewProfile, ProfileOutcome } from "@/server/repositories/onboarding";
 import type { QueuedLead } from "@/offline/logic";
 import { sendLead } from "@/offline/send";
 import { syncOnce, type SyncDeps } from "@/offline/sync-engine";
@@ -47,7 +46,7 @@ const parentValues = (over: Partial<OnboardingValues> = {}): OnboardingValues =>
     ...over,
   });
 
-const CONTEXT = { locale: "en", now: new Date("2026-11-02T10:00:00Z"), ref: "SC-ABCDE-FGHJK" };
+const CONTEXT = { locale: "en" };
 
 describe("the answers (21.6)", () => {
   it("accepts a complete student and a complete parent", () => {
@@ -147,10 +146,11 @@ describe("the screens", () => {
 });
 
 describe("the request it builds", () => {
-  it("makes a student their own contact, with the consent version and a device reference", () => {
+  it("makes a student their own contact, with the consent version and no reference (no lead is made, S15.2)", () => {
     const body = buildOnboardingPayload(studentValues(), CONTEXT);
-    expect(body).toMatchObject({ relationship: "student", applicant_name: "Ada Eze", contact_name: "Ada Eze", contact_country: "NG", contact_whatsapp: "+2348031234567", client_ref: "SC-ABCDE-FGHJK", consent: { notice_version: CONSENT_NOTICE_VERSION } });
-    expect(body.client_created_at).toBe("2026-11-02T10:00:00.000Z");
+    expect(body).toMatchObject({ relationship: "student", applicant_name: "Ada Eze", contact_name: "Ada Eze", contact_country: "NG", contact_whatsapp: "+2348031234567", consent: { notice_version: CONSENT_NOTICE_VERSION } });
+    expect(body).not.toHaveProperty("client_ref");
+    expect(body).not.toHaveProperty("client_created_at");
   });
 
   it("keeps a parent's own name and number apart from the child's", () => {
@@ -191,104 +191,83 @@ describe("the request it builds", () => {
     }
   });
 
-  it("refuses unknown fields and a malformed reference", () => {
+  it("refuses unknown fields, and still accepts the reference and time an earlier version sent (a request queued on a phone)", () => {
     const body = buildOnboardingPayload(studentValues(), CONTEXT);
     expect(onboardingBodySchema.safeParse({ ...body, role: "owner" }).success).toBe(false);
     expect(onboardingBodySchema.safeParse({ ...body, client_ref: "nope" }).success).toBe(false);
-    expect(REF_PATTERN.test(buildOnboardingPayload(studentValues(), { locale: "en" }).client_ref)).toBe(true);
+    expect(onboardingBodySchema.safeParse({ ...body, client_ref: "SC-ABCDE-FGHJK", client_created_at: "2026-11-02T10:00:00.000Z" }).success).toBe(true);
   });
 });
 
-describe("POST me/onboarding: the server decision (21.6)", () => {
-  const KEY = "11111111-1111-4111-8111-111111111111";
-  const NOW = new Date("2026-11-04T10:00:00Z"); // a Wednesday
+describe("POST me/onboarding: the server decision (21.6, 23.2)", () => {
+  const NOW = new Date("2026-11-04T10:00:00Z");
 
-  function setup(outcome: OnboardingOutcome | Error) {
-    const rows: NewOnboarding[] = [];
+  function setup(outcome: ProfileOutcome | Error) {
+    const rows: NewProfile[] = [];
     const deps: CompleteOnboardingDeps = {
       insert: vi.fn(async (row) => {
         rows.push(row);
         if (outcome instanceof Error) throw outcome;
         return outcome;
       }),
-      slaSettings: async () => ({ weekdayHours: 4, weekendHours: 24 }),
       now: () => NOW,
-      newId: () => "22222222-2222-4222-8222-222222222222",
-      newRef: () => "SC-22222-33333",
       onError: vi.fn(),
     };
     return { deps, rows };
   }
-  const body = (values = studentValues()) => buildOnboardingPayload(values, { ...CONTEXT, now: NOW });
+  const body = (values = studentValues()) => buildOnboardingPayload(values, CONTEXT);
 
-  it("creates the lead and the profile once, with the SLA set by the server clock", async () => {
-    const { deps, rows } = setup({ kind: "created", id: "id", ref: "SC-ABCDE-FGHJK", storedHash: "h" });
-    const result = await completeOnboarding(deps, { idempotencyKey: KEY, body: body() });
-    expect(result).toEqual({ ok: true, status: 201, ref: "SC-ABCDE-FGHJK", replayed: false });
+  it("stores the profile once, with the consent time set by the server clock, and makes no lead", async () => {
+    const { deps, rows } = setup("created");
+    const result = await completeOnboarding(deps, { body: body() });
+    expect(result).toEqual({ ok: true, status: 201, replayed: false });
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ idempotencyKey: KEY, name: "Ada Eze", whatsappE164: "+2348031234567", countryCode: "NG", relationship: "student", level: "undergraduate", intakeYear: 2027, slaHoursApplied: 4 });
-    expect(rows[0]?.slaDueAt.toISOString()).toBe("2026-11-04T14:00:00.000Z");
-    expect(rows[0]?.refs[0]).toBe("SC-ABCDE-FGHJK");
+    expect(rows[0]).toMatchObject({ name: "Ada Eze", whatsappE164: "+2348031234567", countryCode: "NG", relationship: "student", level: "undergraduate", intakeYear: 2027, consentAt: NOW });
+    // Nothing of a lead reaches the database call: no reference, no key, no response clock.
+    expect(Object.keys(rows[0] as object)).not.toEqual(expect.arrayContaining(["refs", "idempotencyKey", "slaDueAt"]));
   });
 
-  it("gives a parent's lead the child's name and the parent's number, with the parent's name in the source", async () => {
-    const { deps, rows } = setup({ kind: "created", id: "id", ref: "SC-ABCDE-FGHJK", storedHash: "h" });
-    await completeOnboarding(deps, { idempotencyKey: KEY, body: body(parentValues()) });
+  it("keeps the child's name and country in the profile and the parent's own name and number apart", async () => {
+    const { deps, rows } = setup("created");
+    await completeOnboarding(deps, { body: body(parentValues()) });
     expect(rows[0]).toMatchObject({ name: "Chidi Eze", countryCode: "NG", whatsappE164: "+237671234567", relationship: "parent", contactName: "Ngozi Eze" });
-    expect(rows[0]?.source).toEqual({ page: "onboarding", relationship: "parent", contact_name: "Ngozi Eze", course_fields: ["computer_science_it"], level: "undergraduate", intake_year: 2027 });
   });
 
-  it("answers a replay with 200 and the same reference", async () => {
-    // The hash the stored lead carries is the hash of the same payload, so compute it the way the service does.
-    const first = setup({ kind: "created", id: "id", ref: "SC-ABCDE-FGHJK", storedHash: "h" });
-    await completeOnboarding(first.deps, { idempotencyKey: KEY, body: body() });
-    const hash = first.rows[0]?.payloadHash ?? "";
-    const again = setup({ kind: "existing", id: "id", ref: "SC-ABCDE-FGHJK", storedHash: hash });
-    expect(await completeOnboarding(again.deps, { idempotencyKey: KEY, body: body() })).toEqual({ ok: true, status: 200, ref: "SC-ABCDE-FGHJK", replayed: true });
+  it("accepts the reference and time an earlier version sent, and ignores them", async () => {
+    const { deps, rows } = setup("created");
+    const result = await completeOnboarding(deps, { body: { ...body(), client_ref: "SC-ABCDE-FGHJK", client_created_at: "2026-11-02T10:00:00.000Z" } });
+    expect(result).toMatchObject({ ok: true, status: 201 });
+    expect(rows[0]).not.toHaveProperty("clientRef");
   });
 
-  it("refuses the same key with different answers", async () => {
-    const { deps } = setup({ kind: "existing", id: "id", ref: "SC-ABCDE-FGHJK", storedHash: "a-different-hash" });
-    expect(await completeOnboarding(deps, { idempotencyKey: KEY, body: body() })).toMatchObject({ ok: false, status: 409, code: "IDEMPOTENCY_KEY_REUSED" });
-  });
-
-  it("tells a second device to carry on, and writes nothing", async () => {
-    const { deps } = setup({ kind: "already_onboarded" });
-    expect(await completeOnboarding(deps, { idempotencyKey: KEY, body: body() })).toEqual({ ok: true, status: 200, ref: null, replayed: true });
+  it("tells a second device or a retry to carry on with 200, and writes nothing", async () => {
+    const { deps } = setup("already_onboarded");
+    expect(await completeOnboarding(deps, { body: body() })).toEqual({ ok: true, status: 200, replayed: true });
   });
 
   it("refuses an account that may not onboard", async () => {
-    const { deps } = setup({ kind: "not_allowed" });
-    expect(await completeOnboarding(deps, { idempotencyKey: KEY, body: body() })).toMatchObject({ ok: false, status: 403, code: "FORBIDDEN" });
+    const { deps } = setup("not_allowed");
+    expect(await completeOnboarding(deps, { body: body() })).toMatchObject({ ok: false, status: 403, code: "FORBIDDEN" });
   });
 
-  it("limits five leads from one number a day, and asks the phone to wait", async () => {
-    const { deps } = setup({ kind: "number_limited" });
-    const result = await completeOnboarding(deps, { idempotencyKey: KEY, body: body() });
-    expect(result).toMatchObject({ ok: false, status: 429, code: "RATE_LIMITED", retryAfterSeconds: 3600, fields: { reason: "number_limit" } });
-    const response = toResponse(result, "req");
-    expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("3600");
+  it("answers with ref null (no lead), so the phone's queue counts it as done", () => {
+    const response = toResponse({ ok: true, status: 201, replayed: false }, "req");
+    expect(response.status).toBe(201);
+    return response.json().then((json) => expect(json).toEqual({ status: "created", ref: null }));
   });
 
   it("asks the phone to retry when the database fails, and logs the fault without leaking it", async () => {
     const { deps } = setup(new Error("connection refused: host=db.internal password=secret"));
-    const result = await completeOnboarding(deps, { idempotencyKey: KEY, body: body() });
+    const result = await completeOnboarding(deps, { body: body() });
     expect(result).toEqual({ ok: false, status: 503, code: "TEMPORARILY_UNAVAILABLE", message: "Please try again shortly." });
     expect(deps.onError).toHaveBeenCalledOnce();
   });
 
-  it("asks the phone to retry when no reference was free", async () => {
-    const { deps } = setup({ kind: "ref_exhausted" });
-    expect(await completeOnboarding(deps, { idempotencyKey: KEY, body: body() })).toMatchObject({ ok: false, status: 503 });
-  });
-
-  it("refuses a bad key or bad answers before touching the database", async () => {
-    const { deps } = setup({ kind: "created", id: "id", ref: "SC-ABCDE-FGHJK", storedHash: "h" });
-    expect(await completeOnboarding(deps, { idempotencyKey: null, body: body() })).toMatchObject({ ok: false, status: 400, fields: { "Idempotency-Key": "INVALID" } });
-    const bad = await completeOnboarding(deps, { idempotencyKey: KEY, body: { ...body(), level: "doctorate", contact_whatsapp: "1" } });
+  it("refuses bad answers before touching the database", async () => {
+    const { deps } = setup("created");
+    const bad = await completeOnboarding(deps, { body: { ...body(), level: "doctorate", contact_whatsapp: "1" } });
     expect(bad).toMatchObject({ ok: false, status: 400, code: "VALIDATION", fields: { level: "UNKNOWN_VALUE", contact_whatsapp: "PHONE_INVALID" } });
-    expect(await completeOnboarding(deps, { idempotencyKey: KEY, body: "not an object" })).toMatchObject({ ok: false, status: 400 });
+    expect(await completeOnboarding(deps, { body: "not an object" })).toMatchObject({ ok: false, status: 400 });
     expect(deps.insert).not.toHaveBeenCalled();
   });
 });

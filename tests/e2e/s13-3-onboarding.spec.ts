@@ -27,7 +27,7 @@ interface Stub {
 }
 
 async function stub(page: Page, state: { onboarded?: boolean; relationship?: "student" | "parent" | null; ref?: string | null } = {}): Promise<Stub> {
-  const handle: Stub = { posts: [], blocked: false, answer: { status: 201, body: { status: "created", ref: "SC-ABCDE-FGHJK" } } };
+  const handle: Stub = { posts: [], blocked: false, answer: { status: 201, body: { status: "created", ref: null } } };
   await page.route("**/api/v1/me/onboarding-state", (route) =>
     json(route, { userId: "user-1", onboarded: state.onboarded ?? false, relationship: state.relationship ?? null, ref: state.ref ?? null }),
   );
@@ -72,7 +72,7 @@ async function reachConsent(page: Page) {
 const consent = (page: Page) => page.getByRole("checkbox", { name: /I agree that Scollarly/ });
 
 test.describe("a student", () => {
-  test("goes through the screens, ticks the consent, and finishes with a reference", async ({ page }) => {
+  test("goes through the screens, ticks the consent, and finishes with the choice to apply now or not yet", async ({ page }) => {
     const server = await stub(page);
     await page.goto("/me/onboarding?as=student");
     await expect(page.getByText("Step 1 of 4")).toBeVisible();
@@ -94,9 +94,12 @@ test.describe("a student", () => {
 
     await consent(page).check();
     await page.getByRole("button", { name: "Sign up" }).click();
-    await expect(page.getByRole("heading", { name: "Thank you, you are all set" })).toBeVisible();
-    await expect(page.getByText("Your reference: SC-ABCDE-FGHJK")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Go to my page" })).toHaveAttribute("href", "/me");
+    await expect(page.getByRole("heading", { name: "Your account is ready" })).toBeVisible();
+    // The profile is saved and no application exists yet (PRD_4 F24): the person chooses, and no reference is shown.
+    await expect(page.getByText(/Your reference/)).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Apply now" })).toHaveAttribute("href", "/me/apply");
+    await expect(page.getByRole("link", { name: "Not yet" })).toHaveAttribute("href", "/me");
+    await axe(page);
 
     expect(server.posts).toHaveLength(1);
     const request = server.posts[0] as Request;
@@ -104,6 +107,20 @@ test.describe("a student", () => {
     const body = request.postDataJSON();
     expect(body).toMatchObject({ relationship: "student", applicant_name: "Ada Eze", applicant_country: "NG", contact_name: "Ada Eze", contact_country: "NG", contact_whatsapp: "+2348031234567", qualification_type: "olevel_alevel", level: "undergraduate", course_fields: ["computer_science_it"], results: [{ subject: "Mathematics", grade: "A" }], consent: { notice_version: expect.any(String) } });
     expect(body.turnstile_token).toBeUndefined();
+    // No lead is made, so no reference and no device time are sent.
+    expect(body.client_ref).toBeUndefined();
+    expect(body.client_created_at).toBeUndefined();
+  });
+
+  test("Escape on the choice means Not yet: it goes to the dashboard and never to Apply", async ({ page }) => {
+    await stub(page);
+    await page.goto("/me/onboarding?as=student");
+    await reachConsent(page);
+    await consent(page).check();
+    await page.getByRole("button", { name: "Sign up" }).click();
+    await expect(page.getByTestId("apply-choice")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL(/\/me\/?$/);
   });
 
   test("is told what is missing, on the screen they are on, and the answers show the problem", async ({ page }) => {
@@ -209,7 +226,7 @@ test.describe("a parent", () => {
     await page.getByRole("button", { name: "Next" }).click();
     await consent(page).check();
     await page.getByRole("button", { name: "Sign up" }).click();
-    await expect(page.getByRole("heading", { name: "Thank you, you are all set" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your account is ready" })).toBeVisible();
     expect(server.posts[0]?.postDataJSON()).toMatchObject({ relationship: "parent", applicant_name: "Chidi Eze", applicant_country: "NG", contact_name: "Ngozi Eze", contact_country: "CM", contact_whatsapp: "6 71 23 45 67" });
   });
 });
@@ -251,7 +268,7 @@ test.describe("without a connection, and without a session", () => {
     await axe(page);
 
     await setConnection(context, server, true);
-    await expect(page.getByRole("heading", { name: "Thank you, you are all set" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Your account is ready" })).toBeVisible({ timeout: 20_000 });
     expect(server.posts).toHaveLength(1);
   });
 
@@ -310,6 +327,16 @@ test.describe("someone who has already finished", () => {
     await expect(page.getByRole("heading", { name: "You have already finished" })).toBeVisible();
     await expect(page.getByText("Your reference: SC-ABCDE-FGHJK")).toBeVisible();
     await expect(page.getByRole("link", { name: "Go to my page" })).toHaveAttribute("href", "/me");
+    // Already applied: no second Apply button.
+    await expect(page.getByRole("link", { name: "Apply now" })).toHaveCount(0);
+    await axe(page);
+  });
+
+  test("has an Apply button while no application has been made", async ({ page }) => {
+    await stub(page, { onboarded: true, relationship: "student", ref: null });
+    await page.goto("/me/onboarding");
+    await expect(page.getByRole("heading", { name: "You have already finished" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Apply now" })).toHaveAttribute("href", "/me/apply");
     await axe(page);
   });
 });
