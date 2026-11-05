@@ -14,6 +14,8 @@ export function AccountLinkSwap({ label }: { label: string }) {
     if (!isSignedInHint()) return;
     for (const link of document.querySelectorAll<HTMLAnchorElement>("a[data-account-link], a[data-sign-in-link]")) {
       if (link.hasAttribute("data-hide-signed-in")) {
+        // Inline, because the site's own `display` rule on the link class would beat the `hidden` attribute.
+        link.style.display = "none";
         link.hidden = true;
         continue;
       }
