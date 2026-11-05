@@ -16,7 +16,7 @@ if (!/^https?:\/\//.test(base)) {
   process.exit(2);
 }
 
-const PUBLIC = ["/", "/universities", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/apply", "/privacy", "/terms", "/offline", "/sign-in", "/sign-up"];
+const PUBLIC = ["/", "/universities", "/campus-tours", "/process", "/visa", "/faq", "/about", "/blog", "/contact", "/privacy", "/terms", "/offline", "/sign-in", "/sign-up"];
 // Version 2 (S13.9): the four hubs, the notifications pages, the student tabs, onboarding and the account confirm screen are all closed to a visitor.
 const CLOSED_SHELLS = [
   "/admin",
@@ -102,6 +102,17 @@ for (const [from, to] of LEGACY) {
     const location = response.headers.get("location") ?? "";
     if (response.status !== 301) return `HTTP ${response.status}`;
     if (new URL(location, base).pathname + new URL(location, base).search !== to) return `moved to ${location}`;
+  });
+}
+// Version 4 (S15.4, S15.5): `/apply` is not a page any more and `/account` is the one account address. Both answer a visitor with a 302 to Sign in that
+// is never stored, and neither makes a database call for a request with no session cookie.
+for (const [from, to] of [["/apply", "/sign-in?next=%2Fapply"], ["/account", "/sign-in"]]) {
+  await check(`${from} sends a visitor to Sign in, and is not cached`, async () => {
+    const response = await get(from);
+    const location = response.headers.get("location") ?? "";
+    if (response.status !== 302) return `HTTP ${response.status}`;
+    if (new URL(location, base).pathname + new URL(location, base).search !== to) return `sent to ${location}`;
+    if (!(response.headers.get("cache-control") ?? "").includes("no-store")) return "the answer can be cached";
   });
 }
 await check("a mutation of the account area refuses a visitor", async () => {
