@@ -158,8 +158,9 @@ jobs:
       # First-load JavaScript of every public route, and no admin library in any of them (S3.5).
       - if: steps.scope.outputs.run == 'true'
         run: npm run check:bundle
-      # A pull request measures six key pages once (about a minute); `main` measures every public page once. One run is enough because the
-      # score has a wide margin over the 0.85 floor and the byte budget does not vary between runs. The server is started here and every page is
+      # A pull request measures six key pages once (about a minute); `main` measures every public page twice and a page fails only if BOTH runs
+      # are under the 0.85 floor (`aggregationMethod: optimistic`): on a shared runner one run of one page sometimes dips under the floor (0.84,
+      # 0.72, 0.71 on different pages, each passing on a rerun of the same code), and the byte budget does not vary between runs. The server is started here and every page is
       # fetched once before the first measurement: the first request after a start is slow (it loads the page code), and a cold first page used to
       # fail the budget (0.76 on `/`, then 0.78 on the light `/offline` page) although nothing was wrong with the page.
       - if: steps.scope.outputs.run == 'true'
