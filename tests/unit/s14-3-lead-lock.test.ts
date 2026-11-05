@@ -6,7 +6,8 @@ const createLead = vi.fn();
 vi.mock("@/server/repositories/session-lookup", () => ({ resolveSession: (...args: unknown[]) => resolveSession(...args) }));
 vi.mock("@/modules/leads/service", () => ({ createLead: (...args: unknown[]) => createLead(...args) }));
 vi.mock("@/server/db/runtime", () => ({ getDb: () => ({}) }));
-vi.mock("@/server/repositories/lead-intake", () => ({ insertLead: vi.fn() }));
+const tokenHasApplication = vi.fn();
+vi.mock("@/server/repositories/lead-intake", () => ({ insertLead: vi.fn(), tokenHasApplication: (...args: unknown[]) => tokenHasApplication(...args) }));
 vi.mock("@/server/security/rate-limit", () => ({ createDurableObjectLimiter: () => async () => ({ allowed: true }), limiterKey: async () => "k" }));
 vi.mock("@/server/edge/settings-cache", () => ({ cachedSlaSettings: vi.fn() }));
 
@@ -28,6 +29,8 @@ describe("S14.3: the lead endpoint is the lock behind every gated button (PRD_3 
   beforeEach(() => {
     resolveSession.mockReset();
     createLead.mockReset();
+    tokenHasApplication.mockReset();
+    tokenHasApplication.mockResolvedValue(false);
     createLead.mockResolvedValue({ ok: true, replayed: false, status: 201, ref: "SC-AAAAA-AAAAB" });
   });
 
@@ -59,6 +62,30 @@ describe("S14.3: the lead endpoint is the lock behind every gated button (PRD_3 
     const response = await handleLeadPost(post(COOKIE), env);
     expect(response.status).toBe(503);
     expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("refuses a second application from a student who already has one (S15.3, one application per account)", async () => {
+    resolveSession.mockResolvedValue({ userId: "u", role: "student", emailVerified: true, accountConfirmed: true, onboardingDone: true });
+    tokenHasApplication.mockResolvedValue(true);
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe("ALREADY_APPLIED");
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("answers 503, not a false refusal or a second lead, when the guard itself fails", async () => {
+    resolveSession.mockResolvedValue({ userId: "u", role: "student", emailVerified: true, accountConfirmed: true, onboardingDone: true });
+    tokenHasApplication.mockRejectedValue(new Error("db down"));
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(503);
+    expect(createLead).not.toHaveBeenCalled();
+  });
+
+  it("does not ask the guard about staff: only a student has an application of their own to protect", async () => {
+    resolveSession.mockResolvedValue({ userId: "a", role: "admin", emailVerified: true, accountConfirmed: true, onboardingDone: false });
+    const response = await handleLeadPost(post(COOKIE), env);
+    expect(response.status).toBe(201);
+    expect(tokenHasApplication).not.toHaveBeenCalled();
   });
 
   it("lets a confirmed account through to the lead rules", async () => {
