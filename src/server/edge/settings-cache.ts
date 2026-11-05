@@ -15,13 +15,22 @@ interface Entry {
 }
 
 const entries = new Map<string, Entry>();
+/** Reads in progress, so requests that miss together (a cold isolate, the minute running out) share one round trip. */
+const reading = new Map<string, Promise<Record<string, unknown>>>();
 
 export async function cachedSettings(db: Db, key: string, now: number = Date.now()): Promise<Record<string, unknown>> {
   const hit = entries.get(key);
   if (hit && now - hit.at < SETTINGS_TTL_MS) return hit.values;
-  const values = await readSettings(db);
-  entries.set(key, { at: now, values });
-  return values;
+  const pending = reading.get(key);
+  if (pending) return pending;
+  const read = readSettings(db)
+    .then((values) => {
+      entries.set(key, { at: now, values });
+      return values;
+    })
+    .finally(() => reading.delete(key));
+  reading.set(key, read);
+  return read;
 }
 
 export async function cachedSlaSettings(db: Db, key: string, now?: number): Promise<SlaSettings> {
@@ -36,4 +45,5 @@ export async function pageViewsEnabled(db: Db, key: string, now?: number): Promi
 /** For tests. */
 export function resetSettingsCache(): void {
   entries.clear();
+  reading.clear();
 }

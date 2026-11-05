@@ -8,6 +8,8 @@ import { DurableObject } from "cloudflare:workers";
 /** The most distinct `agg:` keys held between two rollups. A real day is a few hundred (types x countries x universities x page groups). */
 export const AGG_KEY_CAP = 10_000;
 const AGG_KEY_COUNT = "agg_key_count";
+/** A Durable Object `put` of an object takes at most 128 pairs, and a batch of new keys also writes `AGG_KEY_COUNT`, so a batch holds 127 counts. */
+const AGG_BATCH = 127;
 
 export class Collector extends DurableObject<CloudflareEnv> {
   async increment(type: string, by = 1): Promise<number> {
@@ -23,7 +25,7 @@ export class Collector extends DurableObject<CloudflareEnv> {
    * (S7.1) reads the `agg:` keys into `event_daily_agg` and clears them. Counts only: no row, no identifier.
    */
   async addCounts(counts: Record<string, number>): Promise<void> {
-    const keys = Object.keys(counts).slice(0, 128);
+    const keys = Object.keys(counts).slice(0, AGG_BATCH);
     if (keys.length === 0) return;
     const current = await this.ctx.storage.get<number>(keys);
     // The university and page group in a key come from the client, so a script could invent endless keys. The number of distinct `agg:`
@@ -70,7 +72,7 @@ export class Collector extends DurableObject<CloudflareEnv> {
   /** Puts counts back (additively) after a failed rollup. Goes through `addCounts`, so the key cap still applies. */
   async restoreAggregates(counts: Record<string, number>): Promise<void> {
     const entries = Object.entries(counts);
-    for (let i = 0; i < entries.length; i += 128) await this.addCounts(Object.fromEntries(entries.slice(i, i + 128)));
+    for (let i = 0; i < entries.length; i += AGG_BATCH) await this.addCounts(Object.fromEntries(entries.slice(i, i + AGG_BATCH)));
   }
 
   async snapshot(): Promise<Record<string, number>> {
