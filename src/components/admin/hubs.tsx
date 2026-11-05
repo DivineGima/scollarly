@@ -12,6 +12,7 @@ import { LeadsPanel } from "./leads-panel";
 import { LinkRequestsPanel } from "./link-requests-panel";
 import { CrmOverview } from "./crm/crm-overview";
 import { PipelineBoard } from "./crm/pipeline-board";
+import { NotAppliedPanel } from "./not-applied-panel";
 import { PaymentsPanel } from "./payments-panel";
 
 interface Section {
@@ -51,12 +52,12 @@ function Loading() {
   return <p role="status">{t("loading")}</p>;
 }
 
-/** Leads: the list (with its own views: all, overdue, unassigned, duplicates), the link requests, and the data requests. */
+/** Leads: the list (with its own views: all, overdue, unassigned, duplicates), the pipeline, the students who have not applied yet, the link requests, and the data requests. */
 export function LeadsHub() {
   const t = useTranslations("admin.hub");
   const view = useView();
   if (view === null) return <Loading />;
-  const current = view === "link-requests" || view === "data-requests" || view === "pipeline" ? view : "leads";
+  const current = view === "link-requests" || view === "data-requests" || view === "pipeline" || view === "not-applied" ? view : "leads";
   return (
     <>
       <SectionTabs
@@ -66,11 +67,12 @@ export function LeadsHub() {
         sections={[
           { key: "leads", label: t("leads.leads") },
           { key: "pipeline", label: t("leads.pipeline") },
+          { key: "not-applied", label: t("leads.notApplied") },
           { key: "link-requests", label: t("leads.linkRequests") },
           { key: "data-requests", label: t("leads.dataRequests") },
         ]}
       />
-      {current === "link-requests" ? <LinkRequestsPanel /> : current === "data-requests" ? <DataRequestsPanel /> : current === "pipeline" ? <PipelineBoard /> : <LeadsPanel />}
+      {current === "link-requests" ? <LinkRequestsPanel /> : current === "data-requests" ? <DataRequestsPanel /> : current === "pipeline" ? <PipelineBoard /> : current === "not-applied" ? <NotAppliedPanel /> : <LeadsPanel />}
     </>
   );
 }

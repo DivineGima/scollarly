@@ -21,6 +21,7 @@ import {
   resolveDuplicate,
   type MissOutcome,
 } from "@/server/repositories/lead-admin";
+import { listNotApplied } from "@/server/repositories/not-applied";
 import { listTeam } from "@/server/repositories/team";
 import {
   addNoteBody,
@@ -36,6 +37,7 @@ import {
   logDataRequestBody,
   resolveDuplicateBody,
 } from "./admin-schema";
+import { notAppliedItem } from "./not-applied";
 import { leadListItem, slaView, timeline, watDayBounds, type StaffPerson } from "./admin-view";
 
 /**
@@ -92,6 +94,15 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
         openDataRequests: counts.openDataRequests,
         funnel: stages.map((s) => ({ code: s.code, name: s.name, count: counts.funnel.find((f) => f.stageCode === s.code)?.count ?? 0 })),
       };
+    },
+
+    /**
+     * PRD_4 F27 (architecture 23.6): students who finished onboarding and have not applied, newest first. One query on profiles, no join to
+     * leads, so no lead count, response clock or duplicate check can change. Staff only (the facade and row level security).
+     */
+    "admin/not-applied": async (actor) => {
+      const { rows, total } = await listNotApplied(env.db, actor);
+      return { students: rows.map(notAppliedItem), total };
     },
 
     /** B2: the list, its filters and the options the filter controls need. The filters are in the URL (B2 step 2). */

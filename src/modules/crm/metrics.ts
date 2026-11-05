@@ -66,6 +66,20 @@ export function funnelFromStages(stages: readonly StageCount[]): FunnelStep[] {
   }));
 }
 
+/** The code of the first funnel step, before the stages: students who finished their profile (PRD_4 F27). */
+export const ONBOARDED_STEP = "profile_onboarded";
+
+/**
+ * The funnel with its first step in front: students who finished onboarding, then the stages as before. The stage steps are unchanged (a lead is
+ * still counted from the lead's own stage), and the first stage gets no "of previous" share, because profiles and leads are counted for the same
+ * dates but are not nested (a lead can come from an older flow or from a person onboarded before the range). The share of onboarded students who
+ * applied is `appliedOfOnboardedPercent`, shown on its own. Null `onboarded` (a filter a profile does not have) leaves the funnel as it was.
+ */
+export function withOnboardedStep(steps: readonly FunnelStep[], onboarded: number | null): FunnelStep[] {
+  if (onboarded === null) return [...steps];
+  return [{ code: ONBOARDED_STEP, reached: onboarded, ofAll: null, ofPrevious: null }, ...steps];
+}
+
 /** "12 min", "3 h 20 min", "2 days": a response time for a tile. Null (nobody has answered yet) is left to the caller to word. */
 export function formatMinutes(minutes: number | null): { unit: "minutes" | "hours" | "days"; value: number } | null {
   if (minutes === null || !Number.isFinite(minutes) || minutes < 0) return null;

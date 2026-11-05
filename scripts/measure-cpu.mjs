@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,account-confirm,me-home,me-notifications,admin-home,admin-notifications,admin-tour,legacy-redirect,crm,pipeline,crm-export,lead,media,media-miss").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,account-confirm,me-home,me-notifications,admin-home,admin-notifications,admin-tour,legacy-redirect,crm,pipeline,crm-export,admin-not-applied,account-route,me-application-context,lead,media,media-miss").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, "account-confirm": 8, "me-home": 8, "me-notifications": 8, "admin-home": 8, "admin-notifications": 8, "admin-tour": 8, "legacy-redirect": 8, "crm": 8, "pipeline": 8, "crm-export": 8, media: 8, "media-miss": 8 };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, "account-confirm": 8, "me-home": 8, "me-notifications": 8, "admin-home": 8, "admin-notifications": 8, "admin-tour": 8, "legacy-redirect": 8, "crm": 8, "pipeline": 8, "crm-export": 8, "admin-not-applied": 8, "account-route": 8, "me-application-context": 8, media: 8, "media-miss": 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -193,6 +193,10 @@ try {
     // (five per ten minutes per Worker instance), so it is measured with five requests; the other two repeat safely.
     rows.push(await scenario("Staff CRM overview: five aggregates in one transaction (30 days)", "crm", () => call("/api/v1/admin/crm", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/crm")));
     rows.push(await scenario("Staff pipeline board: newest eight leads per stage and the totals", "pipeline", () => call("/api/v1/admin/pipeline", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/pipeline")));
+    // S15.5 and S15.6 (architecture 23.8): the staff "Not applied yet" list (one query on profiles, no join), and the account address with a real
+    // session (one session read, then a 302). Both repeat safely. A signed-out `/account` makes no database call and is a unit test.
+    rows.push(await scenario("Staff not-applied list: up to 100 profiles in one query", "admin-not-applied", () => call("/api/v1/admin/not-applied", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/not-applied")));
+    rows.push(await scenario("Account address with a session: one session read, then a 302", "account-route", (m) => call(`/account?${m}`, staff)));
     rows.push(await scenario("Staff CSV export: up to 5,000 rows and one audit row", "crm-export", () => call("/api/v1/admin/export", staff), 5, 150, (url) => url.endsWith("/api/v1/admin/export")));
     // The legacy redirect runs in the Worker entry before the session check, so it needs no cookie. The marker rides in the query, which the redirect keeps.
     rows.push(await scenario("Legacy admin address: 301 from the Worker entry", "legacy-redirect", (m) => call(`/admin/payments?${m}`)));
@@ -374,6 +378,9 @@ try {
     const homeStudent = (sessions.onboarding ?? [])[0] ?? sessions.student;
     const homeCookie = `__Secure-neon-auth.session_token=${homeStudent.token}.c2lnbmF0dXJl`;
     rows.push(await scenario("Student Home: profile, lead stage and count in one call", "me-home", () => call("/api/v1/me/home", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/home")));
+    // S15.3 (architecture 23.8): what the Apply screen loads. `POST me/application` makes a lead and is limited to one per account, so it is
+    // watched in Workers Logs after the deploy, like the other writes of a measured shape.
+    rows.push(await scenario("Student application context: profile and lead in one call", "me-application-context", () => call("/api/v1/me/application-context", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/application-context")));
     rows.push(await scenario("Student notifications: derived items for the caller", "me-notifications", () => call("/api/v1/me/notifications", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/notifications")));
   } else if ([...only].some((k) => /^(admin|student|me|account)-/.test(k))) {
     console.error("No --sessions file: the staff and student scenarios were skipped.");

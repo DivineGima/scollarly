@@ -21,6 +21,9 @@ const SCENARIOS: Record<string, string> = {
   crm: "/api/v1/admin/crm",
   pipeline: "/api/v1/admin/pipeline",
   "crm-export": "/api/v1/admin/export",
+  "admin-not-applied": "/api/v1/admin/not-applied",
+  "account-route": "/account",
+  "me-application-context": "/api/v1/me/application-context",
 };
 
 describe("the CPU measurement drives every version 2 call", () => {

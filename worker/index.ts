@@ -4,6 +4,7 @@
 
 import { applySecurityHeaders } from "../src/lib/security-headers";
 import { runScheduled } from "../src/server/edge/cron";
+import { handleAccount } from "../src/server/edge/account";
 import { handleAuthed } from "../src/server/edge/authed";
 import { handleApplyForward, handleLegacyRedirect } from "../src/server/edge/legacy-redirects";
 import { authedDeps, landingDeps, mutationDeps } from "../src/server/edge/authed-runtime";
@@ -57,6 +58,10 @@ async function route(request: Request, env: CloudflareEnv, ctx: ExecutionContext
   // The old public Apply address forwards to the Apply screen inside the account, or to Sign in (PRD_4 F24); no database call.
   const apply = handleApplyForward(request);
   if (apply) return apply;
+
+  // The one account address, and the forward of a signed-in person away from the Sign in and Sign up forms (PRD_4 F25); no cookie costs no database call.
+  const account = await handleAccount(request, () => landingDeps(env, (task) => ctx.waitUntil(task)));
+  if (account) return account;
 
   const signIn = handleSignIn(request, env);
   if (signIn) return signIn;

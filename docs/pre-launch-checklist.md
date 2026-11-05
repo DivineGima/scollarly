@@ -83,7 +83,7 @@ Three real people use the live app with **no help from you**: one student, one p
 
 Try these on the live site, on a phone, signed out and then signed in:
 
-- [ ] Signed out: the public pages open, but Apply, a WhatsApp button, the Contact button and the course finder button show the sign-in pop-up. No chat opens.
+- [ ] Signed out: the public pages open and offer **Create an account** (version 4 removed the Apply and WhatsApp buttons and the sign-in pop-up from the public pages; see E4). No chat opens.
 - [ ] Create an account with an email and a password (8 characters or more). You land on the questionnaire, not on a dashboard. The last button says **Sign up**. After it you land on the app.
 - [ ] Sign out and sign in again with the same email and password. Wrong password: one plain sentence.
 - [ ] Sign in with Google too (the same checks).
@@ -94,6 +94,20 @@ Try these on the live site, on a phone, signed out and then signed in:
 - [ ] Admin, Insights, Overview: the tiles, the five charts and the filters work; Download as CSV opens in a spreadsheet and has no names, numbers or emails.
 - [ ] Admin, Leads, Pipeline: move a lead to another step; it moves and the list shows the new step.
 - [ ] Google console (owner action R1): publish the OAuth app so people other than you can sign in with Google, and paste the Privacy and Terms addresses there.
+
+## E4. Version 4 checks (S15.7)
+
+Try these on the live site, on a phone:
+
+- [ ] Signed out: every public page offers **Create an account** and **Sign in**. There is no Apply form, no WhatsApp form and no chat link. The Contact page shows the number as text with a Copy button.
+- [ ] Create a new account and finish the profile. The last screen asks **Apply now / Not yet**. "Not yet" lands on the dashboard; no application exists yet (the Home shows an Apply button).
+- [ ] Apply with three programmes. You see your reference. Open the Apply screen again (or an old `/apply` link): it says you already applied and shows the reference and stage. Try it from a second phone too: same answer.
+- [ ] Turn the phone offline, apply, then turn it back on: the application is sent once.
+- [ ] Back on a public page, the header says **My account** (not Sign in), and it opens your home. Sign out: it says Sign in again. Open `/sign-in` while signed in: you are sent to your home.
+- [ ] In the app, the Home, My progress and Help each open WhatsApp with a message; the chat creates no application.
+- [ ] Admin, Leads, **Not applied yet**: students who finished their profile and did not apply, newest first, with a Message on WhatsApp link. The Leads list and its counts do not change when a student onboards.
+- [ ] Admin, Insights, Overview: the **Finished their profile** tile, **Applied, of those**, and the funnel's first step. With a Source or Assigned filter set, those two tiles are hidden (a profile has neither).
+- [ ] Owner action: run the **Stage 0 deploy and measure** workflow once with the CPU measurement on and send the table to Claude Code, which records the Stage 15 rows in `tracker/tracker_4.md`.
 
 ## F. Sign-off (H11)
 
