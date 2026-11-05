@@ -13,7 +13,7 @@ This tracker starts version 4 (PRD_4, architecture 4, essentials 4). `tracker_3.
 | Essentials file | `essentials/system_architecture_essential_4.md` (Stage 15, one stage) |
 | Phase | Stage 14 built, merged and deployed (see tracker_3); its owner-paced items are carried into S15.7. **Stage 15 documents written 2026-11-05 (PRD_4, architecture 4, essentials 4).** S15.1 to S15.7 are built, merged (PR #75, #79, #80, #81, #82) and deployed; the CPU rows are recorded below (all pass). Stage 15 stays `in-progress` only for the carried owner items. |
 | Next module | None in the code. Waiting on the owner-paced items (see Owner actions); the next version needs new documents. |
-| Blocked by | The owner's actions (sign-off row, R1, R4, R5, R6, H11, H19 / E5 and the watched test). |
+| Blocked by | The owner's actions (R4, R5, R6, H11, H19 / E5, the watched test, H20, and the domain). |
 
 ## Start-of-task check results (CLAUDE.md steps 1 to 7), 2026-11-05
 
@@ -60,17 +60,21 @@ Built against: `essentials/system_architecture_essential_4.md` and `system_archi
 
 Pull request #82 passed all six checks (slowest 3 min 41 s) after two fixes found by CI: the longer funnel caption made the CRM overview scroll sideways at phone width, and the header Sign in link was not hidden for a signed-in browser. One Lighthouse run scored a page 0.71 once and passed on the rerun with no code change. The deploy workflow now runs a short measurement by default (the Stage 15 calls and the screens they touch), skips the image upload and the 70 second wait unless a scenario needs them, and uses the Next build cache; pass `cpu_scenarios` as `all` for the full 35 minute run.
 
+### 2026-11-05: owner confirmations
+
+The owner said: R1 (Google app published) is done, the Turnstile keys are in the repository secrets, and PRD_4, architecture 4 and essentials 4 are signed off. The owner had already run the section D checks of the pre-launch checklist; on request Claude Code ran the weekly backup (run 41998644962, green in 53 s) and the uptime check (run 41998654128, green in 10 s) again, without forcing a failure. The owner will do the domain and the private repository (H20) at the end.
+
 ## Flags (need the owner)
 
 | # | Flag | Status |
 |---|---|---|
 | F8 | Branch protection on `main`: the owner chose no GitHub change (2026-11-04); protection is discipline-only. | **Open** (carried) |
 | F9, F10 | Domain `scollarly.co.in` and its .IN verification (outside the code). | **Open** (carried, see tracker_2) |
-| F22 | Google's OAuth app is in Testing mode with the owner as the only test user. | **Open (owner action R1)**. The owner said on 2026-11-04 that the Google publish is done; it is recorded here only when the owner says "record it". |
+| F22 | Google's OAuth app was in Testing mode with the owner as the only test user. | **Resolved 2026-11-05**: the owner said the app is published (R1). |
 | F25 | The onboarding consent text is the placeholder `draft-1`. The apply step reuses it. | **Open (owner action R5)** |
 | F30 | Staff and password logins. | **Repaired 2026-11-04** (migration 0018); residual accepted, see tracker_3. |
 | F33 | The image CPU rows are intermittent. | **Open** (carried, see tracker_3). |
-| F34 | The deploy uses Cloudflare's always-pass Turnstile secret until the repository secret `TURNSTILE_SECRET_KEY` is added. | **Open, owner action** (carried). Note: after S15.4 no public lead form remains, so the secret matters only for the contact form and until `POST /leads` is retired. |
+| F34 | The deploy used Cloudflare's always-pass Turnstile secret until the repository secrets were added. | **Resolved 2026-11-05 by the owner**: `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set; the deploy of run 41995979416 printed no missing-secret warning. |
 | F35 | `CLAUDE.md` Step 2 pointed at essentials 3. | **Resolved 2026-11-05** by the owner decision recorded in `CLAUDE.md` (the owner asked for the version 4 documents). |
 | D3 | The 360 tour card for Chandigarh and Kalinga repeats the video picture. | **Open, owner choice** (carried). |
 
@@ -91,8 +95,8 @@ Gate: warm p95 at most 8 ms, none cut.
 
 | # | Action | Needed before | Status |
 |---|---|---|---|
-| Sign-off | PRD_4, architecture 4, essentials 4 | S15.2 starts | Open |
-| R1 | Publish Google's OAuth app, with the Privacy and Terms links | First real onboarding | Open (the owner reported it done; waits for "record it") |
+| Sign-off | PRD_4, architecture 4, essentials 4 | S15.2 starts | **Done: the owner said so on 2026-11-05** |
+| R1 | Publish Google's OAuth app, with the Privacy and Terms links | First real onboarding | **Done: the owner said so on 2026-11-05** |
 | R4 | Real-phone check of the installed icon and launch screen | Launch | Open |
 | R5 | Legal check and text for Privacy, Terms, parent applying for a child, minors, consent | Launch | Open |
 | R6 | Trust content for the landing page | Launch | Open |
