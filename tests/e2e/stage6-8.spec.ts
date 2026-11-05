@@ -551,7 +551,7 @@ test.describe("B10 analytics", () => {
     const sources = page.getByTestId("sources");
     await expect(sources).toContainText("CM");
     await expect(sources).toContainText("Alpha University");
-    await expect(sources).toContainText("Not from a university page");
+    await expect(sources).toContainText("No university chosen");
     await expect(sources).toContainText("/apply");
 
     await page.getByRole("button", { name: "My performance" }).click();

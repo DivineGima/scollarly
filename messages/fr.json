@@ -1100,10 +1100,10 @@
       },
       "sources": {
         "country": "Par pays",
-        "university": "Par université",
+        "university": "Par université (un contact compte pour chaque université choisie)",
         "page": "Par page",
         "none": "Aucun contact sur cette période.",
-        "noUniversity": "Ne vient pas d'une page d'université",
+        "noUniversity": "Aucune université choisie",
         "noPage": "Page non enregistrée"
       },
       "performance": {

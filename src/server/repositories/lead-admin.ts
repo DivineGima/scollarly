@@ -5,6 +5,7 @@ import { rowsOf } from "@/server/db/rows";
 import { lead, leadActivity, leadClaim, leadNote, leadProgrammePref, pipelineStage, programme, university } from "@/server/db/schema";
 import { uuidv7 } from "@/lib/uuid";
 import { runAs } from "./as-actor";
+import { leadInUniversity } from "./lead-filters";
 import { teamMembersOf, teamQuery, type TeamMember } from "./team";
 
 /**
@@ -103,11 +104,7 @@ export function leadListConditions(actor: Pick<Actor, "userId">, filters: LeadLi
     filters.view === "unassigned" ? and(isNull(lead.assignedAdminId), isNull(lead.anonymisedAt)) : undefined,
     filters.stage ? eq(lead.stageCode, filters.stage) : undefined,
     filters.country ? eq(lead.countryCode, filters.country) : undefined,
-    filters.universityId
-      ? sql`(${lead.source}->>'university_id' = ${filters.universityId} or exists (
-          select 1 from lead_programme_pref pp join programme p on p.id = pp.programme_id
-           where pp.lead_id = ${lead.id} and p.university_id = ${filters.universityId}::uuid))`
-      : undefined,
+    filters.universityId ? leadInUniversity(sql`${lead.id}`, sql`${lead.source}`, filters.universityId) : undefined,
     filters.assigned === "me" ? eq(lead.assignedAdminId, actor.userId) : filters.assigned === "none" ? isNull(lead.assignedAdminId) : filters.assigned ? eq(lead.assignedAdminId, filters.assigned) : undefined,
     search
       ? or(
