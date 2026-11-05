@@ -1100,10 +1100,10 @@
       },
       "sources": {
         "country": "By country",
-        "university": "By university",
+        "university": "By university (a lead counts under each university it chose)",
         "page": "By page",
         "none": "No leads in this range.",
-        "noUniversity": "Not from a university page",
+        "noUniversity": "No university chosen",
         "noPage": "Page not recorded"
       },
       "performance": {
