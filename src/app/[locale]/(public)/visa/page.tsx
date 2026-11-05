@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Paragraphs } from "@/components/public/copy";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { StepList } from "@/components/public/steps";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { readSite } from "@/modules/content/read";
 
 // A4 /visa: the visa steps.
@@ -30,7 +30,7 @@ export default async function VisaPage({ params }: { params: Promise<{ locale: s
         </aside>
       ) : null}
       <p className="cta-row">
-        <WhatsAppButton context={{ page: "/visa" }} />
+        <CreateAccountLink next="/visa" />
       </p>
     </>
   );

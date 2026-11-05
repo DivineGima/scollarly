@@ -214,7 +214,7 @@ describe("S10.1 a change reaches everything that reads the setting", () => {
     expect(answer.status).toBe(200);
     expect(answer.json.changed).toEqual(["whatsapp_number_e164"]);
     expect(answer.json.revalidate.areas).toEqual(["site"]);
-    expect(answer.json.revalidate.paths).toEqual(expect.arrayContaining(["/", "/contact", "/apply"]));
+    expect(answer.json.revalidate.paths).toEqual(expect.arrayContaining(["/", "/contact"]));
     expect(answer.json.revalidate.paths).not.toContain("/offline");
     // The number is stored as the digits the WhatsApp link needs.
     expect(await setting("whatsapp_number_e164")).toBe("+447700900123");

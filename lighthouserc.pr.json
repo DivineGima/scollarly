@@ -1,16 +1,14 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "npx next start -p 3101",
-      "startServerReadyPattern": "Ready",
       "url": [
         "http://localhost:3101/offline",
         "http://localhost:3101/",
         "http://localhost:3101/universities",
         "http://localhost:3101/universities/alpha-university",
         "http://localhost:3101/campus-tours",
-        "http://localhost:3101/apply",
-        "http://localhost:3101/sign-in"
+        "http://localhost:3101/sign-in",
+        "http://localhost:3101/contact"
       ],
       "numberOfRuns": 1
     },

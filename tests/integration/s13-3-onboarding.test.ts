@@ -10,7 +10,8 @@ import { handleMutation } from "@/server/edge/mutations";
 import { resolveSession } from "@/server/repositories/identity";
 import { listDuplicatePairs } from "@/server/repositories/lead-admin";
 import { eraseMyAccount, exportMyData } from "@/server/repositories/student";
-import { createTestDb, type SignedInUser, type TestDb } from "./helpers/db";
+import type { Db } from "@/server/db/client";
+import { createTestDb, openRuntimeConnections, type SignedInUser, type TestDb } from "./helpers/db";
 import { leadRow, q } from "./helpers/fixtures";
 
 /**
@@ -127,11 +128,27 @@ describe("finishing onboarding", () => {
     expect(((await t.run(`select applicant_name from student_profile where user_id = ${q(user.userId)}`)) as { applicant_name: string }[])[0]?.applicant_name).toBe("Ada Eze");
   });
 
-  it("two requests at the same moment still make one profile", async () => {
+  // The account's primary key is the guard. Two requests only overlap on two database sessions, so this needs a real Postgres with two
+  // connections (the CI service container); the in-process engine has one connection.
+  it.skipIf(!process.env.TEST_DATABASE_URL)("two requests at the same moment still make one profile (two connections)", async () => {
     const user = await account();
-    const body = bodyOf(student());
-    const [a, b] = await Promise.all([post(user, body), post(user, body)]);
-    expect([a.status, b.status].sort()).toEqual([200, 201]);
+    const payload = bodyOf(student());
+    const extra = await openRuntimeConnections(2);
+    try {
+      const call = (db: Db) =>
+        handleMutation(
+          new Request(`${ORIGIN}/api/v1/me/onboarding`, {
+            method: "POST",
+            headers: { cookie: cookieOf(user), origin: ORIGIN, "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          }),
+          () => ({ checkSession: facade.checkSession, mutations, env: { ...env, db }, limit: async () => ({ allowed: true, remaining: 100, retryAfterSeconds: 0 }) }),
+        ) as Promise<Response>;
+      const [a, b] = await Promise.all(extra.dbs.map((db) => call(db)));
+      expect([a?.status, b?.status].sort()).toEqual([200, 201]);
+    } finally {
+      await extra.close();
+    }
     expect(await profilesOf(user)).toBe(1);
   });
 

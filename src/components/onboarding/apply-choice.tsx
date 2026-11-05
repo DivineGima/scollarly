@@ -5,6 +5,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { SIGNED_IN_FRAGMENT } from "@/lib/client/signed-in-hint";
+import { APPLY_ADDRESS } from "@/modules/gate/next";
 
 /** Where "Apply now" goes: the Apply screen inside the account (S15.3). */
 export const APPLY_PATH = "/me/apply";
@@ -18,7 +19,8 @@ export const APPLY_PATH = "/me/apply";
 export function ApplyChoice({ after }: { after: string | null }) {
   const t = useTranslations("onboarding.applyChoice");
   const dialog = useRef<HTMLDialogElement | null>(null);
-  const later = after ? `${after}${SIGNED_IN_FRAGMENT}` : "/me";
+  // "Not yet" never goes to the Apply screen: a person who arrived through the old Apply address (`next=/apply`) still chose "not yet".
+  const later = after && after !== APPLY_ADDRESS ? `${after}${SIGNED_IN_FRAGMENT}` : "/me";
 
   useEffect(() => {
     const element = dialog.current;

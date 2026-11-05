@@ -29,9 +29,9 @@ const MAP: Record<string, { file: string; title: string }[]> = {
   "F20 (account-first actions)": [
     { file: `${U}/s14-3-lead-lock.test.ts`, title: "refuses a request with no session cookie, before any database call" },
     { file: `${U}/s14-3-lead-lock.test.ts`, title: "refuses an account that has not been confirmed" },
-    { file: `${E}/s14-3-gate.spec.ts`, title: "tapping Apply signed out opens the pop-up" },
-    { file: `${E}/s14-3-gate.spec.ts`, title: "tapping a WhatsApp button signed out shows the pop-up and never opens the chat" },
-    { file: `${E}/s14-3-gate.spec.ts`, title: "public pages stay readable and show no form or chat to a signed-out visitor" },
+    { file: `${E}/s14-3-gate.spec.ts`, title: "every public page stays readable and offers Create an account" },
+    { file: `${E}/s14-3-gate.spec.ts`, title: "the Contact page still shows the WhatsApp number as text to copy, but no chat link" },
+    { file: `${U}/s14-3-gate.test.ts`, title: "the old Apply address" },
   ],
   "F21 (email and password)": [
     { file: `${U}/s14-4-password.test.ts`, title: "checks the password length, repeats and the email's own name" },

@@ -2,16 +2,19 @@ import { isCourseField } from "@/lib/courses";
 import { isPublicPagePath } from "@/lib/public-paths";
 
 /**
- * Where a person goes after signing in or signing up (PRD_3 F20, architecture 22.2, ADR-051). A gated button sends a signed-out
- * visitor to `/sign-in?next=<the page they were on>`; the value rides along the Google trip like the intent does. It is user
- * input, so it is an allow-list, never a free redirect: only a public page of ours (the same list the edge cache serves), plus
- * `/apply` with a university id. Anything else is dropped and the person simply lands on their own home.
+ * Where a person goes after signing in or signing up (PRD_3 F20, PRD_4 F24, architecture 22.2, 23.5, ADR-051). A "Create an account" link
+ * sends a signed-out visitor to `/sign-up?next=<the page they were on>`; the value rides along the Google trip like the intent does. It
+ * is user input, so it is an allow-list, never a free redirect: only a public page of ours (the same list the edge cache serves), plus
+ * `/apply`, which is no longer a page: the Worker forwards it to the Apply screen inside the account (a link or bookmark from before
+ * version 4 keeps working). Anything else is dropped and the person simply lands on their own home.
  *
  * Pure, so the rules are table tests.
  */
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_LENGTH = 200;
+
+/** The old public address of the Apply form. It answers a redirect from the Worker (`edge/legacy-redirects.ts`), and is still a valid return address. */
+export const APPLY_ADDRESS = "/apply";
 
 const hasControlCharacter = (text: string): boolean => [...text].some((character) => character.charCodeAt(0) < 32);
 
@@ -28,14 +31,12 @@ export function safeNext(value: string | null | undefined): string | null {
   }
   if (url.origin !== "https://scollarly.invalid" || url.hash !== "") return null;
   const path = url.pathname.replace(/\/+$/, "") || "/";
+  // Not a page any more, but the address the Worker forwards to the Apply screen. A query on it (the old `?university=`) is dropped.
+  if (path === APPLY_ADDRESS) return APPLY_ADDRESS;
   if (!isPublicPagePath(path) || path === "/sign-in" || path === "/sign-out") return null;
 
   const keys = [...url.searchParams.keys()];
   if (keys.length === 0) return url.search === "" ? path : null;
-  if (keys.length === 1 && path === "/apply" && keys[0] === "university") {
-    const id = url.searchParams.get("university") ?? "";
-    return UUID.test(id) ? `${path}?university=${id.toLowerCase()}` : null;
-  }
   if (keys.length === 1 && path === "/" && keys[0] === "course") {
     const course = url.searchParams.get("course");
     return isCourseField(course) ? `${path}?course=${course}` : null;
@@ -48,7 +49,3 @@ export function authHref(page: "/sign-in" | "/sign-up", next: string | null | un
   const safe = safeNext(next);
   return safe ? `${page}?next=${encodeURIComponent(safe)}` : page;
 }
-
-/** What the gated button stands for. Used for the click event and tests, never trusted from the browser. */
-export const GATE_KINDS = ["apply", "chat", "contact", "course"] as const;
-export type GateKind = (typeof GATE_KINDS)[number];

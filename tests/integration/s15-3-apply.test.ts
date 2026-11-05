@@ -12,7 +12,8 @@ import { handleMutation } from "@/server/edge/mutations";
 import { resolveSession } from "@/server/repositories/identity";
 import { listDuplicatePairs } from "@/server/repositories/lead-admin";
 import { tokenHasApplication } from "@/server/repositories/lead-intake";
-import { createTestDb, type SignedInUser, type TestDb } from "./helpers/db";
+import type { Db } from "@/server/db/client";
+import { createTestDb, openRuntimeConnections, type SignedInUser, type TestDb } from "./helpers/db";
 import { leadRow, programmeRow, q, uni } from "./helpers/fixtures";
 
 /**
@@ -180,11 +181,28 @@ describe("one application per account", () => {
     expect(await leadsOf(user)).toBe(1);
   });
 
-  it("makes one application when two requests arrive at the same moment", async () => {
+  // The profile row is locked for the rest of the transaction, so the second device queues and then finds the first one's lead. That is a
+  // property of two database sessions, so it needs a real Postgres with two connections (the CI service container); the in-process engine has one.
+  it.skipIf(!process.env.TEST_DATABASE_URL)("makes one application when two devices apply at the same moment (two connections)", async () => {
     const { user } = await onboarded();
-    const [a, b] = await Promise.all([apply(user), apply(user)]);
-    expect([a.status, b.status].sort()).toEqual([201, 409]);
+    const extra = await openRuntimeConnections(2);
+    try {
+      const call = (db: Db) =>
+        handleMutation(
+          new Request(`${ORIGIN}/api/v1/me/application`, {
+            method: "POST",
+            headers: { cookie: cookieOf(user), origin: ORIGIN, "content-type": "application/json", "idempotency-key": randomUUID() },
+            body: JSON.stringify(body()),
+          }),
+          () => ({ checkSession: facade.checkSession, mutations, env: { ...env, db }, limit: async () => ({ allowed: true, remaining: 100, retryAfterSeconds: 0 }) }),
+        ) as Promise<Response>;
+      const [a, b] = await Promise.all(extra.dbs.map((db) => call(db)));
+      expect([a?.status, b?.status].sort()).toEqual([201, 409]);
+    } finally {
+      await extra.close();
+    }
     expect(await leadsOf(user)).toBe(1);
+    expect(await count(`select count(*)::int as n from audit_log where action = 'application.submitted' and actor_id = ${q(user.userId)}`)).toBe(1);
   });
 
   it("counts an application made before version 4 and claimed by the student", async () => {

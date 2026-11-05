@@ -24,7 +24,7 @@
       "prompt": "Choisissez un cours pour voir quelles universités le proposent.",
       "countOne": "{count} université propose ce cours",
       "countOther": "{count} universités proposent ce cours",
-      "none": "Aucune université ne propose encore ce cours. Écrivez-nous sur WhatsApp et nous vous en proposerons une qui convient.",
+      "none": "Aucune université ne propose encore ce cours. Créez un compte et écrivez-nous, et nous vous en proposerons une qui convient.",
       "cta": "Créer mon compte gratuit",
       "ctaHint": "Nous gardons votre cours : votre liste est prête quand vous avez fini de vous inscrire.",
       "naac": "NAAC {grade}",
@@ -1542,7 +1542,7 @@
   "site": {
     "name": "Scollarly",
     "skip": "Aller au contenu principal",
-    "apply": "Postuler",
+    "createAccount": "Créer un compte",
     "signIn": "Se connecter",
     "nav": {
       "label": "Principal",
@@ -2007,9 +2007,12 @@
       "others": "{count, plural, one {Vous avez # autre candidature liée à ce compte.} other {Vous avez # autres candidatures liées à ce compte.}}",
       "matching": {
         "title": "Nous associons votre candidature",
-        "body": "Aucune candidature n'est encore liée à votre compte. Si vous avez déjà postulé, demandez-nous de la lier. Sinon, vous pouvez commencer depuis la page Postuler.",
+        "body": "Aucune candidature n'est encore liée à votre compte. Si vous avez déjà postulé auparavant, demandez-nous de la lier. Si vous n'avez pas encore postulé, appuyez sur Postuler.",
         "pending": "{count, plural, one {Votre demande attend la confirmation d'un administrateur.} other {Vos # demandes attendent la confirmation d'un administrateur.}}",
-        "link": "Lier ma candidature"
+        "apply": "Postuler",
+        "link": "Lier ma candidature",
+        "whatsapp": "Écrivez-nous sur WhatsApp",
+        "whatsappText": "Bonjour Scollarly ! J'ai créé mon compte et j'ai une question avant de postuler."
       },
       "offline": {
         "body": "Vous êtes hors ligne. Voici la dernière progression enregistrée sur ce téléphone, elle peut être dépassée.",
@@ -2322,6 +2325,9 @@
       "noApplication": "Vous n'avez pas encore postulé. Quand vous serez prêt, choisissez vos programmes et envoyez votre candidature.",
       "applyButton": "Postuler",
       "progressLink": "Lier une candidature déjà faite",
+      "whatsappAsk": "Écrivez-nous sur WhatsApp",
+      "whatsappNoApplication": "Bonjour Scollarly ! Je m'appelle {name}. Je m'intéresse à : {courses}. Je n'ai pas encore postulé et j'ai une question.",
+      "whatsappNoApplicationAnon": "Bonjour Scollarly ! J'ai créé mon compte et j'ai une question avant de postuler.",
       "finishProfile": {
         "title": "Terminez votre profil",
         "body": "Quelques questions courtes nous permettent de vous montrer les universités qui conviennent à votre filière.",
@@ -2362,7 +2368,7 @@
       "faq": "Questions et réponses",
       "contact": "Nous contacter",
       "whatsapp": "Nous écrire sur WhatsApp",
-      "whatsappText": "Bonjour, j'ai besoin d'aide pour mon dossier Scollarly.",
+      "whatsappText": "Bonjour Scollarly, j'ai besoin d'aide pour mon compte.",
       "whatsappMissing": "Le numéro WhatsApp n'est pas disponible pour le moment. Veuillez réessayer plus tard."
     }
   },

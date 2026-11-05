@@ -4,7 +4,7 @@ import { MediaImage } from "@/components/public/media-image";
 import { pageMetadata } from "@/components/public/page-metadata";
 import { UniversityBrowser } from "@/components/public/university-browser";
 import { toCardItem } from "@/components/public/university-card";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { readCatalogue, readPageImages } from "@/modules/content/read";
 
 // A2. The whole list is in the HTML; the island only narrows it in the browser.
@@ -43,7 +43,7 @@ export default async function UniversitiesPage({ params }: { params: Promise<{ l
       ) : (
         <>
           <p>{t("empty")}</p>
-          <WhatsAppButton context={{ page: "/universities" }} />
+          <CreateAccountLink next="/universities" />
         </>
       )}
     </>

@@ -39,7 +39,7 @@ This tracker starts version 4 (PRD_4, architecture 4, essentials 4). `tracker_3.
 | S15.1 | Faster pipeline | complete: merged as PR #75. Its own run (which changed the Lighthouse config, so Lighthouse ran) finished in 3 min 49 s at the slowest job (Lighthouse 3 min 31 s, Playwright 3 min 49 s and 2 min 35 s, build 2 min 39 s, integration 2 min 16 s, lint and unit 2 min 1 s), against about 12 minutes before. A documents-only pull request skips Lighthouse. | Session 1 |
 | S15.2 | Profile-only onboarding | complete, merged as PR #79, CI green (migration 0019 `app_complete_profile`; onboarding saves the profile only and ends with the Apply now / Not yet choice). Local: typecheck, 1026 unit, 16 integration (s13-3), s13-4 and s13-5 integration, 14 browser tests pass. | Session 2 |
 | S15.3 | Apply from the account | in review (migration 0020 `app_apply_from_profile` and `app_token_has_application`; `POST me/application`, `GET me/application-context`; the `/me/apply` screen; the Home Apply button; the guard on the older lead endpoint; the offline `application` item). Local: typecheck, unit (s15-3), 16 integration tests pass. | Session 2 |
-| S15.4 | Public pages and WhatsApp | not started | |
+| S15.4 | Public pages and WhatsApp | in review (every Apply and WhatsApp button on the public pages is "Create an account"; the Apply form, quick WhatsApp form, `WhatsAppButton` and the sign-in pop-up are removed; `/apply` forwards in the Worker; the student Home and My progress offer the chat while nothing is applied). Local: typecheck, 1058 unit, 771 integration. | Session 2 |
 | S15.5 | My account | not started | |
 | S15.6 | Not applied yet | not started | |
 | S15.7 | QA, deploy and carry-over | not started | |

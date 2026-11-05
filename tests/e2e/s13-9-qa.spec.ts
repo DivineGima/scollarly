@@ -68,10 +68,10 @@ test.describe("keyboard only", () => {
       await page.keyboard.press("Tab");
     }
     await expect(page.getByTestId("finder-cta")).toBeFocused();
+    // Enter on the account button goes to sign-up (PRD_4 F24); there is no pop-up in between.
+    await expect(page.getByTestId("finder-cta")).toHaveAttribute("href", /^\/sign-up/);
     await page.keyboard.press("Enter");
-    // A signed-out person is asked to sign up or sign in first (PRD_3 F20); the pop-up is reached and used by keyboard too.
-    await expect(page.getByTestId("gate-dialog")).toBeVisible();
-    await expect(page.getByTestId("gate-sign-up")).toHaveAttribute("href", /^\/sign-up\?next=/);
+    await expect(page).toHaveURL(/\/sign-up/);
   });
 
   test("the first Tab on any of these pages reaches the skip link or the first control, and focus is always visible", async ({ page }) => {

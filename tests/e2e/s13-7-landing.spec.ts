@@ -27,14 +27,14 @@ test("the finder lists the right universities for a chosen course and carries th
   await expect(page.getByTestId("finder-cta")).toHaveAttribute("href", "/sign-up?course=commerce");
 });
 
-test("a course no university lists says so and offers WhatsApp; 'Choose' clears the list and the course", async ({ page }) => {
+test("a course no university lists says so and points to Create an account; 'Choose' clears the list and the course", async ({ page }) => {
   await page.goto("/");
   const select = page.getByTestId("course-finder").getByLabel("Course");
   await select.selectOption("law");
   await expect(page.getByTestId("finder-university")).toHaveCount(0);
   await expect(page.getByTestId("finder-none")).toBeVisible();
-  // The chat address sits behind the account gate: signed out, the link goes to Sign in and keeps the real address for later.
-  await expect(page.getByTestId("finder-whatsapp")).toHaveAttribute("data-gate-href", /wa\.me\//);
+  // Chat lives inside the account (PRD_4 F26): the public finder offers no chat link, only the account button, which keeps the course.
+  await expect(page.getByTestId("finder-whatsapp")).toHaveCount(0);
   await expect(page.getByTestId("finder-cta")).toHaveAttribute("href", "/sign-up?course=law");
   await select.selectOption("commerce");
   await expect(page.getByTestId("finder-university")).toHaveCount(1);

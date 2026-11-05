@@ -3,10 +3,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CopyButton } from "@/components/public/copy-button";
 import { Paragraphs } from "@/components/public/copy";
 import { pageMetadata } from "@/components/public/page-metadata";
-import { WhatsAppButton } from "@/components/public/whatsapp-button";
+import { CreateAccountLink } from "@/components/public/create-account-link";
 import { telHref } from "@/lib/phone";
 import { readSite } from "@/modules/content/read";
-import { GateLink } from "@/components/public/gate/gate-link";
 
 // A6 + S4.6. Every number comes from `site_setting` (FR-4); when the owner has not set one the page says so.
 export const revalidate = 3600;
@@ -34,7 +33,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <strong>{contact.whatsappE164}</strong>
             </p>
             <p className="cta-row">
-              <WhatsAppButton context={{ page: "/contact" }} />
+              <CreateAccountLink next="/contact" />
               <CopyButton value={contact.whatsappE164} label={t("copyNumber")} copied={t("copied")} />
             </p>
           </>
@@ -61,11 +60,6 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         {!contact.phoneDisplay && !blocks["contact.email"] ? <p>{t("otherPending")}</p> : null}
       </section>
 
-      <p className="cta-row">
-        <GateLink kind="apply" href="/apply" next="/apply" className="btn btn-primary">
-          {t("apply")}
-        </GateLink>
-      </p>
     </>
   );
 }

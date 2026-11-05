@@ -47,10 +47,10 @@ describe("the sign-up link", () => {
   });
 });
 
-const labels: CourseFinderLabels = { ...en.home.finder, whatsapp: en.site.whatsapp.chat };
+const labels: CourseFinderLabels = { ...en.home.finder };
 
 describe("the markup before any script runs", () => {
-  const html = renderToStaticMarkup(createElement(CourseFinder, { catalogue, fields: COURSE_FIELDS, courseNames: { law: "Law", computer_science_it: "Computer Science and IT" }, labels, whatsappHref: "https://wa.me/14155550100" }));
+  const html = renderToStaticMarkup(createElement(CourseFinder, { catalogue, fields: COURSE_FIELDS, courseNames: { law: "Law", computer_science_it: "Computer Science and IT" }, labels }));
 
   it("shows the prompt, a labelled select, and a sign-up button with no course", () => {
     expect(html).toContain(labels.prompt);
@@ -65,8 +65,10 @@ describe("the markup before any script runs", () => {
     expect(html).toContain(">mechanical_engineering<");
     expect((html.match(/<option /g) ?? []).length).toBe(COURSE_FIELDS.length + 1);
   });
-  it("shows no WhatsApp link until a course is chosen, so the first view is the prompt", () => {
+  it("offers no WhatsApp link at all (chat lives inside the account, PRD_4 F26) and no gate script hook", () => {
     expect(html).not.toContain("finder-whatsapp");
+    expect(html).not.toContain("wa.me");
+    expect(html).not.toContain("data-gate");
   });
   it("makes no outside request before a tap and holds no personal data", () => {
     expect(html).not.toMatch(/https?:\/\//);
