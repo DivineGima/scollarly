@@ -99,7 +99,17 @@ jobs:
           path: .next/cache
           key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'messages/**') }}
           restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
-      - run: npx playwright install --with-deps chromium
+      # The runner image already carries the system libraries Chromium needs; `--with-deps` only ran a slow `apt-get update` (once 6 minutes), so
+      # only the browser is fetched, and it is cached by Playwright version. If a library were ever missing, Chromium fails to start and says which.
+      - id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: pwcache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - run: npx playwright install chromium
+        if: steps.pwcache.outputs.cache-hit != 'true'
       # Offline mode (S0.8), plus axe, the security headers with the CSP enforced, 375 px layout and the /en rewrite (S1.5, S1.6).
       - run: npm run test:e2e -- --shard=${{ matrix.shard }}/2
       - if: failure()
