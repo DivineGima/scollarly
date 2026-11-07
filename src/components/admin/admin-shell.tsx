@@ -109,7 +109,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
       </main>
 
-      {session ? <AppNav role={session.role} labels={navLabels(shell as never, "staff")} unread={unread} /> : null}
+      {session ? <AppNav role={session.role} labels={navLabels(shell as never, "staff")} unread={unread} badges={{ leads: unread }} /> : null}
       {session && tourTab ? (
         <FirstVisitTour
           tabKey={tourTab}

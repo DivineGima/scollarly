@@ -522,6 +522,93 @@
         "notFound": "That lead does not exist.",
         "forbidden": "You are not allowed to do that.",
         "generic": "Something went wrong. Try again."
+      },
+      "file": {
+        "title": "Student file",
+        "reload": "Reload",
+        "status": {
+          "open": "Open",
+          "arrived": "Arrived",
+          "closed": "Closed"
+        },
+        "closeReason": {
+          "no_response": "No response",
+          "refused": "University refused",
+          "withdrew": "Student withdrew",
+          "other": "Other reason"
+        },
+        "clock": {
+          "running": "University answer due {when}",
+          "overdue": "University answer overdue since {when}"
+        },
+        "quiet": {
+          "quiet": "Gone quiet",
+          "suggestClose": "Quiet for a long time: consider closing"
+        },
+        "nextStep": "Move to {step}",
+        "lastStep": "This is the last step.",
+        "documentsHint": "{approved} of {total} required documents are approved. Approve them to move on.",
+        "documents": {
+          "title": "Documents",
+          "noAccount": "This lead has no student account, so there are no documents.",
+          "none": "The student has not sent any document yet.",
+          "reason": "Reason given: {note}",
+          "open": "Open",
+          "approve": "Approve",
+          "reject": "Ask for a clearer copy",
+          "approveProof": "Approve proof of payment",
+          "proofAdmin": "Only the Admin approves a proof of payment.",
+          "rejectLabel": "What should the student fix? They will see this.",
+          "rejectSend": "Send"
+        },
+        "kinds": {
+          "results": "Results",
+          "id": "ID",
+          "birth_certificate": "Birth certificate",
+          "signature": "Signature",
+          "passport": "Passport",
+          "payment_proof": "Proof of payment",
+          "offer_letter": "Offer letter",
+          "acceptance_letter": "Acceptance letter"
+        },
+        "state": {
+          "pending": "Sending",
+          "uploaded": "Waiting for review",
+          "approved": "Approved",
+          "rejected": "Clearer copy asked"
+        },
+        "letters": {
+          "title": "Upload a letter",
+          "about": "Upload the letter the university sent (a PDF). The student downloads it in the app, and the manager sends it on WhatsApp.",
+          "aboutMore": "A letter is already uploaded. Uploading another adds it to the student's list.",
+          "kind": "Which letter",
+          "file": "PDF file",
+          "uploading": "Uploading…"
+        },
+        "back": {
+          "label": "Put the file back to {step}. Why? (required)",
+          "button": "Move back one step"
+        },
+        "close": {
+          "reason": "Reason for closing",
+          "button": "Close this file"
+        },
+        "reopen": "Reopen this file",
+        "errors": {
+          "network": "No connection. Check the network and try again.",
+          "forbidden": "You are not allowed to do that.",
+          "documentsMissing": "The four required documents must be approved first.",
+          "noteRequired": "Say why, so the history is clear.",
+          "notAllowed": "That move is not allowed for you.",
+          "stale": "This file changed. Reload.",
+          "conflict": "Someone already did this. Reload.",
+          "unavailable": "Please try again shortly.",
+          "notFound": "That does not exist any more. Reload.",
+          "generic": "Something went wrong. Try again.",
+          "uploadTooLarge": "That file is too big. The limit is 5 MB.",
+          "uploadPdfOnly": "Only a PDF can be uploaded as a letter.",
+          "uploadFailed": "The upload failed. Try again."
+        }
       }
     },
     "notApplied": {
@@ -1392,7 +1479,9 @@
         "linkRequests": "Link requests",
         "dataRequests": "Data requests",
         "pipeline": "Pipeline",
-        "notApplied": "Not applied yet"
+        "notApplied": "Not applied yet",
+        "inbox": "Inbox",
+        "all": "All leads"
       },
       "content": {
         "overview": "All content",
@@ -1559,6 +1648,48 @@
         "stale": "Someone changed that lead first. The board has been refreshed.",
         "failed": "That did not save. Try again.",
         "offline": "You need a connection to move a lead."
+      }
+    },
+    "inbox": {
+      "title": "Inbox",
+      "purpose": "The students who need something from you, the longest-waiting first.",
+      "summary": "{count, plural, =0 {Nothing needs your action today.} one {# student needs your action.} other {# students need your action.}}",
+      "sections": "Inbox lists",
+      "section": {
+        "new": "New",
+        "to_review": "To review",
+        "overdue": "Overdue",
+        "letter_ready": "Letter ready",
+        "payment_proof": "Payment proof",
+        "quiet": "Gone quiet",
+        "unassigned": "Unassigned"
+      },
+      "about": {
+        "new": "Nobody has answered these students yet.",
+        "to_review": "Documents are waiting for you to approve or ask for a clearer copy.",
+        "overdue": "The university has had the file for more than three days.",
+        "letter_ready": "A letter has been uploaded. Send it to the student on WhatsApp.",
+        "payment_proof": "The student has sent proof of payment for the Admin to approve.",
+        "quiet": "No action from the student for 14 days or more.",
+        "unassigned": "Students with no manager. Open one to assign it."
+      },
+      "empty": "Nothing here. Well done.",
+      "since": "Since {when}",
+      "dueSince": "Due {when}",
+      "waiting": "{count, plural, one {# document waiting} other {# documents waiting}}",
+      "idle": "No action for {days} days",
+      "suggestClose": "Consider closing this file",
+      "noName": "No name",
+      "more": "Showing the first {shown}. Work through these and the rest will follow.",
+      "refresh": "Refresh",
+      "step": {
+        "course_interest": "Course interest",
+        "documents": "Documents",
+        "university_review": "University review",
+        "offer_letter": "Offer letter",
+        "registration": "Registration",
+        "visa": "Visa and travel",
+        "arrived": "Arrival"
       }
     }
   },
@@ -2251,7 +2382,7 @@
       "universities": "Universities",
       "progress": "My progress",
       "help": "Help",
-      "leads": "Leads",
+      "leads": "Inbox",
       "content": "Content",
       "insights": "Insights"
     },
@@ -2541,7 +2672,12 @@
       "storage_database_warn": "The database is above 70% of its limit.",
       "storage_database_urgent": "The database is above 90% of its limit.",
       "storage_images_warn": "The image store is above 70% of its limit.",
-      "storage_images_urgent": "The image store is above 90% of its limit."
+      "storage_images_urgent": "The image store is above 90% of its limit.",
+      "docs_review": "{lead}: {count, plural, one {# document is} other {# documents are}} waiting for your review.",
+      "letter_ready": "{lead}: a letter is ready. Send it to the student on WhatsApp.",
+      "proof_waiting": "{lead}: proof of payment is waiting for the Admin to approve.",
+      "overdue": "{lead}: the university has had the file for more than three days.",
+      "unassigned": "{lead} has no manager yet."
     },
     "actions": {
       "openProgress": "Open My progress",

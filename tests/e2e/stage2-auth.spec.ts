@@ -303,7 +303,7 @@ test.describe("S2.6 the admin shell", () => {
     await page.goto("/admin");
     const bar = page.getByRole("navigation", { name: "Main tabs" });
     await expect(bar.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-    await expect(bar.getByRole("link")).toHaveText(["Home", "Leads", "Content", "Insights"]);
+    await expect(bar.getByRole("link")).toHaveText(["Home", "Inbox", "Content", "Insights"]);
     await expect(page.getByText("priya@example.test")).toBeVisible();
     await page.getByRole("button", { name: "More" }).click();
     const sheet = page.getByRole("dialog", { name: "More" });

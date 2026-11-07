@@ -72,6 +72,12 @@ export function decideMove(input: MoveInput): MoveDecision {
   return { ok: true, direction: "back" };
 }
 
+/** The step after this one, or null at the last (the Next step button). */
+export function nextStep(code: string): StepCode | null {
+  const i = stepIndex(code);
+  return i >= 0 ? (PIPELINE_STAGE_CODES[i + 1] ?? null) : null;
+}
+
 /** The step before this one, or null at the first. */
 export function previousStep(code: string): StepCode | null {
   const i = stepIndex(code);

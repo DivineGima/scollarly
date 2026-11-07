@@ -46,6 +46,7 @@ import {
   reopenLeadBody,
   resolveDuplicateBody,
 } from "./admin-schema";
+import { quietness, universityClock } from "@/modules/pipeline/steps";
 import { notAppliedItem } from "./not-applied";
 import { leadListItem, slaView, timeline, watDayBounds, type StaffPerson } from "./admin-view";
 
@@ -85,7 +86,7 @@ function missResponse(miss: MissOutcome, requestId: string): Response {
       return errorResponseFor("VALIDATION", "Unknown stage.", requestId, { fields: { stage: "UNKNOWN_VALUE" } });
     case "not_allowed":
       // A move the steps do not allow this person (architecture 24.4): a manager goes one step at a time, only an admin goes back.
-      return errorResponseFor("VALIDATION", "That move is not allowed.", requestId, { fields: { stage: miss.reason === "note_required" ? "REQUIRED" : "NOT_ALLOWED" } });
+      return errorResponseFor("VALIDATION", "That move is not allowed.", requestId, { fields: { stage: miss.reason === "note_required" ? "REQUIRED" : miss.reason === "documents_missing" ? "DOCUMENTS_MISSING" : "NOT_ALLOWED" } });
   }
 }
 
@@ -173,6 +174,13 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
           stage: l.stageCode,
           assigned: l.assignedManagerId ? { id: l.assignedManagerId, label: people.byId.get(l.assignedManagerId)?.name.trim() || people.byId.get(l.assignedManagerId)?.email || "" } : null,
           linkedAccount: l.userId !== null,
+          /** The student's account id: what the letter upload needs to say whose file it is. Null for a lead with no account. */
+          studentId: l.userId,
+          status: l.status,
+          closedReason: l.closedReason,
+          /** The three-day university clock and the quiet state, computed here from the stored times (architecture 24.4, 24.7). */
+          clock: universityClock(l.universitySubmittedAt, l.stageCode, now),
+          quiet: quietness(l.lastStudentActivityAt, l.status, now),
           receivedAt: l.receivedAt.toISOString(),
           sla: slaView(l, now),
           slaHours: l.slaHoursApplied,
@@ -190,6 +198,7 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
         admins: people.list.map((p) => ({ id: p.userId, label: p.name.trim() || p.email })),
         /** The staff-written template for this stage and language, or null (the screen then uses its built-in text). */
         template,
+        documents: detail.documents.map((d) => ({ ...d, createdAt: d.createdAt.toISOString(), reviewedAt: d.reviewedAt ? d.reviewedAt.toISOString() : null })),
         you: actor.userId,
       };
     },

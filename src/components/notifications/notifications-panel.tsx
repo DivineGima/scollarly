@@ -34,6 +34,11 @@ function actionOf(item: NotificationItem): { href: string; label: "openProgress"
     case "new_lead":
     case "sla_due":
     case "lead_waiting":
+    case "docs_review":
+    case "letter_ready":
+    case "proof_waiting":
+    case "overdue":
+    case "unassigned":
       return { href: `/admin/leads/${item.leadId ?? ""}`, label: "openLead" };
     case "link_requests":
       return { href: "/admin/leads?view=link-requests", label: "openRequests" };
@@ -172,6 +177,13 @@ function Row({ item }: { item: NotificationItem }) {
         return t(item.overdue ? "items.sla_overdue" : "items.sla_soon", { lead });
       case "lead_waiting":
         return t("items.lead_waiting", { lead, days: WAITING_DAYS });
+      case "docs_review":
+        return t("items.docs_review", { lead, count: item.count ?? 1 });
+      case "letter_ready":
+      case "proof_waiting":
+      case "overdue":
+      case "unassigned":
+        return t(`items.${item.kind}`, { lead });
       case "link_requests":
         return t("items.link_requests", { count: item.count ?? 0 });
       case "data_requests":

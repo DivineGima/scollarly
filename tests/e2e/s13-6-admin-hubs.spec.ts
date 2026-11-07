@@ -58,7 +58,7 @@ test.describe("B2.5 the floating bar and the More sheet", () => {
     await stubHome(page, "manager");
     await page.goto("/admin");
     const bar = page.getByRole("navigation", { name: "Main tabs" });
-    for (const name of ["Home", "Leads", "Content", "Insights"]) await expect(bar.getByRole("link", { name })).toBeVisible();
+    for (const name of ["Home", "Inbox", "Content", "Insights"]) await expect(bar.getByRole("link", { name })).toBeVisible();
     await expect(bar.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
     await page.getByRole("button", { name: "More" }).click();
     const sheet = page.getByRole("dialog", { name: "More" });
@@ -221,14 +221,17 @@ test.describe("B2.2 to B2.4 the hubs", () => {
     });
   }
 
-  test("Leads has the list, the link requests and the data requests as sections, and opens the one in the address", async ({ page }) => {
+  test("Leads opens the Inbox, with the list, the link requests and the data requests as sections, and opens the one in the address", async ({ page }) => {
     await signIn(page, "manager");
     await failLists(page);
     await page.goto("/admin/leads");
     const sections = page.getByRole("navigation", { name: "Sections" });
-    await expect(sections.getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
+    await expect(sections.getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("heading", { name: "Inbox", level: 1 })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main tabs" }).getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-current", "page");
+    await page.goto("/admin/leads?view=all");
+    await expect(sections.getByRole("link", { name: "All leads" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: "Leads", level: 1 })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Main tabs" }).getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
     await page.goto("/admin/leads?view=link-requests");
     await expect(sections.getByRole("link", { name: "Link requests" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: "Link requests", level: 1 })).toBeVisible();
@@ -243,7 +246,7 @@ test.describe("B2.2 to B2.4 the hubs", () => {
     await failLists(page);
     await page.goto("/admin/leads?view=overdue");
     await expect(page.getByRole("heading", { name: "Leads", level: 1 })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "All leads" })).toHaveAttribute("aria-current", "page");
   });
 
   test("Content has the kinds of content, what needs checking and the images", async ({ page }) => {

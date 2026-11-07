@@ -24,7 +24,7 @@ const MAP: Record<string, { file: string; title: string }[]> = {
   "FR-20": [
     { file: `${U}/s13-foundations.test.ts`, title: "the legacy admin addresses" },
     { file: `${U}/s13-6-admin-hubs.test.ts`, title: "moves each to the section that took its place" },
-    { file: `${E}/s13-6-admin-hubs.spec.ts`, title: "Leads has the list, the link requests" },
+    { file: `${E}/s13-6-admin-hubs.spec.ts`, title: "Leads opens the Inbox, with the list, the link requests" },
   ],
   "FR-21": [
     { file: `${E}/s13-6-admin-hubs.spec.ts`, title: "shows three steps once" },
