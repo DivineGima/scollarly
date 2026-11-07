@@ -152,8 +152,8 @@ test("shows each document's state, the adviser's reason for a refusal, and no ch
   await page.goto("/me/file");
   await expect(page.getByTestId("doc-results-state")).toHaveText("Approved");
   await expect(page.getByTestId("doc-results-input")).toHaveCount(0);
-  await expect(page.getByTestId("doc-id-state")).toContainText("Waiting for your adviser");
-  await expect(page.getByTestId("doc-birth_certificate")).toContainText("Your adviser says: Too dark");
+  await expect(page.getByTestId("doc-id-state")).toContainText("Waiting for your manager");
+  await expect(page.getByTestId("doc-birth_certificate")).toContainText("Your manager says: Too dark");
   await expect(page.getByTestId("doc-signature-state")).toHaveText("Not sent yet");
 });
 
@@ -176,10 +176,12 @@ test("does not show the proof of payment before the offer-letter step", async ({
   await expect(page.getByTestId("file-letters")).toHaveCount(0);
 });
 
-test("the More sheet leads to My file", async ({ page }) => {
+test("My file is a tab of the bar, and the tab is lit on the page", async ({ page }) => {
   await stub(page);
   await page.route("**/api/v1/me/home", (route) => json(route, { userId: "s", onboarded: true, relationship: "student", firstName: "Ada", courseFields: [], level: "undergraduate", intakeYear: 2027, lead: null, stages: [], whatsappE164: null }));
   await page.goto("/me");
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("link", { name: "My file" })).toHaveAttribute("href", "/me/file");
+  const bar = page.getByRole("navigation", { name: "Main tabs" });
+  await expect(bar.getByRole("link", { name: "My file" })).toHaveAttribute("href", "/me/file");
+  await page.goto("/me/file");
+  await expect(bar.getByRole("link", { name: "My file" })).toHaveAttribute("aria-current", "page");
 });

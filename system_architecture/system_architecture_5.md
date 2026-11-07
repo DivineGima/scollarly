@@ -59,7 +59,7 @@ There is no push and no notification table. Alerts are derived on read, as the s
 
 ### 24.11 Public pages
 
-The seven steps and the fees wording replace the old text through translation keys (English and French); Claude Code writes the words (owner instruction 2026-11-07) and shows them in the S18.3 pull request. The public bundle check and axe stay.
+The seven steps and the fees wording replace the old text through translation keys (English and French; **as built (S18.3):** `process.seven.<step code>.title|body` and `process.fees.title|body`, shown on `/process` and, as links, on the home page, built from the one list of step codes by `src/modules/content/seven-steps.ts`; the content rows of kind `application` are no longer shown publicly, and the visa page keeps its own content steps; the student bar has five tabs, My file being the fifth); Claude Code writes the words (owner instruction 2026-11-07) and shows them in the S18.3 pull request. The public bundle check and axe stay.
 
 ### 24.12 Tests
 

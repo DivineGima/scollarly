@@ -1797,12 +1797,46 @@
   },
   "process": {
     "metaTitle": "Comment ça marche",
-    "metaDescription": "Les étapes depuis l'envoi de vos résultats jusqu'à votre arrivée en Inde, et ce que Scollarly fait à chaque étape.",
+    "metaDescription": "Les sept étapes, du choix de votre filière à l'arrivée en Inde, ce que fait Scollarly à chaque étape et ce que cela coûte.",
     "title": "Comment ça marche",
-    "intro": "De vos résultats à votre arrivée, voici chaque étape et ce que nous faisons pour vous.",
+    "intro": "Du choix de votre filière à votre arrivée, voici les sept étapes et ce que nous faisons pour vous.",
     "empty": "Les étapes apparaîtront ici bientôt.",
     "stepLabel": "Étape {number}",
-    "apply": "Commencer ma candidature"
+    "apply": "Commencer ma candidature",
+    "seven": {
+      "course_interest": {
+        "title": "Dites-nous ce que vous voulez étudier",
+        "body": "Créez votre compte gratuit et choisissez votre filière. Nous vérifions quelles universités partenaires la proposent, et lesquelles offrent une bourse."
+      },
+      "documents": {
+        "title": "Envoyez vos documents",
+        "body": "Envoyez une photo ou un PDF net de vos résultats, de votre pièce d'identité, de votre acte de naissance et de votre signature. Votre responsable vérifie chacun et demande une copie plus claire si besoin."
+      },
+      "university_review": {
+        "title": "L'université examine votre dossier",
+        "body": "Nous envoyons votre dossier à l'université. Elle vérifie vos notes et décide de votre bourse. Si elle tarde plus de trois jours, nous relançons pour vous."
+      },
+      "offer_letter": {
+        "title": "Vous recevez votre lettre d'offre",
+        "body": "Quand l'université vous accepte, nous déposons la lettre d'offre dans votre compte et nous vous l'envoyons sur WhatsApp."
+      },
+      "registration": {
+        "title": "Inscrivez-vous pour garder votre place",
+        "body": "Vous payez les frais d'inscription de l'université pour réserver votre place. Nous vous expliquons comment avant que vous payiez, puis l'université délivre votre lettre d'acceptation."
+      },
+      "visa": {
+        "title": "Préparez votre visa et votre voyage",
+        "body": "Avec votre lettre d'acceptation, nous vous aidons à réunir vos documents de visa et à organiser votre voyage."
+      },
+      "arrived": {
+        "title": "Arrivez et installez-vous",
+        "body": "Nous prévoyons quelqu'un pour vous accueillir. Une fois arrivé, nous restons en contact pendant votre installation."
+      }
+    },
+    "fees": {
+      "title": "Combien cela coûte-t-il ?",
+      "body": "Notre aide est gratuite pour les étudiants. Le seul paiement est celui des frais d'inscription de l'université à l'étape 5, entre 100 et 300 dollars selon l'université. Vous les payez à l'université, directement ou par un intermédiaire au Cameroun, et votre responsable vous explique la marche à suivre avant que vous payiez. Ce site et l'application ne prennent jamais d'argent et ne demandent jamais vos coordonnées de paiement."
+    }
   },
   "visa": {
     "metaTitle": "Visa",
@@ -2175,7 +2209,7 @@
         "notApplied": "Votre dossier s'ouvre quand vous candidatez à une université. Candidatez d'abord, puis revenez ici pour remplir vos informations et envoyer vos documents.",
         "applyFirst": "Candidater maintenant",
         "readOnly": "Cette candidature est fermée : vos informations ne peuvent plus être modifiées.",
-        "fixedHelp": "Ces informations viennent de votre inscription. Pour en corriger une, écrivez à votre conseiller sur WhatsApp.",
+        "fixedHelp": "Ces informations viennent de votre inscription. Pour en corriger une, écrivez à votre responsable sur WhatsApp.",
         "fixed": {
           "name": "Nom",
           "whatsapp": "WhatsApp",
@@ -2225,7 +2259,7 @@
       },
       "documents": {
         "title": "Documents",
-        "intro": "Envoyez une photo ou un scan net de chaque document. JPG, PNG ou PDF, {mb} Mo au maximum chacun. Votre conseiller les vérifie tous.",
+        "intro": "Envoyez une photo ou un scan net de chaque document. JPG, PNG ou PDF, {mb} Mo au maximum chacun. Votre responsable les vérifie tous.",
         "kinds": {
           "results": "Relevés de notes",
           "id": "Pièce d'identité",
@@ -2239,11 +2273,11 @@
         "states": {
           "none": "Pas encore envoyé",
           "pending": "Envoi non terminé. Merci de le renvoyer.",
-          "uploaded": "Envoyé. Votre conseiller doit le vérifier.",
+          "uploaded": "Envoyé. Votre responsable doit le vérifier.",
           "approved": "Approuvé",
           "rejected": "Non accepté. Merci d'envoyer une copie plus nette."
         },
-        "rejectedNote": "Votre conseiller précise : {note}",
+        "rejectedNote": "Votre responsable précise : {note}",
         "choose": "Choisir un fichier",
         "replace": "Envoyer un autre fichier",
         "sending": "Envoi…",
@@ -2265,7 +2299,7 @@
       },
       "proof": {
         "title": "Preuve de paiement",
-        "intro": "Après avoir payé, envoyez une photo de votre preuve de paiement. Nous ne demandons jamais de coordonnées de paiement dans cette application : votre conseiller vous les envoie sur WhatsApp."
+        "intro": "Après avoir payé, envoyez une photo de votre preuve de paiement. Nous ne demandons jamais de coordonnées de paiement dans cette application : votre responsable vous les envoie sur WhatsApp."
       },
       "letters": {
         "title": "Vos lettres",
@@ -2278,13 +2312,13 @@
     "progress": {
       "title": "Ma candidature",
       "reference": "Votre référence",
-      "stepsLabel": "Les six étapes de votre candidature",
+      "stepsLabel": "Les sept étapes de votre candidature",
       "done": "Terminé",
       "here": "Vous êtes ici",
       "nextTitle": "Et ensuite",
-      "nextFallback": "Écrivez à votre administrateur sur WhatsApp pour savoir ce qui suit.",
+      "nextFallback": "Écrivez à votre responsable sur WhatsApp pour savoir ce qui suit.",
       "lastUpdated": "Dernière mise à jour le {date}",
-      "whatsapp": "Écrire à votre administrateur sur WhatsApp",
+      "whatsapp": "Écrire à votre responsable sur WhatsApp",
       "whatsappText": "Bonjour, ma référence Scollarly est {ref}. Ma candidature en est à l'étape « {stage} ».",
       "whatsappMissing": "Le numéro WhatsApp n'est pas disponible pour le moment. Réessayez plus tard.",
       "others": "{count, plural, one {Vous avez # autre candidature liée à ce compte.} other {Vous avez # autres candidatures liées à ce compte.}}",
@@ -2398,11 +2432,12 @@
     "tabs": {
       "home": "Accueil",
       "universities": "Universités",
-      "progress": "Ma progression",
+      "progress": "Progression",
       "help": "Aide",
       "leads": "Réception",
       "content": "Contenu",
-      "insights": "Analyses"
+      "insights": "Analyses",
+      "file": "Mon dossier"
     },
     "more": "Plus",
     "sheet": {

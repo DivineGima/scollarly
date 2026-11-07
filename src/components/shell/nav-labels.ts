@@ -12,6 +12,7 @@ export function navLabels(t: Translate, area: "student" | "staff"): AppNavLabels
       home: t("tabs.home"),
       universities: t("tabs.universities"),
       progress: t("tabs.progress"),
+      file: t("tabs.file"),
       help: t("tabs.help"),
       leads: t("tabs.leads"),
       content: t("tabs.content"),

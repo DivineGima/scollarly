@@ -1797,12 +1797,46 @@
   },
   "process": {
     "metaTitle": "How it works",
-    "metaDescription": "The steps from sharing your results to arriving in India, and what Scollarly does at each step.",
+    "metaDescription": "The seven steps from choosing your course to arriving in India, what Scollarly does at each step, and what it costs.",
     "title": "How it works",
-    "intro": "From your results to your arrival, here is each step and what we do for you.",
+    "intro": "From choosing your course to your arrival, here are the seven steps and what we do for you.",
     "empty": "The steps will appear here soon.",
     "stepLabel": "Step {number}",
-    "apply": "Start your application"
+    "apply": "Start your application",
+    "seven": {
+      "course_interest": {
+        "title": "Tell us what you want to study",
+        "body": "Create your free account and choose your course. We check which partner universities offer it, and which of them offer a scholarship."
+      },
+      "documents": {
+        "title": "Send your documents",
+        "body": "Upload a clear photo or PDF of your results, ID, birth certificate and signature. Your manager checks each one and asks for a clearer copy if it is needed."
+      },
+      "university_review": {
+        "title": "The university reviews your file",
+        "body": "We send your file to the university. They check your grades and decide your scholarship. If they take more than three days, we follow it up for you."
+      },
+      "offer_letter": {
+        "title": "You receive your offer letter",
+        "body": "When the university accepts you, we put the offer letter in your account and send it to you on WhatsApp."
+      },
+      "registration": {
+        "title": "Register to secure your place",
+        "body": "You pay the university's registration fee to hold your place. We explain how before you pay, and the university then issues your Acceptance Letter."
+      },
+      "visa": {
+        "title": "Prepare your visa and your travel",
+        "body": "With your Acceptance Letter we help you gather your visa documents and plan your journey."
+      },
+      "arrived": {
+        "title": "Arrive and settle in",
+        "body": "We arrange for someone to meet you. Once you have arrived, we stay in touch while you settle in."
+      }
+    },
+    "fees": {
+      "title": "What does it cost?",
+      "body": "Our help is free for students. The only payment is the university's registration fee at step 5, between $100 and $300 depending on the university. You pay it to the university, directly or through a helper in Cameroon, and your manager explains the way before you pay. This website and the app never take money and never ask for your payment details."
+    }
   },
   "visa": {
     "metaTitle": "Visa",
@@ -2175,7 +2209,7 @@
         "notApplied": "Your file opens when you apply to a university. Apply first, then come back here to fill in your details and send your documents.",
         "applyFirst": "Apply now",
         "readOnly": "This application is closed, so your details can no longer be changed.",
-        "fixedHelp": "These details come from your sign-up. To correct one, message your adviser on WhatsApp.",
+        "fixedHelp": "These details come from your sign-up. To correct one, message your manager on WhatsApp.",
         "fixed": {
           "name": "Name",
           "whatsapp": "WhatsApp",
@@ -2225,7 +2259,7 @@
       },
       "documents": {
         "title": "Documents",
-        "intro": "Send a clear photo or scan of each document. JPG, PNG or PDF, up to {mb} MB each. Your adviser checks every one.",
+        "intro": "Send a clear photo or scan of each document. JPG, PNG or PDF, up to {mb} MB each. Your manager checks every one.",
         "kinds": {
           "results": "Exam results",
           "id": "ID card",
@@ -2239,11 +2273,11 @@
         "states": {
           "none": "Not sent yet",
           "pending": "Not finished. Please send it again.",
-          "uploaded": "Sent. Waiting for your adviser to check it.",
+          "uploaded": "Sent. Waiting for your manager to check it.",
           "approved": "Approved",
           "rejected": "Not accepted. Please send a clearer copy."
         },
-        "rejectedNote": "Your adviser says: {note}",
+        "rejectedNote": "Your manager says: {note}",
         "choose": "Choose a file",
         "replace": "Send a different file",
         "sending": "Sending…",
@@ -2265,7 +2299,7 @@
       },
       "proof": {
         "title": "Proof of payment",
-        "intro": "After you have paid, send a photo of your proof of payment. We never ask for payment details in this app: your adviser sends them to you on WhatsApp."
+        "intro": "After you have paid, send a photo of your proof of payment. We never ask for payment details in this app: your manager sends them to you on WhatsApp."
       },
       "letters": {
         "title": "Letters for you",
@@ -2278,13 +2312,13 @@
     "progress": {
       "title": "My application",
       "reference": "Your reference",
-      "stepsLabel": "The six steps of your application",
+      "stepsLabel": "The seven steps of your application",
       "done": "Done",
       "here": "You are here",
       "nextTitle": "What happens next",
-      "nextFallback": "Message your admin on WhatsApp to ask what comes next.",
+      "nextFallback": "Message your manager on WhatsApp to ask what comes next.",
       "lastUpdated": "Last updated {date}",
-      "whatsapp": "Message your admin on WhatsApp",
+      "whatsapp": "Message your manager on WhatsApp",
       "whatsappText": "Hello, my Scollarly reference is {ref}. My application is at the step \"{stage}\".",
       "whatsappMissing": "The WhatsApp number is not available right now. Please try again later.",
       "others": "{count, plural, one {You have # other application linked to this account.} other {You have # other applications linked to this account.}}",
@@ -2398,11 +2432,12 @@
     "tabs": {
       "home": "Home",
       "universities": "Universities",
-      "progress": "My progress",
+      "progress": "Progress",
       "help": "Help",
       "leads": "Inbox",
       "content": "Content",
-      "insights": "Insights"
+      "insights": "Insights",
+      "file": "My file"
     },
     "more": "More",
     "sheet": {
