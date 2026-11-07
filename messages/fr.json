@@ -795,6 +795,7 @@
         "naacGrade": "Note NAAC",
         "websiteUrl": "Site web",
         "logoMediaId": "Logo",
+        "passportRequired": "Demande le numéro de passeport",
         "overview": "Présentation",
         "sortOrder": "Ordre",
         "universityId": "Université",
