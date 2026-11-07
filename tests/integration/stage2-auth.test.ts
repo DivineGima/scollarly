@@ -63,7 +63,7 @@ async function stepUpAt(session: Session, ageMs: number) {
   );
 }
 
-async function newUser(role: "student" | "admin" | "owner", email?: string, verified = true): Promise<Session> {
+async function newUser(role: "student" | "manager" | "admin", email?: string, verified = true): Promise<Session> {
   const user = await t.signIn({ ...(email ? { email } : {}), verified });
   // An account that existed before version 2 is confirmed (migration 0013); a staff row is confirmed by the database itself.
   await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(user.userId)}, ${q(role)}, now(), now())`);
@@ -75,8 +75,8 @@ beforeAll(async () => {
   env = { db: t.db, ownerEmail: OWNER_EMAIL, totpKey: TOTP_KEY, now: () => now };
   facade = createAuthFacade((token) => resolveSession(t.db, token));
   student = await newUser("student");
-  admin = await newUser("admin");
-  owner = await newUser("owner", OWNER_EMAIL);
+  admin = await newUser("manager");
+  owner = await newUser("admin", OWNER_EMAIL);
   ownerFresh = await addSession(owner);
   ownerStale = await addSession(owner);
   await stepUpAt(ownerFresh, 0);
@@ -183,7 +183,7 @@ describe("S2.5: invites and the team endpoints", () => {
     const bad = await post("/api/v1/admin/team.invite", ownerFresh, { email: "not-an-email" });
     expect(bad.status).toBe(400);
     expect(bad.json.error.fields).toHaveProperty("email");
-    expect((await post("/api/v1/admin/team.invite", ownerFresh, { email: "a@example.test", role: "owner" })).status).toBe(400);
+    expect((await post("/api/v1/admin/team.invite", ownerFresh, { email: "a@example.test", isAdmin: true })).status).toBe(400);
     expect((await post("/api/v1/admin/team.invite", ownerFresh, { email: "a@example.test" }, { origin: "https://evil.example" })).status).toBe(403);
 
     const staff = await post("/api/v1/admin/team.invite", ownerFresh, { email: OWNER_EMAIL.toUpperCase() });
@@ -211,7 +211,7 @@ describe("S2.5: invites and the team endpoints", () => {
     const page = await get("/api/v1/admin/team", ownerFresh);
     expect(page.status).toBe(200);
     expect(page.json.members.map((m: Json) => m.email).sort()).toEqual([admin.email, OWNER_EMAIL].sort());
-    expect(page.json.members.find((m: Json) => m.email === OWNER_EMAIL)).toMatchObject({ role: "owner", isYou: true });
+    expect(page.json.members.find((m: Json) => m.email === OWNER_EMAIL)).toMatchObject({ role: "admin", isYou: true });
     const states = Object.fromEntries(page.json.invites.map((i: Json) => [i.email, i.state]));
     expect(states["old@example.test"]).toBe("expired");
     expect(states["priya.admin@example.test"]).toBe("open");
@@ -232,7 +232,7 @@ describe("S2.5: accepting an invite (landing step, B0)", () => {
     const token = await invite("accept.me@example.test");
     const person = await t.signIn({ email: "Accept.Me@Example.test" });
     expect(await landing(person, `?invite=${token}`)).toEqual({ status: 302, location: "/admin" });
-    expect(await count(`select count(*)::int as n from app_user where id = ${q(person.userId)} and role = 'admin'`)).toBe(1);
+    expect(await count(`select count(*)::int as n from app_user where id = ${q(person.userId)} and role = 'manager'`)).toBe(1);
     expect(await count(`select count(*)::int as n from audit_log where action = 'team.acceptInvite' and actor_id = ${q(person.userId)}`)).toBe(1);
 
     // A second person with the right email cannot reuse the used link.
@@ -267,7 +267,7 @@ describe("S2.5: accepting an invite (landing step, B0)", () => {
       `insert into admin_invite (id, email, token_hash, invited_by, expires_at) values (gen_random_uuid(), ${q(OWNER_EMAIL)}, ${q(await sha256Hex("o".repeat(43)))}, ${q(owner.userId)}, now() + interval '1 day')`,
     );
     expect((await landing(owner, `?invite=${"o".repeat(43)}`)).location).toBe(`/accept-invite/${"o".repeat(43)}?error=1`);
-    expect(await count(`select count(*)::int as n from app_user where id = ${q(owner.userId)} and role = 'owner'`)).toBe(1);
+    expect(await count(`select count(*)::int as n from app_user where id = ${q(owner.userId)} and role = 'admin'`)).toBe(1);
     expect((await landing(student, "?invite=short")).location).toBe("/sign-in");
   });
 });
@@ -298,7 +298,7 @@ describe("S2.3: sign-in landing and owner bootstrap", () => {
     const impostor = await t.signIn({ email: "OWNER@example.test".replace("OWNER", "owner2") });
     // A brand-new login with no account: not the owner, and not yet a Scollarly account either (S13.2).
     expect(await landing(impostor)).toBe("/account/confirm");
-    expect(await count(`select count(*)::int as n from app_user where role = 'owner'`)).toBe(1);
+    expect(await count(`select count(*)::int as n from app_user where role = 'admin'`)).toBe(1);
   });
 
   it("clears the visitor's IP address and browser string from the session at landing (flag F13)", async () => {
@@ -404,10 +404,10 @@ describe("S2.3: owner two-factor through the endpoints", () => {
 
 describe("S2.4: removing an admin", () => {
   it("cuts access on the very next request, with the old cookie, and returns their leads to the unassigned pool", async () => {
-    const leaving = await newUser("admin", "leaving@example.test");
-    const l1 = await leadRow(t, { assigned_admin_id: leaving.userId });
-    await leadRow(t, { assigned_admin_id: leaving.userId });
-    await leadRow(t, { assigned_admin_id: admin.userId });
+    const leaving = await newUser("manager", "leaving@example.test");
+    const l1 = await leadRow(t, { assigned_manager_id: leaving.userId });
+    await leadRow(t, { assigned_manager_id: leaving.userId });
+    await leadRow(t, { assigned_manager_id: admin.userId });
     expect((await get("/api/v1/admin/session", leaving)).status).toBe(200);
     const other = await addSession(leaving); // a second device
 
@@ -425,10 +425,10 @@ describe("S2.4: removing an admin", () => {
       expect((await post("/api/v1/admin/profile.signOutOthers", session)).status).toBe(401);
     }
     expect(await t.run(`select role from app_user where id = ${q(leaving.userId)}`)).toEqual([{ role: "student" }]);
-    expect(await count(`select count(*)::int as n from lead where assigned_admin_id = ${q(leaving.userId)}`)).toBe(0);
-    expect(await count(`select count(*)::int as n from lead where assigned_admin_id = ${q(admin.userId)}`)).toBe(1);
-    expect(await t.run(`select type, data->>'reason' as reason from lead_activity where lead_id = ${q(l1)} and type = 'assigned'`)).toEqual([{ type: "assigned", reason: "admin_removed" }]);
-    expect(await count(`select count(*)::int as n from audit_log where action = 'team.removeAdmin' and entity_id = ${q(leaving.userId)}`)).toBe(1);
+    expect(await count(`select count(*)::int as n from lead where assigned_manager_id = ${q(leaving.userId)}`)).toBe(0);
+    expect(await count(`select count(*)::int as n from lead where assigned_manager_id = ${q(admin.userId)}`)).toBe(1);
+    expect(await t.run(`select type, data->>'reason' as reason from lead_activity where lead_id = ${q(l1)} and type = 'assigned'`)).toEqual([{ type: "assigned", reason: "manager_removed" }]);
+    expect(await count(`select count(*)::int as n from audit_log where action = 'team.removeManager' and entity_id = ${q(leaving.userId)}`)).toBe(1);
     // The user record is kept for the audit trail; Neon's session rows are expired, not deleted.
     expect(await count(`select count(*)::int as n from neon_auth.session where "userId" = ${q(leaving.userId)}`)).toBe(2);
   });
@@ -438,34 +438,38 @@ describe("S2.4: removing an admin", () => {
     expect((await post("/api/v1/admin/team.removeAdmin", ownerFresh, { userId: owner.userId })).status).toBe(404);
     expect((await post("/api/v1/admin/team.removeAdmin", ownerFresh, { userId: "no-such-user" })).status).toBe(404);
     expect((await post("/api/v1/admin/team.removeAdmin", admin, { userId: admin.userId })).status).toBe(403);
-    expect(await t.run(`select role from app_user where id = ${q(owner.userId)}`)).toEqual([{ role: "owner" }]);
+    expect(await t.run(`select role from app_user where id = ${q(owner.userId)}`)).toEqual([{ role: "admin" }]);
   });
 
   it("cannot be done by calling the database function as a non-owner", async () => {
     await asRuntime(async () => {
-      await t.run(`select set_config('app.user_id', ${q(admin.userId)}, false), set_config('app.role', 'admin', false)`);
-      await expect(t.run(`select public.app_remove_admin(${q(admin.userId)})`)).rejects.toThrow(/Only the owner/);
+      await t.run(`select set_config('app.user_id', ${q(admin.userId)}, false), set_config('app.role', 'manager', false)`);
+      await expect(t.run(`select public.app_remove_manager(${q(admin.userId)})`)).rejects.toThrow(/Only an admin can remove a manager/);
       await t.run(`select set_config('app.user_id', '', false), set_config('app.role', '', false)`);
     });
   });
 });
 
-describe("S2.4: the owner is permanent, and only one owner can exist", () => {
+describe("S2.4 and S16.1: the admin is permanent, and at most two admins can exist", () => {
   it("refuses any update that removes the owner role, from the owner or anyone else", async () => {
-    await expect(t.run(`update app_user set role = 'student' where id = ${q(owner.userId)}`)).rejects.toThrow(/owner role cannot be removed/);
-    await expect(t.run(`update app_user set role = 'admin' where id = ${q(owner.userId)}`)).rejects.toThrow(/owner role cannot be removed/);
-    expect(await t.run(`select role from app_user where id = ${q(owner.userId)}`)).toEqual([{ role: "owner" }]);
+    await expect(t.run(`update app_user set role = 'student' where id = ${q(owner.userId)}`)).rejects.toThrow(/admin role cannot be removed/);
+    await expect(t.run(`update app_user set role = 'manager' where id = ${q(owner.userId)}`)).rejects.toThrow(/admin role cannot be removed/);
+    expect(await t.run(`select role from app_user where id = ${q(owner.userId)}`)).toEqual([{ role: "admin" }]);
   });
 
-  it("refuses a second owner", async () => {
-    await expect(t.run(`update app_user set role = 'owner' where id = ${q(admin.userId)}`)).rejects.toThrow(/app_user_single_owner|duplicate key/);
+  it("allows a second admin (the backup) and refuses a third", async () => {
+    const backup = await t.signIn();
+    const third = await t.signIn();
+    await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(backup.userId)}, 'admin', now())`);
+    await expect(t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(third.userId)}, 'admin', now())`)).rejects.toThrow(/At most two admins/);
+    await expect(t.run(`update app_user set role = 'admin' where id = ${q(admin.userId)}`)).rejects.toThrow(/At most two admins/);
   });
 });
 
 describe("S2.6 and C6: profile, sessions, security", () => {
   it("shows the signed-in person their own session data, and the menu role is the effective role", async () => {
-    expect((await get("/api/v1/admin/session", admin)).json).toMatchObject({ role: "admin", email: admin.email, stepUpFresh: false });
-    expect((await get("/api/v1/admin/session", ownerFresh)).json).toMatchObject({ role: "owner", stepUpFresh: true });
+    expect((await get("/api/v1/admin/session", admin)).json).toMatchObject({ role: "manager", email: admin.email, stepUpFresh: false });
+    expect((await get("/api/v1/admin/session", ownerFresh)).json).toMatchObject({ role: "admin", stepUpFresh: true });
     expect((await get("/api/v1/admin/session", student)).status).toBe(403);
     expect((await get("/api/v1/admin/session", null)).status).toBe(401);
   });
@@ -480,7 +484,7 @@ describe("S2.6 and C6: profile, sessions, security", () => {
   });
 
   it("signs out other devices but not this one", async () => {
-    const tablet = await newUser("admin"); // its own user, so the other tests keep their admin session
+    const tablet = await newUser("manager"); // its own user, so the other tests keep their admin session
     const phone = await addSession(tablet);
     const laptop = await addSession(tablet);
     const res = await post("/api/v1/admin/profile.signOutOthers", phone);
@@ -497,7 +501,7 @@ describe("S2.6 and C6: profile, sessions, security", () => {
     expect(page.json.twoFactorEnabled).toBe(true);
     expect(page.json.sessions.filter((s: Json) => s.isCurrent)).toHaveLength(1);
     expect(JSON.stringify(page.json)).not.toMatch(/ip|agent/i);
-    const fresh = await newUser("admin");
+    const fresh = await newUser("manager");
     expect((await get("/api/v1/admin/security", fresh)).status).toBe(403);
     expect((await get("/api/v1/admin/security", await addSession(owner))).status).toBe(403); // a new owner session with no 2FA check
   });
@@ -533,7 +537,7 @@ describe("S2.7: the audit log", () => {
     expect((await get("/api/v1/admin/audit", await addSession(owner))).status).toBe(403); // a new owner session with no 2FA check
     expect((await get("/api/v1/admin/audit", null)).status).toBe(401);
     await asRuntime(async () => {
-      await t.run(`select set_config('app.user_id', ${q(admin.userId)}, false), set_config('app.role', 'admin', false)`);
+      await t.run(`select set_config('app.user_id', ${q(admin.userId)}, false), set_config('app.role', 'manager', false)`);
       expect(await t.run(`select count(*)::int as n from audit_log`)).toEqual([{ n: 0 }]);
       await t.run(`select set_config('app.user_id', '', false), set_config('app.role', '', false)`);
     });
@@ -549,8 +553,8 @@ describe("S2.7: the audit log", () => {
     expect(everything.json.entries.find((e: Json) => e.action === "team.invite").actorEmail).toBe(OWNER_EMAIL);
     expect(everything.json.people.map((p: Json) => p.email)).toContain(OWNER_EMAIL);
 
-    const byAction = await get("/api/v1/admin/audit?action=team.removeAdmin", ownerFresh);
-    expect(byAction.json.entries.every((e: Json) => e.action === "team.removeAdmin")).toBe(true);
+    const byAction = await get("/api/v1/admin/audit?action=team.removeManager", ownerFresh);
+    expect(byAction.json.entries.every((e: Json) => e.action === "team.removeManager")).toBe(true);
     expect(byAction.json.entries).toHaveLength(1);
 
     const byPerson = await get(`/api/v1/admin/audit?actor=${admin.userId}`, ownerFresh);
@@ -589,7 +593,7 @@ describe("S2.7: the audit log", () => {
 
   it("cannot be changed or removed by the runtime role", async () => {
     await asRuntime(async () => {
-      await t.run(`select set_config('app.user_id', ${q(owner.userId)}, false), set_config('app.role', 'owner', false)`);
+      await t.run(`select set_config('app.user_id', ${q(owner.userId)}, false), set_config('app.role', 'admin', false)`);
       await expect(t.run(`update audit_log set action = 'x'`)).rejects.toThrow(/permission denied/);
       await expect(t.run(`delete from audit_log`)).rejects.toThrow(/permission denied/);
       await t.run(`select set_config('app.user_id', '', false), set_config('app.role', '', false)`);

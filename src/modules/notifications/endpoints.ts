@@ -31,7 +31,7 @@ export const notificationMutations: Record<string, Mutation> = {
     },
   },
   "admin/notifications.seen": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env }) {
       await markNotificationsSeen(env.db, actor as Actor);
       return jsonResponse({ seen: true });

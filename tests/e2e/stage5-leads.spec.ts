@@ -103,7 +103,7 @@ const detail = (over: Partial<DetailData> = {}, leadOver: Record<string, unknown
   ...over,
 });
 
-async function signIn(page: Page, role: "admin" | "owner" = "admin") {
+async function signIn(page: Page, role: "manager" | "admin" = "manager") {
   await page.route("**/api/v1/admin/session", (route) => json(route, { role, name: "Priya", email: "priya@example.test", stepUpFresh: false }));
 }
 
@@ -114,7 +114,7 @@ test.describe("B1 Overview", () => {
   // each number opens the list behind it, and an unreadable page says so and can be retried.
   const home = (over: Record<string, unknown> = {}) => ({
     period: "week",
-    role: "admin",
+    role: "manager",
     days: 7,
     series: Array.from({ length: 7 }, (_, i) => ({ label: `2026-10-${String(15 + i)}`, value: i % 3 })),
     totals: { newLeads: { value: 5, previous: 3 }, waiting: 7, overdue: 2, stageMoves: { value: 1, previous: 0 }, pendingClaims: 1, openDataRequests: 2, payments: null, onboarded: null },
@@ -433,7 +433,7 @@ test.describe("B3 Lead detail", () => {
     await page.getByRole("button", { name: "Message on WhatsApp" }).click();
     const dialog = page.getByRole("dialog");
     const box = dialog.getByLabel("Message");
-    await expect(box).toHaveValue(/Hello Ama, this is Scollarly\. Thank you for your request SC-ABCDE-FGHJK\./);
+    await expect(box).toHaveValue(/Hello Ama, this is Scollarly about your application SC-ABCDE-FGHJK\./);
     await box.fill("Hello Ama, can you send your results?");
     const popup = context.waitForEvent("page");
     await dialog.getByRole("link", { name: "Open WhatsApp" }).click();

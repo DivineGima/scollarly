@@ -27,7 +27,7 @@ beforeAll(async () => {
   const admin = await t.signIn();
   ownerId = owner.userId;
   adminId = admin.userId;
-  await t.run(`insert into app_user (id, role) values (${q(ownerId)}, 'owner'), (${q(adminId)}, 'admin')`);
+  await t.run(`insert into app_user (id, role) values (${q(ownerId)}, 'admin'), (${q(adminId)}, 'manager')`);
   await t.run(`insert into owner_totp (user_id, secret_encrypted, confirmed) values (${q(ownerId)}, 'cipher', true)`);
   await t.run(`insert into recovery_code (id, user_id, code_hash) values (gen_random_uuid(), ${q(ownerId)}, 'h1'), (gen_random_uuid(), ${q(ownerId)}, 'h2')`);
   await t.run(`insert into step_up (session_id, user_id, verified_at) values (${q(owner.sessionId)}, ${q(ownerId)}, now()), (${q(admin.sessionId)}, ${q(adminId)}, now())`);
@@ -45,8 +45,8 @@ describe("recovery: owner locked out of two-factor", () => {
     expect(await count(`select count(*)::int as n from step_up where user_id = ${q(ownerId)}`)).toBe(0);
     expect(await count(`select count(*)::int as n from neon_auth.session where "userId"::text = ${q(ownerId)}`)).toBe(0);
     // The owner account and the admin are untouched.
-    expect(await count(`select count(*)::int as n from app_user where id = ${q(ownerId)} and role = 'owner'`)).toBe(1);
-    expect(await count(`select count(*)::int as n from app_user where id = ${q(adminId)} and role = 'admin'`)).toBe(1);
+    expect(await count(`select count(*)::int as n from app_user where id = ${q(ownerId)} and role = 'admin'`)).toBe(1);
+    expect(await count(`select count(*)::int as n from app_user where id = ${q(adminId)} and role = 'manager'`)).toBe(1);
     expect(await count(`select count(*)::int as n from step_up where user_id = ${q(adminId)}`)).toBe(1);
     expect(await count(`select count(*)::int as n from neon_auth.session where "userId"::text = ${q(adminId)}`)).toBe(1);
     expect(await count("select count(*)::int as n from audit_log where action = 'security.ownerTwoFactorReset' and actor_id is null")).toBe(1);

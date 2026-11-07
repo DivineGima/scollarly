@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { LEAD_CLOSE_REASONS } from "@/lib/constants";
 import { uuidSchema, V } from "@/lib/schemas/common";
 import { VERSION_PATTERN } from "@/server/repositories/lead-admin";
 
@@ -36,6 +37,9 @@ export const dataRequestsQuery = z.strictObject({ status: z.enum(["open", "all"]
 const version = z.string({ error: V.REQUIRED }).regex(VERSION_PATTERN, V.INVALID);
 
 export const changeStageBody = z.strictObject({ leadId: uuidSchema, stage: stageCode, version });
+export const moveBackBody = z.strictObject({ leadId: uuidSchema, version, note: z.string({ error: V.REQUIRED }).trim().min(1, V.REQUIRED).max(2000, V.TOO_LONG) });
+export const closeLeadBody = z.strictObject({ leadId: uuidSchema, version, reason: z.enum(LEAD_CLOSE_REASONS, { error: V.UNKNOWN_VALUE }) });
+export const reopenLeadBody = z.strictObject({ leadId: uuidSchema, version });
 export const assignBody = z.strictObject({ leadId: uuidSchema, adminId: userToken.nullable(), version });
 export const addNoteBody = z.strictObject({
   leadId: uuidSchema,

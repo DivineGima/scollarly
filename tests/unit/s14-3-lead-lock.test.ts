@@ -82,7 +82,7 @@ describe("S14.3: the lead endpoint is the lock behind every gated button (PRD_3 
   });
 
   it("does not ask the guard about staff: only a student has an application of their own to protect", async () => {
-    resolveSession.mockResolvedValue({ userId: "a", role: "admin", emailVerified: true, accountConfirmed: true, onboardingDone: false });
+    resolveSession.mockResolvedValue({ userId: "a", role: "manager", emailVerified: true, accountConfirmed: true, onboardingDone: false });
     const response = await handleLeadPost(post(COOKIE), env);
     expect(response.status).toBe(201);
     expect(tokenHasApplication).not.toHaveBeenCalled();

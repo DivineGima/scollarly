@@ -13,7 +13,7 @@ import { auditQuery, watRange } from "./schema";
 export function auditDataCalls(env: EndpointEnv): Record<string, DataCall> {
   return {
     "admin/audit": async (actor, call) => {
-      if (actor.role !== "owner") throw new AuthError("FORBIDDEN", "Not allowed.");
+      if (actor.role !== "admin") throw new AuthError("FORBIDDEN", "Not allowed.");
       const parsed = auditQuery.safeParse(Object.fromEntries(call.url.searchParams));
       const range = parsed.success ? watRange(parsed.data.from, parsed.data.to) : null;
       // A filter the screen could not have produced. Say so plainly instead of silently showing everything.

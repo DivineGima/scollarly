@@ -38,7 +38,7 @@ export function homeDataCalls(env: EndpointEnv): Record<string, DataCall> {
 
 export const tourMutations: Record<string, Mutation> = {
   "admin/tour.seen": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(tourBody, body, requestId);
       if (!parsed.ok) return parsed.response;

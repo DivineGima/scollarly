@@ -11,7 +11,7 @@ import { exportFileName } from "./tables";
  */
 export const exportMutations: Record<string, Mutation> = {
   "admin/export.download": {
-    access: { kind: "role", role: "owner", stepUp: true },
+    access: { kind: "role", role: "admin", stepUp: true },
     async handle({ actor, env }) {
       const now = env.now();
       const file = await exportEverything(env.db, actor as Actor, now);

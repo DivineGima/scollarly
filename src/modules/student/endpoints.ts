@@ -9,6 +9,9 @@ import type { DataCall } from "@/server/edge/authed";
 import type { EndpointEnv } from "@/server/edge/endpoint-env";
 import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
+import { logError } from "@/server/log";
+import { deleteAfterErasure } from "@/server/media/purge";
+import { ownDocumentKeys } from "@/server/repositories/documents";
 import { profileOf, setProfileName } from "@/server/repositories/identity";
 import { eraseMyAccount, exportMyData, progressOf, requestLink } from "@/server/repositories/student";
 import { homeOf, preferencesOf } from "@/server/repositories/student-home";
@@ -154,10 +157,16 @@ export const studentMutations: Record<string, Mutation> = {
       const parsed = parseBody(erasureBody, body, requestId);
       if (!parsed.ok) return parsed.response;
       if (!token) return errorResponseFor("UNAUTHENTICATED", "Sign in required.", requestId);
+      // The student's files go with the account (FR-49): the keys are read first (the rows go with the account), the objects deleted once it is erased.
+      const keys = await ownDocumentKeys(env.db, actor as Actor);
       const outcome = await eraseMyAccount(env.db, actor as Actor, token);
       switch (outcome) {
-        case "erased":
+        case "erased": {
+          const store = env.documents?.();
+          const failed = store ? await deleteAfterErasure((key) => store.deleteObject(key), keys) : keys.length;
+          if (failed > 0) logError(requestId, "me/student.requestErasure", new Error(`${failed} student file(s) could not be deleted from storage`));
           return jsonResponse({ erased: true });
+        }
         case "reauth_required":
           return errorResponseFor("STEP_UP_REQUIRED", "Sign in again to confirm.", requestId, { fields: { session: "REAUTH_REQUIRED" } });
         case "staff_account":

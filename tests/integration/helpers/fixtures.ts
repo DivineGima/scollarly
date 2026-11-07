@@ -58,13 +58,13 @@ export const leadRow = (t: TestDb, overrides: Record<string, unknown> = {}) => {
   );
 };
 
-export const appUserRow = (t: TestDb, id: string, role: "student" | "admin" | "owner" = "student") => insertRow(t, "app_user", { id, role });
+export const appUserRow = (t: TestDb, id: string, role: "student" | "manager" | "admin" = "student") => insertRow(t, "app_user", { id, role });
 
 export const paymentRow = (t: TestDb, universityId: string, overrides: Record<string, unknown> = {}) =>
   insertRow(
     t,
     "placement_payment",
-    { id: uuidv7(), submission_token: randomUUID(), university_id: universityId, amount_usd_cents: 150000, received_on: "2026-10-01", entered_by: "someone" },
+    { id: uuidv7(), submission_token: randomUUID(), university_id: universityId, amount_usd_cents: 150000, received_on: "2026-10-01", entered_by: "someone", approved_at: new Date().toISOString() },
     overrides,
   );
 

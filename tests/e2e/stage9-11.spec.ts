@@ -26,7 +26,7 @@ async function axe(page: Page) {
   expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
 }
 
-const as = (page: Page, role: "admin" | "owner") => page.route("**/api/v1/admin/session", (route) => json(route, { role, name: "Test", email: `${role}@example.test`, stepUpFresh: false }));
+const as = (page: Page, role: "manager" | "admin") => page.route("**/api/v1/admin/session", (route) => json(route, { role, name: "Test", email: `${role}@example.test`, stepUpFresh: false }));
 
 async function noSideways(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
@@ -70,7 +70,7 @@ const ledger = (over: Record<string, unknown> = {}) => ({
 
 test.describe("B9 payments", () => {
   test("shows totals without voided payments, strikes a voided row through with its reason, and links the lead", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
     await page.goto("/admin/payments");
     await expect(page.getByRole("heading", { name: "Payments received", level: 1 })).toBeVisible();
@@ -85,7 +85,7 @@ test.describe("B9 payments", () => {
   });
 
   test("filters live in the address and the CSV export carries exactly the same filters", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     const seen: string[] = [];
     let csvQuery = "";
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => {
@@ -106,7 +106,7 @@ test.describe("B9 payments", () => {
   });
 
   test("an export the server refuses shows its message and saves no file", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
     await page.route(/\/api\/v1\/admin\/payments-csv/, (route) => route.fulfill({ status: 413, contentType: "application/json", body: JSON.stringify({ error: { code: "PAYLOAD_TOO_LARGE", message: "Too many payments for one file. Narrow the dates.", requestId: "r1" } }) }));
     await page.goto("/admin/payments");
@@ -121,7 +121,7 @@ test.describe("B9 payments", () => {
   });
 
   test("says so when nothing matches, and offers a retry when the ledger cannot be read", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     let calls = 0;
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => {
       calls += 1;
@@ -136,7 +136,7 @@ test.describe("B9 payments", () => {
   });
 
   test("records a payment: checks the fields first, sends one request with a token, and shows the server's answer for a field", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
     await page.route(/\/api\/v1\/admin\/payment-leads\?/, (route) => json(route, { leads: [{ id: LEAD, ref: "SC-K7M2Q-XB9T4", name: "Test Student" }] }));
     const bodies: Record<string, unknown>[] = [];
@@ -188,7 +188,7 @@ test.describe("B9 payments", () => {
   });
 
   test("voiding needs a reason, sends it, and treats 'already voided' as a stale list rather than an error", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     let loads = 0;
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => {
       loads += 1;
@@ -213,7 +213,7 @@ test.describe("B9 payments", () => {
   });
 
   test("works at 375 px without sideways scrolling", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.setViewportSize({ width: 375, height: 700 });
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
     await page.goto("/admin/payments");
@@ -226,7 +226,7 @@ test.describe("B9 payments", () => {
 
 test.describe("S9.3 payments in analytics", () => {
   test("shows what was received in the range and links to the Payments page with the same range", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.route(/\/api\/v1\/admin\/analytics\?/, (route) =>
       json(route, {
         range: { from: "2026-10-01", to: "2026-10-26" },
@@ -247,12 +247,12 @@ test.describe("S9.3 payments in analytics", () => {
 
 test.describe("C3 every admin's performance", () => {
   const admins = [
-    { userId: "u1", email: "priya@example.test", name: "Priya", role: "admin", assigned: 12, answered: 10, medianMinutes: 35, meanMinutes: 40, overdue: 1 },
-    { userId: "u2", email: "idle@example.test", name: "", role: "admin", assigned: 0, answered: 0, medianMinutes: null, meanMinutes: null, overdue: 0 },
+    { userId: "u1", email: "priya@example.test", name: "Priya", role: "manager", assigned: 12, answered: 10, medianMinutes: 35, meanMinutes: 40, overdue: 1 },
+    { userId: "u2", email: "idle@example.test", name: "", role: "manager", assigned: 0, answered: 0, medianMinutes: null, meanMinutes: null, overdue: 0 },
   ];
 
   test("the owner sees a row for each admin, including one with nothing yet, and can open their leads", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route(/\/api\/v1\/admin\/performance-all\?/, (route) => json(route, { range: { from: "2026-09-27", to: "2026-10-26" }, admins }));
     await page.goto("/admin/analytics/performance");
     const table = page.getByTestId("performance-all");
@@ -263,7 +263,7 @@ test.describe("C3 every admin's performance", () => {
   });
 
   test("an admin who opens the address sees nothing, and the data call is never made", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     let asked = false;
     await page.route(/\/api\/v1\/admin\/performance-all\?/, (route) => {
       asked = true;
@@ -277,7 +277,7 @@ test.describe("C3 every admin's performance", () => {
   });
 
   test("the owner's menu has Settings and Health and the admin's does not; both have Payments", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
     await page.goto("/admin/insights?view=payments");
     const tabs = page.getByRole("navigation", { name: "Sections" });
@@ -289,7 +289,7 @@ test.describe("C3 every admin's performance", () => {
     await page.keyboard.press("Escape");
 
     await page.unroute("**/api/v1/admin/session");
-    await as(page, "admin");
+    await as(page, "manager");
     await page.goto("/admin/insights?view=payments");
     await expect(tabs.getByRole("link", { name: "Payments" })).toBeVisible();
     await page.getByRole("button", { name: "More" }).click();
@@ -319,7 +319,7 @@ const settings = {
 
 test.describe("C4 settings", () => {
   test("shows the current values, the time zone, and nothing to save until something changes", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route("**/api/v1/admin/settings", (route) => json(route, settings));
     await page.goto("/admin/settings");
     await expect(page.getByLabel("Reply target on weekdays (hours)")).toHaveValue("4");
@@ -332,7 +332,7 @@ test.describe("C4 settings", () => {
   });
 
   test("asks for the authenticator code on save, then repeats the save, sends only what changed and refreshes the public site", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route("**/api/v1/admin/settings", (route) => json(route, settings));
     const saves: unknown[] = [];
     await page.route("**/api/v1/admin/settings.update", (route) => {
@@ -357,7 +357,7 @@ test.describe("C4 settings", () => {
   });
 
   test("shows the server's reason beside the field and saves nothing when a value is refused", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route("**/api/v1/admin/settings", (route) => json(route, settings));
     await page.route("**/api/v1/admin/settings.update", (route) => fail(route, 400, "VALIDATION", { "changes.sla_weekday_hours": "INVALID" }));
     await page.goto("/admin/settings");
@@ -369,13 +369,13 @@ test.describe("C4 settings", () => {
   });
 
   test("an admin who opens the address sees nothing", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.goto("/admin/settings");
     await expect(page.getByRole("heading", { name: "Settings" })).toHaveCount(0);
   });
 
   test("the full export is requested with a step-up and handed to the browser as a file", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route("**/api/v1/admin/settings", (route) => json(route, settings));
     await page.route("**/api/v1/admin/export.download", (route) =>
       route.fulfill({ status: 200, contentType: "application/json", headers: { "Content-Disposition": 'attachment; filename="scollarly-export-2026-10-26.json"' }, body: '{"format":"scollarly-export-v1","tables":{}}' }),
@@ -387,7 +387,7 @@ test.describe("C4 settings", () => {
   });
 
   test("works at 375 px without sideways scrolling", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.setViewportSize({ width: 375, height: 700 });
     await page.route("**/api/v1/admin/settings", (route) => json(route, settings));
     await page.goto("/admin/settings");
@@ -414,7 +414,7 @@ const health = (over: Record<string, unknown> = {}) => ({
 
 test.describe("C7 health", () => {
   test("shows sizes with the 70% banner, the last runs, stale counts and the dashboards", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.route("**/api/v1/admin/health", (route) => json(route, health()));
     await page.goto("/admin/health");
     await expect(page.getByTestId("meter-warn")).toContainText("2.6 GiB of 3.5 GiB (75%)");
@@ -428,7 +428,7 @@ test.describe("C7 health", () => {
   });
 
   test("pauses page-view collection through the settings operation with a step-up, and shows the switch flipped", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     let collect = true;
     await page.route("**/api/v1/admin/health", (route) => json(route, health({ collectPageViews: collect })));
     const sent: unknown[] = [];
@@ -446,7 +446,7 @@ test.describe("C7 health", () => {
   });
 
   test("shows the pipeline freshness once a target is set, and an error with a retry when the page cannot load", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     let calls = 0;
     await page.route("**/api/v1/admin/health", (route) => {
       calls += 1;
@@ -459,7 +459,7 @@ test.describe("C7 health", () => {
   });
 
   test("works at 375 px without sideways scrolling", async ({ page }) => {
-    await as(page, "owner");
+    await as(page, "admin");
     await page.setViewportSize({ width: 375, height: 700 });
     await page.route("**/api/v1/admin/health", (route) => json(route, health()));
     await page.goto("/admin/health");
@@ -493,7 +493,7 @@ test.describe("S11.1 the enforced Content-Security-Policy", () => {
   }
 
   test("an admin screen, with an image preview and a download, breaks no rule either", async ({ page }) => {
-    await as(page, "admin");
+    await as(page, "manager");
     await page.route(/\/api\/v1\/admin\/payments(\?|$)/, (route) => json(route, ledger()));
     const violations: string[] = [];
     page.on("console", (message) => {

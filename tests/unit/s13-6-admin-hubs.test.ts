@@ -108,20 +108,20 @@ describe("the tiles (four at most, by role)", () => {
     }) as never;
 
   it("gives an admin their working numbers", () => {
-    const tiles = tilesOf({ role: "admin", totals: totals() });
+    const tiles = tilesOf({ role: "manager", totals: totals() });
     expect(tiles.map((t) => t.key)).toEqual(["newLeads", "waiting", "overdue", "stageMoves"]);
     expect(tiles.find((t) => t.key === "waiting")?.previous).toBeNull();
   });
 
   it("gives the owner new leads, overdue, payments and onboardings, and no admin-only tile", () => {
-    const tiles = tilesOf({ role: "owner", totals: totals({ payments: { valueCents: 250_000, previousCents: 100_000 }, onboarded: { value: 4, previous: 6 } }) });
+    const tiles = tilesOf({ role: "admin", totals: totals({ payments: { valueCents: 250_000, previousCents: 100_000 }, onboarded: { value: 4, previous: 6 } }) });
     expect(tiles.map((t) => t.key)).toEqual(["newLeads", "overdue", "payments", "onboarded"]);
     expect(tiles.find((t) => t.key === "payments")?.text).toBe("$2,500");
     expect(tiles).toHaveLength(4);
   });
 
   it("does not break for an owner whose owner-only numbers are missing", () => {
-    const tiles = tilesOf({ role: "owner", totals: totals() });
+    const tiles = tilesOf({ role: "admin", totals: totals() });
     expect(tiles.find((t) => t.key === "payments")?.text).toBe("$0");
     expect(tiles.find((t) => t.key === "onboarded")?.value).toBe(0);
   });
@@ -175,23 +175,23 @@ describe("the hand-built line chart", () => {
 
 describe("the bar for staff (architecture 21.10)", () => {
   it("has the same four tabs for an admin and the owner", () => {
-    expect(tabsFor("admin").map((t) => t.href)).toEqual(["/admin", "/admin/leads", "/admin/content", "/admin/insights"]);
-    expect(tabsFor("owner")).toEqual(tabsFor("admin"));
+    expect(tabsFor("manager").map((t) => t.href)).toEqual(["/admin", "/admin/leads", "/admin/content", "/admin/insights"]);
+    expect(tabsFor("admin")).toEqual(tabsFor("manager"));
   });
 
   it("shows an admin Profile only, and the owner the five owner-only pages as well", () => {
-    expect(moreItemsFor("admin").map((i) => i.key)).toEqual(["profile"]);
-    expect(moreItemsFor("owner").map((i) => i.key)).toEqual(["profile", "team", "audit", "security", "settings", "health"]);
+    expect(moreItemsFor("manager").map((i) => i.key)).toEqual(["profile"]);
+    expect(moreItemsFor("admin").map((i) => i.key)).toEqual(["profile", "team", "audit", "security", "settings", "health"]);
   });
 
   it("lights the tab of the hub a screen belongs to, and More for the pages behind it", () => {
-    expect(activeItem("admin", "/admin")).toBe("home");
-    expect(activeItem("admin", "/en/admin/leads/")).toBe("leads");
-    expect(activeItem("admin", "/admin/leads/11111111-1111-4111-8111-111111111111")).toBe("leads");
-    expect(activeItem("admin", "/admin/content/universities/new")).toBe("content");
-    expect(activeItem("admin", "/admin/insights")).toBe("insights");
-    expect(activeItem("admin", "/admin/notifications")).toBe("more");
-    expect(activeItem("owner", "/admin/security")).toBe("more");
+    expect(activeItem("manager", "/admin")).toBe("home");
+    expect(activeItem("manager", "/en/admin/leads/")).toBe("leads");
+    expect(activeItem("manager", "/admin/leads/11111111-1111-4111-8111-111111111111")).toBe("leads");
+    expect(activeItem("manager", "/admin/content/universities/new")).toBe("content");
+    expect(activeItem("manager", "/admin/insights")).toBe("insights");
+    expect(activeItem("manager", "/admin/notifications")).toBe("more");
+    expect(activeItem("admin", "/admin/security")).toBe("more");
   });
 
   it("has a tour for each of the four staff tabs", () => {

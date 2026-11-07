@@ -10,6 +10,14 @@
 
 import { TOUR_FRAME_ORIGINS } from "./tour-hosts";
 
+/**
+ * Where the browser may send a student document (S17.1, architecture 24.5, tracker_5 F42): straight to the private `student-docs` bucket with a
+ * link the Worker signed, so a 5 MB file costs the Worker no CPU. This is the ONLY address besides the site itself that a page may connect to. The
+ * link is short-lived and bound to one key and one content type, so the address alone gives nobody access to anything. It names the storage
+ * cluster, not one branch; once the production branch's address is known, narrow it to that exact host (one line, here).
+ */
+export const DOCUMENT_UPLOAD_ORIGIN = "https://*.storage.c-7.eu-central-1.aws.neon.tech";
+
 export const CSP = [
   "default-src 'self'",
   // Next.js inlines small scripts and styles; S11.1 decides whether nonces can replace 'unsafe-inline'.
@@ -18,7 +26,7 @@ export const CSP = [
   // blob: is the picture the admin has just chosen, shown before it is uploaded (the image upload screen).
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self'",
+  `connect-src 'self' ${DOCUMENT_UPLOAD_ORIGIN}`,
   // Campus videos (FR-3), the Turnstile widget, and the 360 tour hosts listed in `tour-hosts.ts` (tracker F31: it used to be any https address).
   "frame-src https://www.youtube-nocookie.com https://challenges.cloudflare.com " + TOUR_FRAME_ORIGINS.join(" "),
   "object-src 'none'",

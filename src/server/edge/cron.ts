@@ -1,5 +1,8 @@
 import { runDailyRollup, type RollupResult } from "@/modules/analytics/rollup";
 import { getDb } from "@/server/db/runtime";
+import { getDocumentStore } from "@/server/media/runtime";
+import { runPurge, type PurgeResult } from "@/server/media/purge";
+import { markPurged, purgeCandidates } from "@/server/repositories/documents";
 import { recordJob } from "@/server/repositories/health";
 import { rollRawEvents, saveAggregateRows } from "@/server/repositories/rollup";
 import { runUsageCheck } from "./usage-job";
@@ -42,8 +45,37 @@ export async function runScheduled(env: CloudflareEnv, scheduledTime: number, no
   // The record is bookkeeping for the Health page: if it cannot be written the run still counts for what it did.
   await recordJob(db, "rollup", result.failed.length === 0, { keys: result.keys, rows: result.rows, rawCounted: result.rawCounted, rawPurged: result.rawPurged, failed: result.failed.length }).catch(() => undefined);
   const usage = await runUsageCheck(db);
+  // The purge of student files is a step of its own (architecture 24.7): its failure is recorded and thrown, but it never stops the work above.
+  const purge = await runDocumentPurge(env, db);
   // A failed run is thrown, so Cloudflare lists it as failed instead of quietly succeeding.
   if (result.failed.length > 0) throw new Error(`The daily rollup failed: ${result.failed.join(", ")}`);
   if (usage === null) throw new Error("The daily usage check failed.");
+  if (purge === null) throw new Error("The daily purge of student files failed.");
   return result;
+}
+
+/** Counts only in the log and the job record: no key, no student and no document is ever written down. Null when the step failed. */
+export async function runDocumentPurge(env: CloudflareEnv, db: ReturnType<typeof getDb>): Promise<PurgeResult | null> {
+  let store: ReturnType<typeof getDocumentStore>;
+  try {
+    store = getDocumentStore(env);
+  } catch {
+    // Storage is not set up for this deployment (a preview, a test): there are no files to purge, so the step has nothing to do. Production has the secrets (S0.10).
+    console.warn(JSON.stringify({ level: "warn", job: "purge", message: "storage is not configured; nothing to purge" }));
+    return { found: 0, deleted: 0, marked: 0, failed: 0 };
+  }
+  try {
+    const result = await runPurge({
+      candidates: (limit) => purgeCandidates(db, limit),
+      deleteObject: (key) => store.deleteObject(key),
+      markPurged: (ids) => markPurged(db, ids),
+    });
+    console.log(JSON.stringify({ level: result.failed > 0 ? "error" : "info", job: "purge", ...result }));
+    await recordJob(db, "purge", result.failed === 0, { ...result }).catch(() => undefined);
+    return result.failed === 0 ? result : null;
+  } catch (error) {
+    console.error(JSON.stringify({ level: "error", job: "purge", message: error instanceof Error ? error.message : "unknown" }));
+    await recordJob(db, "purge", false, {}).catch(() => undefined);
+    return null;
+  }
 }

@@ -47,26 +47,26 @@ describe("denyAccess: the question each operation asks of the facade", () => {
 
   it("stored-owner: the owner account, with or without a 2FA check; nobody else, an admin included", () => {
     const access = { kind: "stored-owner" } as const;
-    expect(denyAccess(access, actorOf("owner", { role: "student" }), NOW)).toBeNull(); // not yet verified: still the owner's own 2FA page
-    expect(denyAccess(access, actorOf("owner", { stepUpAgoMs: 0 }), NOW)).toBeNull();
-    expect(denyAccess(access, actorOf("admin"), NOW)?.status).toBe(403);
+    expect(denyAccess(access, actorOf("admin", { role: "student" }), NOW)).toBeNull(); // not yet verified: still the owner's own 2FA page
+    expect(denyAccess(access, actorOf("admin", { stepUpAgoMs: 0 }), NOW)).toBeNull();
+    expect(denyAccess(access, actorOf("manager"), NOW)?.status).toBe(403);
     expect(denyAccess(access, actorOf("student"), NOW)?.status).toBe(403);
     expect(denyAccess(access, null, NOW)?.status).toBe(401);
   });
 
   it("role: uses the effective role, so an owner without 2FA cannot do admin or owner work", () => {
-    expect(denyAccess({ kind: "role", role: "admin" }, actorOf("admin"), NOW)).toBeNull();
-    expect(denyAccess({ kind: "role", role: "admin" }, actorOf("owner", { stepUpAgoMs: 0 }), NOW)).toBeNull();
-    expect(denyAccess({ kind: "role", role: "admin" }, actorOf("owner", { role: "student" }), NOW)?.status).toBe(403);
-    expect(denyAccess({ kind: "role", role: "owner" }, actorOf("admin"), NOW)?.status).toBe(403);
+    expect(denyAccess({ kind: "role", role: "manager" }, actorOf("manager"), NOW)).toBeNull();
+    expect(denyAccess({ kind: "role", role: "manager" }, actorOf("admin", { stepUpAgoMs: 0 }), NOW)).toBeNull();
+    expect(denyAccess({ kind: "role", role: "manager" }, actorOf("admin", { role: "student" }), NOW)?.status).toBe(403);
+    expect(denyAccess({ kind: "role", role: "admin" }, actorOf("manager"), NOW)?.status).toBe(403);
   });
 
   it("role with step-up: allowed for exactly 10 minutes after a 2FA check, then asks again", () => {
-    const access = { kind: "role", role: "owner", stepUp: true } as const;
-    expect(denyAccess(access, actorOf("owner", { stepUpAgoMs: 0 }), NOW)).toBeNull();
-    expect(denyAccess(access, actorOf("owner", { stepUpAgoMs: STEP_UP_WINDOW_MS }), NOW)).toBeNull();
-    expect(denyAccess(access, actorOf("owner", { stepUpAgoMs: STEP_UP_WINDOW_MS + 1 }), NOW)).toMatchObject({ status: 403, code: "STEP_UP_REQUIRED" });
-    expect(denyAccess(access, actorOf("owner", { role: "student" }), NOW)).toMatchObject({ status: 403, code: "FORBIDDEN" });
+    const access = { kind: "role", role: "admin", stepUp: true } as const;
+    expect(denyAccess(access, actorOf("admin", { stepUpAgoMs: 0 }), NOW)).toBeNull();
+    expect(denyAccess(access, actorOf("admin", { stepUpAgoMs: STEP_UP_WINDOW_MS }), NOW)).toBeNull();
+    expect(denyAccess(access, actorOf("admin", { stepUpAgoMs: STEP_UP_WINDOW_MS + 1 }), NOW)).toMatchObject({ status: 403, code: "STEP_UP_REQUIRED" });
+    expect(denyAccess(access, actorOf("admin", { role: "student" }), NOW)).toMatchObject({ status: 403, code: "FORBIDDEN" });
   });
 });
 
@@ -84,7 +84,7 @@ describe("handleMutation", () => {
       checkSession,
       env,
       limit,
-      mutations: { "admin/thing.do": { access: { kind: "role", role: "admin" }, handle, ...over.mutation } as Mutation, "invites/open": { access: { kind: "public" }, handle } },
+      mutations: { "admin/thing.do": { access: { kind: "role", role: "manager" }, handle, ...over.mutation } as Mutation, "invites/open": { access: { kind: "public" }, handle } },
     };
     const run = (path: string, init: RequestInit = {}) => handleMutation(new Request(`https://scollarly.example${path}`, { method: "POST", ...init }), () => deps);
     return { run, handle, checkSession, limit };
@@ -98,7 +98,7 @@ describe("handleMutation", () => {
   });
 
   it("runs the handler for an allowed caller, with the parsed body and the session token", async () => {
-    const t = setup({ actor: actorOf("admin") });
+    const t = setup({ actor: actorOf("manager") });
     const response = await t.run("/api/v1/admin/thing.do", {
       body: JSON.stringify({ a: 1 }),
       headers: { cookie: "__Secure-neon-auth.session_token=" + "a".repeat(32) + ".sig" },
@@ -107,11 +107,11 @@ describe("handleMutation", () => {
     const call = (t.handle.mock.calls[0] as unknown as [{ body: unknown; token: string | null; actor: Actor }])[0];
     expect(call.body).toEqual({ a: 1 });
     expect(call.token).toBe("a".repeat(32));
-    expect(call.actor.role).toBe("admin");
+    expect(call.actor.role).toBe("manager");
   });
 
   it("treats an empty body as {} and refuses malformed or oversized JSON before the session is checked", async () => {
-    const t = setup({ actor: actorOf("admin") });
+    const t = setup({ actor: actorOf("manager") });
     expect((await t.run("/api/v1/admin/thing.do"))?.status).toBe(200);
     expect((t.handle.mock.calls[0] as unknown as [{ body: unknown }])[0].body).toEqual({});
     expect((await t.run("/api/v1/admin/thing.do", { body: "{nope" }))?.status).toBe(400);
@@ -120,7 +120,7 @@ describe("handleMutation", () => {
   });
 
   it("refuses a cross-origin request first", async () => {
-    const t = setup({ actor: actorOf("admin") });
+    const t = setup({ actor: actorOf("manager") });
     const response = await t.run("/api/v1/admin/thing.do", { headers: { origin: "https://evil.example" } });
     expect(response?.status).toBe(403);
     expect(t.checkSession).not.toHaveBeenCalled();
@@ -130,7 +130,7 @@ describe("handleMutation", () => {
   it("answers 401, 403 and the step-up code from the access rule, and never runs the handler", async () => {
     expect((await setup({ actor: null }).run("/api/v1/admin/thing.do"))?.status).toBe(401);
     expect((await setup({ actor: actorOf("student") }).run("/api/v1/admin/thing.do"))?.status).toBe(403);
-    const t = setup({ actor: actorOf("owner", { stepUpAgoMs: STEP_UP_WINDOW_MS + 1 }), mutation: { access: { kind: "role", role: "owner", stepUp: true } } });
+    const t = setup({ actor: actorOf("admin", { stepUpAgoMs: STEP_UP_WINDOW_MS + 1 }), mutation: { access: { kind: "role", role: "admin", stepUp: true } } });
     const response = await t.run("/api/v1/admin/thing.do");
     expect(response?.status).toBe(403);
     expect(((await response?.json()) as { error: { code: string } }).error.code).toBe("STEP_UP_REQUIRED");
@@ -138,10 +138,10 @@ describe("handleMutation", () => {
   });
 
   it("maps an AuthError from a handler, and hides every other failure behind a request id", async () => {
-    const refusing = setup({ actor: actorOf("admin"), mutation: { handle: async () => Promise.reject(new AuthError("FORBIDDEN", "Not allowed.")) } });
+    const refusing = setup({ actor: actorOf("manager"), mutation: { handle: async () => Promise.reject(new AuthError("FORBIDDEN", "Not allowed.")) } });
     expect((await refusing.run("/api/v1/admin/thing.do"))?.status).toBe(403);
 
-    const broken = setup({ actor: actorOf("admin"), mutation: { handle: async () => Promise.reject(new Error("password=hunter2 at db.internal:5432")) } });
+    const broken = setup({ actor: actorOf("manager"), mutation: { handle: async () => Promise.reject(new Error("password=hunter2 at db.internal:5432")) } });
     const response = await broken.run("/api/v1/admin/thing.do");
     expect(response?.status).toBe(500);
     const text = await response?.text();

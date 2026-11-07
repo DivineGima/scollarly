@@ -71,11 +71,11 @@ export function HealthPanel() {
   const common = useTranslations("admin.common");
   const session = useAdminSession();
   const stepUp = useStepUp();
-  const { state, reload } = useAdminData<HealthData>(session.role === "owner" ? "/api/v1/admin/health" : null);
+  const { state, reload } = useAdminData<HealthData>(session.role === "admin" ? "/api/v1/admin/health" : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (session.role !== "owner") return null;
+  if (session.role !== "admin") return null;
 
   async function toggle(collect: boolean) {
     if (busy) return;

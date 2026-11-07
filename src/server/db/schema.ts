@@ -28,11 +28,15 @@ import {
   DATA_REQUEST_CHANNELS,
   DATA_REQUEST_KINDS,
   DATA_REQUEST_STATUSES,
+  DOCUMENT_CONTENT_TYPES,
+  DOCUMENT_KINDS,
+  DOCUMENT_STATES,
   DUPLICATE_DECISIONS,
   EVENT_TYPES,
   INTAKE_KINDS,
   LEAD_ACTIVITY_TYPES,
   MAX_COURSE_FIELDS,
+  MAX_DOCUMENT_BYTES,
   PROCESS_STEP_KINDS,
   PROFILE_RELATIONSHIPS,
   QUALIFICATION_TYPES,
@@ -77,8 +81,14 @@ export const appUser = pgTable(
   "app_user",
   {
     id: text("id").primaryKey(),
-    /** `student` (default) / `admin` / `owner`. Created idempotently by `app_resolve_session` on the first authenticated request. */
+    /** `student` (default) / `manager` / `admin` (version 5; before it `admin` and `owner`). Created idempotently by `app_resolve_session` on the first authenticated request. */
     role: text("role").notNull().default("student"),
+    /** A manager's or admin's own WhatsApp number, E.164. The signed-in WhatsApp buttons use the assigned manager's (architecture 24.9). */
+    whatsappNumber: text("whatsapp_number"),
+    /** A manager who is away is skipped when a new student is given a manager (architecture 24.3). Changed only by `app_set_staff_settings()`. */
+    away: boolean("away").notNull().default(false),
+    /** When this manager was last given a student: the turn order (architecture 24.3). Changed only by `app_assign_manager()`. */
+    lastAssignedAt: tz("last_assigned_at"),
     createdAt: tz("created_at").notNull().defaultNow(),
     /**
      * Null means a Google login with no Scollarly account yet (architecture 21.3, ADR-042). Set by `app_confirm_account()`, the owner
@@ -96,9 +106,9 @@ export const appUser = pgTable(
       .default(sql`'{}'::text[]`),
   },
   (t) => [
-    check("app_user_role_check", sql`${t.role} in ('student', 'admin', 'owner')`),
-    // Exactly one owner can ever exist (ADR-013).
-    uniqueIndex("app_user_single_owner").on(t.role).where(sql`${t.role} = 'owner'`),
+    check("app_user_role_check", sql`${t.role} in ('student', 'manager', 'admin')`),
+    check("app_user_whatsapp_format", sql`${t.whatsappNumber} is null or ${t.whatsappNumber} ~ '^[+][1-9][0-9]{6,14}$'`),
+    // At most two admins (version 5, ADR-063): enforced by the trigger `app_user_max_two_admins` (migration 0022), not by an index.
   ],
 );
 
@@ -152,9 +162,12 @@ export const adminInvite = pgTable(
     expiresAt: tz("expires_at").notNull(),
     acceptedAt: tz("accepted_at"),
     revokedAt: tz("revoked_at"),
+    /** The role the invite creates: a manager (default) or the second admin (version 5). */
+    role: text("role").notNull().default("manager"),
   },
   (t) => [
     check("admin_invite_expiry_check", sql`${t.expiresAt} > ${t.createdAt}`),
+    check("admin_invite_role_check", sql`${t.role} in ('manager', 'admin')`),
     // S2.5: one open invite per email, so a double tap on "Send invite" cannot create two. Resend revokes the old one first.
     uniqueIndex("admin_invite_one_open_per_email").on(sql`lower(${t.email})`).where(sql`${t.acceptedAt} is null and ${t.revokedAt} is null`),
   ],
@@ -258,9 +271,19 @@ export const lead = pgTable(
     locale: text("locale").notNull().default("en"),
     stageCode: text("stage_code")
       .notNull()
-      .default("share_results")
+      .default("course_interest")
       .references(() => pipelineStage.code),
-    assignedAdminId: text("assigned_admin_id").references(() => appUser.id),
+    /** The manager who owns this student's file (version 5; it was `assigned_manager_id`). Copied from the profile when the student applies. */
+    assignedManagerId: text("assigned_manager_id").references(() => appUser.id),
+    /** `open` until the student arrives or an admin closes the file (architecture 24.2). At most one open lead per account. */
+    status: text("status").notNull().default("open"),
+    closedReason: text("closed_reason"),
+    closedAt: tz("closed_at"),
+    arrivedAt: tz("arrived_at"),
+    /** Set when the file goes to the university (step 3); the three-day clock runs from it (architecture 24.4). */
+    universitySubmittedAt: tz("university_submitted_at"),
+    /** The last time the student did something; quiet (14 days) and suggest-closing (45 days) are computed from it (architecture 24.7). */
+    lastStudentActivityAt: tz("last_student_activity_at").notNull().defaultNow(),
     userId: text("user_id").references(() => appUser.id),
     consentNoticeVersion: text("consent_notice_version").notNull(),
     consentAt: tz("consent_at").notNull(),
@@ -305,7 +328,13 @@ export const lead = pgTable(
     index("lead_client_ref_idx").on(t.clientRef),
     index("lead_whatsapp_e164_idx").on(t.whatsappE164),
     index("lead_received_at_idx").on(t.receivedAt.desc()),
-    index("lead_stage_assigned_idx").on(t.stageCode, t.assignedAdminId),
+    check("lead_status_check", sql`${t.status} in ('open', 'arrived', 'closed')`),
+    index("lead_stage_assigned_idx").on(t.stageCode, t.assignedManagerId),
+    index("lead_manager_open_idx").on(t.assignedManagerId, t.stageCode).where(sql`${t.status} = 'open'`),
+    // One open application per account (version 5): a refused or abandoned application is closed and a new one opened.
+    uniqueIndex("lead_one_open_per_user")
+      .on(t.userId)
+      .where(sql`${t.status} = 'open' and ${t.userId} is not null and ${t.anonymisedAt} is null and ${t.mergedIntoId} is null`),
     index("lead_sla_due_open_idx").on(t.slaDueAt).where(sql`${t.firstResponseAt} is null`),
     // Not in the 7.8 list: the student policy and the portal read leads by user_id.
     index("lead_user_id_idx").on(t.userId),
@@ -442,8 +471,24 @@ export const studentProfile = pgTable(
     intakeYear: smallint("intake_year").notNull(),
     consentNoticeVersion: text("consent_notice_version").notNull(),
     consentAt: tz("consent_at").notNull(),
-    /** The lead this onboarding created (null only after the lead is erased). */
+    /** The lead this student's current application made (null until they apply, and after the lead is erased). */
     leadId: uuid("lead_id").references(() => lead.id),
+    /** The manager given when onboarding finished (version 5, architecture 24.3). Null when none was available: only an admin sees the student. */
+    assignedManagerId: text("assigned_manager_id").references(() => appUser.id),
+    /** The step-2 form (version 5, FR-43, migration 0025). All nullable: a profile made at sign-up has none of it. */
+    dateOfBirth: date("date_of_birth", { mode: "string" }),
+    gender: text("gender"),
+    nationality: text("nationality"),
+    residenceState: text("residence_state"),
+    city: text("city"),
+    address: text("address"),
+    guardianName: text("guardian_name"),
+    guardianPhone: text("guardian_phone"),
+    motherName: text("mother_name"),
+    motherPhone: text("mother_phone"),
+    /** Written only when the university asks for it (`university.passport_required`). */
+    passportNumber: text("passport_number"),
+    formCompletedAt: tz("form_completed_at"),
     onboardedAt: tz("onboarded_at").notNull().defaultNow(),
     createdAt: tz("created_at").notNull().defaultNow(),
     updatedAt: tz("updated_at").notNull().defaultNow(),
@@ -458,7 +503,58 @@ export const studentProfile = pgTable(
     check("student_profile_course_fields_count", sql`cardinality(${t.courseFields}) between 1 and ${sql.raw(String(MAX_COURSE_FIELDS))}`),
     check("student_profile_course_fields_known", sql`${t.courseFields} <@ ${sql.raw(`ARRAY[${COURSE_FIELDS.map((f) => `'${f}'`).join(", ")}]::text[]`)}`),
     check("student_profile_intake_year_range", sql`${t.intakeYear} between 2020 and 2100`),
+    check("student_profile_dob_range", sql`${t.dateOfBirth} is null or ${t.dateOfBirth} >= date '1940-01-01'`),
+    check("student_profile_gender_check", sql`${t.gender} is null or ${t.gender} in ('female', 'male', 'other')`),
+    check("student_profile_nationality_format", sql`${t.nationality} is null or ${t.nationality} ~ '^[A-Z]{2}$'`),
+    check("student_profile_guardian_phone_format", sql`${t.guardianPhone} is null or ${t.guardianPhone} ~ '^[+][1-9][0-9]{6,14}$'`),
+    check("student_profile_mother_phone_format", sql`${t.motherPhone} is null or ${t.motherPhone} ~ '^[+][1-9][0-9]{6,14}$'`),
+    check("student_profile_passport_format", sql`${t.passportNumber} is null or ${t.passportNumber} ~ '^[A-Za-z0-9]{5,20}$'`),
+    check(
+      "student_profile_form_text_length",
+      sql`char_length(coalesce(${t.residenceState}, '')) <= 120 and char_length(coalesce(${t.city}, '')) <= 120 and char_length(coalesce(${t.address}, '')) <= 300
+    and char_length(coalesce(${t.guardianName}, '')) <= 120 and char_length(coalesce(${t.motherName}, '')) <= 120`,
+    ),
     index("student_profile_lead_id_idx").on(t.leadId),
+    index("student_profile_assigned_manager_idx").on(t.assignedManagerId),
+  ],
+);
+
+/**
+ * A file a student supplied or the admin uploaded for them (architecture 24.2, 24.5, migration 0024). Only the key, kind, size and state are
+ * kept; the file is in the private `student-docs` bucket and never in the database, a log or an event. Documents belong to the student; an
+ * application only points at them.
+ */
+export const studentDocument = pgTable(
+  "student_document",
+  {
+    id: uuid("id").primaryKey(),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => appUser.id),
+    applicationId: uuid("application_id").references(() => lead.id),
+    kind: text("kind").notNull(),
+    /** `<student id>/<document id>`, never a file name. Null once the file is purged. */
+    storageKey: text("storage_key"),
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    state: text("state").notNull().default("pending"),
+    rejectionNote: text("rejection_note"),
+    reviewedBy: text("reviewed_by").references(() => appUser.id),
+    reviewedAt: tz("reviewed_at"),
+    createdAt: tz("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    check("student_document_kind_check", sql`${t.kind} in ${list(DOCUMENT_KINDS)}`),
+    check("student_document_state_check", sql`${t.state} in ${list(DOCUMENT_STATES)}`),
+    check("student_document_content_type_check", sql`${t.contentType} in ${list(DOCUMENT_CONTENT_TYPES)}`),
+    check("student_document_size_check", sql`${t.byteSize} between 1 and ${sql.raw(String(MAX_DOCUMENT_BYTES))}`),
+    check("student_document_key_matches_state", sql`(${t.state} = 'purged') = (${t.storageKey} is null)`),
+    check("student_document_note_only_when_rejected", sql`${t.rejectionNote} is null or ${t.state} in ('rejected', 'purged')`),
+    index("student_document_student_state_idx").on(t.studentId, t.state),
+    index("student_document_application_idx").on(t.applicationId),
+    uniqueIndex("student_document_one_live_per_kind")
+      .on(t.studentId, t.kind)
+      .where(sql`${t.state} in ('pending', 'uploaded', 'approved') and ${t.kind} in ('results', 'id', 'birth_certificate', 'signature', 'passport')`),
   ],
 );
 
@@ -514,6 +610,8 @@ export const university = pgTable(
     naacGrade: text("naac_grade"),
     websiteUrl: text("website_url"),
     logoMediaId: uuid("logo_media_id").references(() => mediaAsset.id),
+    /** The admin's switch: this university asks for the passport (version 5, FR-43). */
+    passportRequired: boolean("passport_required").notNull().default(false),
     translations: translations(),
     sortOrder: sortOrder(),
     ...contentColumns(),
@@ -918,8 +1016,12 @@ export const placementPayment = pgTable(
     voidedAt: tz("voided_at"),
     voidedBy: text("voided_by"),
     voidReason: text("void_reason"),
+    /** A manager's entry is pending (null) until the admin approves it; only approved entries are counted anywhere (version 5, migration 0025). */
+    approvedBy: text("approved_by"),
+    approvedAt: tz("approved_at"),
   },
   (t) => [
+    check("placement_payment_approval_consistency", sql`${t.approvedBy} is null or ${t.approvedAt} is not null`),
     check("placement_payment_amount_positive", sql`${t.amountUsdCents} > 0`),
     // All three void fields are null, or all are set with a non-blank reason (FR-17: a void requires a reason).
     check(
@@ -933,6 +1035,7 @@ export const placementPayment = pgTable(
 
 export const schema = {
   appUser,
+  studentDocument,
   ownerTotp,
   recoveryCode,
   stepUp,

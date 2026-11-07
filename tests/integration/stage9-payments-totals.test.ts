@@ -19,8 +19,8 @@ describe("S9.2 totals, the list and the filters", () => {
   beforeAll(async () => {
     tt = await createTestDb();
     const user = await tt.signIn();
-    await tt.run(`insert into app_user (id, role) values (${q(user.userId)}, 'admin')`);
-    a = mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: "admin", role: "admin", twoFactorVerifiedAt: null });
+    await tt.run(`insert into app_user (id, role) values (${q(user.userId)}, 'manager')`);
+    a = mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: "manager", role: "manager", twoFactorVerifiedAt: null });
     universityOne = await uni(tt, { name: "One University" });
     universityTwo = await uni(tt, { name: "Two University" });
     const add = (university: string, cents: number, on: string, extra: Record<string, unknown> = {}) => paymentRow(tt, university, { amount_usd_cents: cents, received_on: on, entered_by: a.userId, ...extra });
@@ -82,8 +82,8 @@ describe("S9.2 totals, the list and the filters", () => {
 
   it("caps the list at 200 rows but not the totals, and says it was cut", async () => {
     await tt.run(`
-      insert into placement_payment (id, submission_token, university_id, amount_usd_cents, received_on, entered_by)
-      select gen_random_uuid(), gen_random_uuid(), ${q(universityOne)}, 100, '2026-08-01'::date + (g % 20), 'bulk' from generate_series(1, 210) g`);
+      insert into placement_payment (id, submission_token, university_id, amount_usd_cents, received_on, entered_by, approved_at)
+      select gen_random_uuid(), gen_random_uuid(), ${q(universityOne)}, 100, '2026-08-01'::date + (g % 20), 'bulk', now() from generate_series(1, 210) g`);
     const result = await list();
     expect(result.rows).toHaveLength(200);
     expect(result.truncated).toBe(true);

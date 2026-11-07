@@ -16,6 +16,7 @@ export const EXPORT_TABLES = [
   "lead_note",
   "lead_claim",
   "student_profile",
+  "student_document",
   "lead_duplicate_decision",
   "data_request",
   "university",

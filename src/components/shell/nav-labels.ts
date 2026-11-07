@@ -24,6 +24,7 @@ export function navLabels(t: Translate, area: "student" | "staff"): AppNavLabels
       notifications: t("sheet.notifications"),
       unreadCount: (count) => t("sheet.unreadCount", { count }),
       items: {
+        file: t("sheet.items.file"),
         profile: t("sheet.items.profile"),
         data: t("sheet.items.data"),
         team: t("sheet.items.team"),

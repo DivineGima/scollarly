@@ -52,13 +52,13 @@ describe("owner bootstrap", () => {
     const unverified = await t.signIn({ email: OWNER_EMAIL, verified: false });
     expect(await landing(unverified)).toBe("/account/confirm");
     expect(await roleOf(unverified)).toBe("student");
-    expect(await t.run(`select count(*)::int as n from app_user where role = 'owner'`)).toEqual([{ n: 0 }]);
+    expect(await t.run(`select count(*)::int as n from app_user where role = 'admin'`)).toEqual([{ n: 0 }]);
   });
 
   it("gives the owner role to the verified OWNER_EMAIL, whatever its letter case, and sends them to enrol 2FA", async () => {
     const person = await t.signIn({ email: OWNER_EMAIL.toLowerCase() });
     expect(await landing(person)).toBe("/two-factor/enrol");
-    expect(await roleOf(person)).toBe("owner");
+    expect(await roleOf(person)).toBe("admin");
     expect(await t.run(`select count(*)::int as n from audit_log where action = 'security.ownerBootstrapped' and actor_id = ${q(person.userId)}`)).toEqual([{ n: 1 }]);
   });
 
@@ -67,6 +67,6 @@ describe("owner bootstrap", () => {
     const second = await t.signIn({ email: "OWNER.PERSON@EXAMPLE.TEST" });
     expect(await landing(second)).toBe("/account/confirm");
     expect(await roleOf(second)).toBe("student");
-    expect(await t.run(`select count(*)::int as n from app_user where role = 'owner'`)).toEqual([{ n: 1 }]);
+    expect(await t.run(`select count(*)::int as n from app_user where role = 'admin'`)).toEqual([{ n: 1 }]);
   });
 });

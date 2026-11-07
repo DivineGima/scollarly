@@ -7,7 +7,7 @@ import { handleRevalidate } from "@/server/edge/revalidate";
 export async function POST(request: Request): Promise<Response> {
   const cache = (caches as unknown as { default: Cache }).default;
   return handleRevalidate(request, {
-    requireAdmin: (headers) => requireRole(headers, "admin"),
+    requireAdmin: (headers) => requireRole(headers, "manager"),
     revalidate: revalidateContent,
     purge: (url) => cache.delete(new Request(url)),
   });

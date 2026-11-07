@@ -24,8 +24,8 @@ const home = (over: Record<string, unknown> = {}) => ({
   courseFields: ["computer_science_it"],
   level: "undergraduate",
   intakeYear: 2027,
-  lead: { ref: "SC-ABCDE-FGHJK", stage: "choose_course", updatedAt: "2026-10-30T10:00:00.000Z" },
-  stages: ["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"].map((code, i) => ({ code, position: i + 1 })),
+  lead: { ref: "SC-ABCDE-FGHJK", stage: "course_interest", updatedAt: "2026-10-30T10:00:00.000Z" },
+  stages: ["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"].map((code, i) => ({ code, position: i + 1 })),
   whatsappE164: "+919876543210",
   ...over,
 });
@@ -91,8 +91,8 @@ test.describe("Home", () => {
     await stubHome(page);
     await page.goto("/me");
     await expect(page.getByRole("heading", { name: "Hi Ada" })).toBeVisible();
-    await expect(page.getByTestId("stage-card")).toContainText("Choose course");
-    await expect(page.getByTestId("stage-card")).toContainText("Step 2 of 6");
+    await expect(page.getByTestId("stage-card")).toContainText("Course interest");
+    await expect(page.getByTestId("stage-card")).toContainText("Step 1 of 7");
     await expect(page.getByTestId("next-step")).not.toBeEmpty();
     await expect(page.getByTestId("whatsapp")).toHaveAttribute("href", /^https:\/\/wa\.me\/919876543210/);
     await expect(page.getByTestId("for-you")).toContainText("Computer Science and IT");
@@ -228,7 +228,7 @@ test.describe("offline", () => {
     await page.reload();
     await expect(page.getByRole("heading", { name: "Hi Ada" })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("from-phone")).toBeVisible();
-    await expect(page.getByTestId("stage-card")).toContainText("Choose course");
+    await expect(page.getByTestId("stage-card")).toContainText("Course interest");
     await expect(page.getByTestId("for-you")).toContainText("Computer Science and IT");
   });
 

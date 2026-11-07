@@ -27,7 +27,7 @@ export type Area = "admin" | "me" | "auth" | "account";
  * confirmed a Scollarly account (architecture 21.3, ADR-042): `/account/confirm` and its mutation. Every other area refuses such an
  * actor: a shell answers 404, a data call 403 `ACCOUNT_NOT_CONFIRMED`.
  */
-export const AREA_ROLE: Record<Area, Role> = { admin: "admin", me: "student", auth: "student", account: "student" };
+export const AREA_ROLE: Record<Area, Role> = { admin: "manager", me: "student", auth: "student", account: "student" };
 
 const SHELL_PATH = /^\/(?:en\/)?(admin|me|two-factor|account)(?:\/.*)?$/;
 const API_PATH = /^\/api\/v1\/(admin|me|auth|account)\/([a-z0-9-]+)$/;

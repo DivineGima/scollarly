@@ -88,7 +88,7 @@ export function denyAccess(access: Access, actor: Actor | null, now: Date): Acce
     case "signed-in":
       return null;
     case "stored-owner":
-      return actor.storedRole === "owner" ? null : { status: 403, code: "FORBIDDEN", message: "Not allowed." };
+      return actor.storedRole === "admin" ? null : { status: 403, code: "FORBIDDEN", message: "Not allowed." };
     case "role":
       if (!hasAtLeast(actor, access.role)) return { status: 403, code: "FORBIDDEN", message: "Not allowed." };
       if (access.stepUp && !isStepUpFresh(actor, now)) {

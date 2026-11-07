@@ -33,16 +33,16 @@ function setup(actor: Actor | null | "throws", enrolled = false) {
 describe("accountDestination: the home of each person", () => {
   it("sends a student to /me, staff to /admin, and an owner to the second-factor step they still owe", () => {
     expect(accountDestination(actorOf("student"), false)).toBe("/me");
-    expect(accountDestination(actorOf("admin"), false)).toBe("/admin");
-    expect(accountDestination(actorOf("owner", { verified: true }), true)).toBe("/admin");
-    expect(accountDestination(actorOf("owner"), true)).toBe("/two-factor/verify");
-    expect(accountDestination(actorOf("owner"), false)).toBe("/two-factor/enrol");
+    expect(accountDestination(actorOf("manager"), false)).toBe("/admin");
+    expect(accountDestination(actorOf("admin", { verified: true }), true)).toBe("/admin");
+    expect(accountDestination(actorOf("admin"), true)).toBe("/two-factor/verify");
+    expect(accountDestination(actorOf("admin"), false)).toBe("/two-factor/enrol");
   });
 
   it("sends an unconfirmed account to the confirm screen and an unfinished student to the questionnaire", () => {
     expect(accountDestination(actorOf("student", { confirmed: false }), false)).toBe("/account/confirm");
     expect(accountDestination(actorOf("student", { onboarded: false }), false)).toMatch(/^\/me\/onboarding\?as=student/);
-    expect(accountDestination(actorOf("admin", { onboarded: false }), false)).toBe("/admin");
+    expect(accountDestination(actorOf("manager", { onboarded: false }), false)).toBe("/admin");
   });
 });
 
@@ -74,7 +74,7 @@ describe("GET /account", () => {
   });
 
   it("accepts the /en prefix and a trailing slash, answers HEAD, and leaves other methods and addresses alone", async () => {
-    const { run } = setup(actorOf("admin"));
+    const { run } = setup(actorOf("manager"));
     expect((await run("/en/account/", { headers: COOKIE }))?.headers.get("location")).toBe("https://scollarly.example/admin");
     expect((await run("/account", { method: "HEAD", headers: COOKIE }))?.status).toBe(302);
     expect(await run("/account", { method: "POST", headers: COOKIE })).toBeNull();

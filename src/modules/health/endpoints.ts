@@ -12,7 +12,7 @@ import { DATABASE_BUDGET_BYTES, usageOf } from "./service";
 export function healthDataCalls(env: EndpointEnv): Record<string, DataCall> {
   return {
     "admin/health": async (actor) => {
-      if (actor.role !== "owner") throw new AuthError("FORBIDDEN", "Not allowed.");
+      if (actor.role !== "admin") throw new AuthError("FORBIDDEN", "Not allowed.");
       const data = await healthData(env.db, actor);
       return {
         checkedAt: env.now().toISOString(),

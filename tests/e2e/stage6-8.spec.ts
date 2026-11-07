@@ -27,7 +27,7 @@ async function axe(page: Page) {
 }
 
 async function staff(page: Page) {
-  await page.route("**/api/v1/admin/session", (route) => json(route, { role: "admin", name: "Priya", email: "priya@example.test", stepUpFresh: false }));
+  await page.route("**/api/v1/admin/session", (route) => json(route, { role: "manager", name: "Priya", email: "priya@example.test", stepUpFresh: false }));
 }
 
 // A 1 x 1 PNG: the browser turns it into a WebP, which is all the upload screen needs to show a size and send a file.

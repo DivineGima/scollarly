@@ -23,7 +23,7 @@ export function SecurityPanel() {
   const common = useTranslations("admin.common");
   const session = useAdminSession();
   const stepUp = useStepUp();
-  const { state, reload } = useAdminData<SecurityData>(session.role === "owner" ? "/api/v1/admin/security" : null);
+  const { state, reload } = useAdminData<SecurityData>(session.role === "admin" ? "/api/v1/admin/security" : null);
   const [busy, setBusy] = useState(false);
   const [codes, setCodes] = useState<string[] | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export function SecurityPanel() {
     } else setFailed(true);
   }
 
-  if (session.role !== "owner") return null;
+  if (session.role !== "admin") return null;
 
   return (
     <section>

@@ -3,7 +3,10 @@ import type { Actor } from "@/server/auth/actor";
 import type { Db } from "@/server/db/client";
 import { rowsOf } from "@/server/db/rows";
 import { lead, leadActivity, leadClaim, leadNote, leadProgrammePref, pipelineStage, programme, university } from "@/server/db/schema";
+import type { LeadCloseReason } from "@/lib/constants";
 import { uuidv7 } from "@/lib/uuid";
+import { documentsComplete } from "./documents";
+import { decideMove, previousStep, type MoveRefusal } from "@/modules/pipeline/steps";
 import { runAs } from "./as-actor";
 import { leadInUniversity } from "./lead-filters";
 import { teamMembersOf, teamQuery, type TeamMember } from "./team";
@@ -57,7 +60,7 @@ export interface LeadListRow {
   name: string | null;
   countryCode: string;
   stageCode: string;
-  assignedAdminId: string | null;
+  assignedManagerId: string | null;
   receivedAt: Date;
   slaDueAt: Date;
   firstResponseAt: Date | null;
@@ -71,7 +74,7 @@ const listColumns = {
   name: lead.name,
   countryCode: lead.countryCode,
   stageCode: lead.stageCode,
-  assignedAdminId: lead.assignedAdminId,
+  assignedManagerId: lead.assignedManagerId,
   receivedAt: lead.receivedAt,
   slaDueAt: lead.slaDueAt,
   firstResponseAt: lead.firstResponseAt,
@@ -101,11 +104,11 @@ export function leadListConditions(actor: Pick<Actor, "userId">, filters: LeadLi
     isNull(lead.mergedIntoId),
     filters.view === "overdue" ? and(isNull(lead.firstResponseAt), isNull(lead.anonymisedAt), sql`${lead.slaDueAt} < ${filters.now.toISOString()}::timestamptz`) : undefined,
     filters.view === "unanswered" ? and(isNull(lead.firstResponseAt), isNull(lead.anonymisedAt)) : undefined,
-    filters.view === "unassigned" ? and(isNull(lead.assignedAdminId), isNull(lead.anonymisedAt)) : undefined,
+    filters.view === "unassigned" ? and(isNull(lead.assignedManagerId), isNull(lead.anonymisedAt)) : undefined,
     filters.stage ? eq(lead.stageCode, filters.stage) : undefined,
     filters.country ? eq(lead.countryCode, filters.country) : undefined,
     filters.universityId ? leadInUniversity(sql`${lead.id}`, sql`${lead.source}`, filters.universityId) : undefined,
-    filters.assigned === "me" ? eq(lead.assignedAdminId, actor.userId) : filters.assigned === "none" ? isNull(lead.assignedAdminId) : filters.assigned ? eq(lead.assignedAdminId, filters.assigned) : undefined,
+    filters.assigned === "me" ? eq(lead.assignedManagerId, actor.userId) : filters.assigned === "none" ? isNull(lead.assignedManagerId) : filters.assigned ? eq(lead.assignedManagerId, filters.assigned) : undefined,
     search
       ? or(
           ilike(lead.name, likePattern(search)),
@@ -181,8 +184,8 @@ export async function getOverviewCounts(db: Db, actor: Actor, now: Date, dayStar
       select
         count(*) filter (where l.first_response_at is null and l.anonymised_at is null)::int as unanswered,
         count(*) filter (where l.first_response_at is null and l.anonymised_at is null and l.sla_due_at < ${now.toISOString()}::timestamptz)::int as overdue,
-        count(*) filter (where l.assigned_admin_id = ${actor.userId})::int as mine,
-        count(*) filter (where l.assigned_admin_id is null and l.anonymised_at is null)::int as unassigned,
+        count(*) filter (where l.assigned_manager_id = ${actor.userId})::int as mine,
+        count(*) filter (where l.assigned_manager_id is null and l.anonymised_at is null)::int as unassigned,
         count(*) filter (where l.received_at >= ${dayStart.toISOString()}::timestamptz and l.received_at < ${dayEnd.toISOString()}::timestamptz)::int as today,
         (select count(*) from lead_claim c where c.status = 'pending')::int as pending_claims,
         (select count(*) from data_request d where d.status = 'open')::int as open_data_requests
@@ -283,7 +286,7 @@ export interface LeadDetailRow {
   source: Record<string, unknown>;
   locale: string;
   stageCode: string;
-  assignedAdminId: string | null;
+  assignedManagerId: string | null;
   userId: string | null;
   receivedAt: Date;
   slaDueAt: Date;
@@ -309,7 +312,7 @@ const detailColumns = {
   source: lead.source,
   locale: lead.locale,
   stageCode: lead.stageCode,
-  assignedAdminId: lead.assignedAdminId,
+  assignedManagerId: lead.assignedManagerId,
   userId: lead.userId,
   receivedAt: lead.receivedAt,
   slaDueAt: lead.slaDueAt,
@@ -442,14 +445,18 @@ export type MissOutcome =
   | { kind: "conflict"; version: string }
   | { kind: "unavailable" }
   | { kind: "not_found" }
-  | { kind: "unknown_stage" };
+  | { kind: "unknown_stage" }
+  | { kind: "not_allowed"; reason: MoveRefusal };
 
 export type ChangeOutcome<T = object> = ({ kind: "ok"; version: string } & T) | MissOutcome;
 
 interface LeadState {
   version: string;
   stageCode: string;
-  assignedAdminId: string | null;
+  status: string;
+  assignedManagerId: string | null;
+  /** The student whose file this is (the owner of the application). */
+  userId: string | null;
   unavailable: boolean;
 }
 
@@ -458,13 +465,13 @@ async function readState(db: Db, actor: Actor, id: string): Promise<LeadState | 
     db,
     actor,
     db
-      .select({ version: versionOf(lead.updatedAt), stageCode: lead.stageCode, assignedAdminId: lead.assignedAdminId, anonymisedAt: lead.anonymisedAt, mergedIntoId: lead.mergedIntoId })
+      .select({ version: versionOf(lead.updatedAt), stageCode: lead.stageCode, status: lead.status, assignedManagerId: lead.assignedManagerId, userId: lead.userId, anonymisedAt: lead.anonymisedAt, mergedIntoId: lead.mergedIntoId })
       .from(lead)
       .where(eq(lead.id, id))
       .limit(1),
   );
   const row = rows[0];
-  return row ? { version: row.version, stageCode: row.stageCode, assignedAdminId: row.assignedAdminId, unavailable: row.anonymisedAt !== null || row.mergedIntoId !== null } : null;
+  return row ? { version: row.version, stageCode: row.stageCode, status: row.status, assignedManagerId: row.assignedManagerId, userId: row.userId, unavailable: row.anonymisedAt !== null || row.mergedIntoId !== null } : null;
 }
 
 /** Why a change that matched no row did nothing, read after the fact (the cheap path never pays for this). */
@@ -477,37 +484,163 @@ async function explainMiss(db: Db, actor: Actor, id: string, check?: (s: LeadSta
 
 const returnedVersion = (result: unknown): string | null => rowsOf<{ version: string | null }>(result)[0]?.version ?? null;
 
-/** S5.2 step 6. Moves the lead to `stage` when the version still matches. */
+/** True when a write failed because the account would then have two open applications (`lead_one_open_per_user`, migration 0023). */
+function clashesWithOpenApplication(error: unknown): boolean {
+  let current: unknown = error;
+  while (current instanceof Error) {
+    if (/lead_one_open_per_user/.test(current.message)) return true;
+    current = current.cause;
+  }
+  return false;
+}
+
+/**
+ * S5.2 step 6, as changed by version 5 (architecture 24.4). Moves the lead one step forward (a manager) or further (an admin) when the
+ * version still matches. The rules are `decideMove`'s; the write is a compare-and-set on the version AND on the step the rules were
+ * decided from, so two taps or two people can never corrupt a file. A move back is `moveBack`, never this.
+ */
 export async function changeStage(db: Db, actor: Actor, input: { leadId: string; stage: string; version: string }): Promise<ChangeOutcome<{ from: string }>> {
+  const state = await readState(db, actor, input.leadId);
+  if (!state) return { kind: "not_found" };
+  if (state.unavailable) return { kind: "unavailable" };
+  if (state.stageCode === input.stage) return { kind: "unchanged", version: state.version };
+  // The documents rule (24.4) is asked only where it can matter: a manager leaving step 2 (an admin may put a file right).
+  const documentsApproved = actor.role === "manager" && state.stageCode === "documents" && state.userId ? await documentsComplete(db, actor, state.userId, input.leadId) : undefined;
+  const decision = decideMove({ from: state.stageCode, to: input.stage, role: actor.role, ...(documentsApproved === undefined ? {} : { documentsApproved }) });
+  if (!decision.ok) return decision.reason === "unknown_step" ? { kind: "unknown_stage" } : { kind: "not_allowed", reason: decision.reason };
+  if (decision.direction !== "forward" || state.status !== "open") return { kind: "not_allowed", reason: "not_allowed" };
+
   const [result] = await runAs(
     db,
     actor,
     db.execute(sql`
-      with target as (
-        select l.id, l.stage_code as old_stage from lead l where l.id = ${input.leadId}::uuid
-      ), upd as (
-        update lead l set stage_code = ${input.stage}, last_activity_at = now()
-          from target
-         where l.id = target.id and l.updated_at = ${input.version}::timestamptz
-           and l.anonymised_at is null and l.merged_into_id is null and l.stage_code <> ${input.stage}
+      with upd as (
+        update lead l set stage_code = ${input.stage}, last_activity_at = now(),
+               university_submitted_at = case when ${input.stage} = 'university_review' then now() else l.university_submitted_at end,
+               status = case when ${input.stage} = 'arrived' then 'arrived' else l.status end,
+               arrived_at = case when ${input.stage} = 'arrived' then now() else l.arrived_at end
+         where l.id = ${input.leadId}::uuid and l.updated_at = ${input.version}::timestamptz and l.stage_code = ${state.stageCode} and l.status = 'open'
+           and l.anonymised_at is null and l.merged_into_id is null
            and exists (select 1 from pipeline_stage s where s.code = ${input.stage})
-        returning l.id, target.old_stage, to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version
+        returning l.id, to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version
       ), act as (
         insert into lead_activity (id, lead_id, type, actor_id, data)
-        select ${uuidv7()}::uuid, id, 'stage_changed', ${actor.userId}, jsonb_build_object('from', old_stage, 'to', ${input.stage}::text) from upd
+        select ${uuidv7()}::uuid, id, 'stage_changed', ${actor.userId}, jsonb_build_object('from', ${state.stageCode}::text, 'to', ${input.stage}::text) from upd
       ), aud as (
         insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
-        select ${uuidv7()}::uuid, ${actor.userId}, 'leads.changeStage', 'lead', id::text, jsonb_build_object('from', old_stage, 'to', ${input.stage}::text) from upd
+        select ${uuidv7()}::uuid, ${actor.userId}, 'leads.changeStage', 'lead', id::text, jsonb_build_object('from', ${state.stageCode}::text, 'to', ${input.stage}::text) from upd
       )
-      select version, old_stage from upd`),
+      select version from upd`),
   );
-  const row = rowsOf<{ version: string; old_stage: string }>(result)[0];
-  if (row) return { kind: "ok", version: row.version, from: row.old_stage };
-  const miss = await explainMiss(db, actor, input.leadId, (s) => (s.stageCode === input.stage ? { kind: "unchanged", version: s.version } : null));
-  if (miss.kind !== "conflict") return miss;
-  // A stale version and an unknown stage both match no row; tell them apart.
-  const [stages] = await runAs(db, actor, db.select({ code: pipelineStage.code }).from(pipelineStage).where(eq(pipelineStage.code, input.stage)));
-  return stages.length === 0 ? { kind: "unknown_stage" } : miss;
+  const version = returnedVersion(result);
+  if (version) return { kind: "ok", version, from: state.stageCode };
+  // Somebody moved it, or changed it, between the read and the write.
+  return explainMiss(db, actor, input.leadId, (s) => (s.stageCode === input.stage ? { kind: "unchanged", version: s.version } : null));
+}
+
+/**
+ * Version 5 (architecture 24.4, ADR-072): the admin puts a file back one step, with a note that says why. The note is kept as a lead note (the
+ * activity row holds only its id, as every note does). Moving back from Arrival opens the file again.
+ */
+export async function moveBack(db: Db, actor: Actor, input: { leadId: string; version: string; note: string }): Promise<ChangeOutcome<{ from: string; to: string }>> {
+  const state = await readState(db, actor, input.leadId);
+  if (!state) return { kind: "not_found" };
+  if (state.unavailable) return { kind: "unavailable" };
+  const to = previousStep(state.stageCode);
+  if (to === null) return { kind: "not_allowed", reason: "not_allowed" };
+  const decision = decideMove({ from: state.stageCode, to, role: actor.role, note: input.note });
+  if (!decision.ok) return { kind: "not_allowed", reason: decision.reason };
+  if (state.status === "closed") return { kind: "not_allowed", reason: "not_allowed" }; // reopen it first
+
+  const noteId = uuidv7();
+  try {
+    const [result] = await runAs(
+      db,
+      actor,
+      db.execute(sql`
+        with upd as (
+          update lead l set stage_code = ${to}, last_activity_at = now(),
+                 status = 'open', arrived_at = null,
+                 university_submitted_at = case when ${state.stageCode} = 'university_review' then null else l.university_submitted_at end
+           where l.id = ${input.leadId}::uuid and l.updated_at = ${input.version}::timestamptz and l.stage_code = ${state.stageCode}
+             and l.status in ('open', 'arrived') and l.anonymised_at is null and l.merged_into_id is null
+          returning l.id, to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version
+        ), n as (
+          insert into lead_note (id, lead_id, author_id, body) select ${noteId}::uuid, id, ${actor.userId}, ${input.note} from upd returning id
+        ), act as (
+          insert into lead_activity (id, lead_id, type, actor_id, data)
+          select ${uuidv7()}::uuid, upd.id, 'stage_changed', ${actor.userId}, jsonb_build_object('from', ${state.stageCode}::text, 'to', ${to}::text, 'back', true, 'note_id', n.id) from upd, n
+        ), aud as (
+          insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
+          select ${uuidv7()}::uuid, ${actor.userId}, 'leads.moveBack', 'lead', id::text, jsonb_build_object('from', ${state.stageCode}::text, 'to', ${to}::text) from upd
+        )
+        select version from upd`),
+    );
+    const version = returnedVersion(result);
+    if (version) return { kind: "ok", version, from: state.stageCode, to };
+  } catch (error) {
+    if (!clashesWithOpenApplication(error)) throw error;
+    // The student already has another open application, so this file cannot be opened again.
+    return { kind: "not_allowed", reason: "not_allowed" };
+  }
+  return explainMiss(db, actor, input.leadId);
+}
+
+/** Version 5 (FR-48): only the admin closes a file; nothing closes by itself. */
+export async function closeLead(db: Db, actor: Actor, input: { leadId: string; version: string; reason: LeadCloseReason }): Promise<ChangeOutcome> {
+  if (actor.role !== "admin") return { kind: "not_allowed", reason: "not_allowed" };
+  const [result] = await runAs(
+    db,
+    actor,
+    db.execute(sql`
+      with upd as (
+        update lead l set status = 'closed', closed_at = now(), closed_reason = ${input.reason}, last_activity_at = now()
+         where l.id = ${input.leadId}::uuid and l.updated_at = ${input.version}::timestamptz and l.status = 'open'
+           and l.anonymised_at is null and l.merged_into_id is null
+        returning l.id, to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version
+      ), act as (
+        insert into lead_activity (id, lead_id, type, actor_id, data)
+        select ${uuidv7()}::uuid, id, 'closed', ${actor.userId}, jsonb_build_object('reason', ${input.reason}::text) from upd
+      ), aud as (
+        insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
+        select ${uuidv7()}::uuid, ${actor.userId}, 'leads.close', 'lead', id::text, jsonb_build_object('reason', ${input.reason}::text) from upd
+      )
+      select version from upd`),
+  );
+  const version = returnedVersion(result);
+  if (version) return { kind: "ok", version };
+  return explainMiss(db, actor, input.leadId);
+}
+
+/** Version 5 (ADR-072): the admin opens a closed file again, until its files are deleted (S17.3). Refused when the student has another open application. */
+export async function reopenLead(db: Db, actor: Actor, input: { leadId: string; version: string }): Promise<ChangeOutcome> {
+  if (actor.role !== "admin") return { kind: "not_allowed", reason: "not_allowed" };
+  try {
+    const [result] = await runAs(
+      db,
+      actor,
+      db.execute(sql`
+        with upd as (
+          update lead l set status = 'open', closed_at = null, closed_reason = null, last_activity_at = now()
+           where l.id = ${input.leadId}::uuid and l.updated_at = ${input.version}::timestamptz and l.status = 'closed'
+             and l.anonymised_at is null and l.merged_into_id is null
+          returning l.id, to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version
+        ), act as (
+          insert into lead_activity (id, lead_id, type, actor_id, data)
+          select ${uuidv7()}::uuid, id, 'reopened', ${actor.userId}, '{}'::jsonb from upd
+        ), aud as (
+          insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
+          select ${uuidv7()}::uuid, ${actor.userId}, 'leads.reopen', 'lead', id::text, '{}'::jsonb from upd
+        )
+        select version from upd`),
+    );
+    const version = returnedVersion(result);
+    if (version) return { kind: "ok", version };
+  } catch (error) {
+    if (!clashesWithOpenApplication(error)) throw error;
+    return { kind: "not_allowed", reason: "not_allowed" };
+  }
+  return explainMiss(db, actor, input.leadId);
 }
 
 /** S5.2 step 7. `adminId` null puts the lead back in the unassigned pool. The caller has checked that the id is a staff member. */
@@ -517,13 +650,13 @@ export async function assignLead(db: Db, actor: Actor, input: { leadId: string; 
     actor,
     db.execute(sql`
       with target as (
-        select l.id, l.assigned_admin_id as old_admin from lead l where l.id = ${input.leadId}::uuid
+        select l.id, l.assigned_manager_id as old_admin from lead l where l.id = ${input.leadId}::uuid
       ), upd as (
-        update lead l set assigned_admin_id = ${input.adminId}, last_activity_at = now()
+        update lead l set assigned_manager_id = ${input.adminId}, last_activity_at = now()
           from target
          where l.id = target.id and l.updated_at = ${input.version}::timestamptz
            and l.anonymised_at is null and l.merged_into_id is null
-           and l.assigned_admin_id is distinct from ${input.adminId}::text
+           and l.assigned_manager_id is distinct from ${input.adminId}::text
         returning l.id, target.old_admin, to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version
       ), act as (
         insert into lead_activity (id, lead_id, type, actor_id, data)
@@ -536,7 +669,7 @@ export async function assignLead(db: Db, actor: Actor, input: { leadId: string; 
   );
   const version = returnedVersion(result);
   if (version) return { kind: "ok", version };
-  return explainMiss(db, actor, input.leadId, (s) => (s.assignedAdminId === input.adminId ? { kind: "unchanged", version: s.version } : null));
+  return explainMiss(db, actor, input.leadId, (s) => (s.assignedManagerId === input.adminId ? { kind: "unchanged", version: s.version } : null));
 }
 
 /** S5.2 step 8. A note is added, never edited, so it needs no version. The activity holds only the note's id (ADR-007). */
@@ -619,6 +752,11 @@ export type EraseOutcome = "erased" | "identity_not_confirmed" | "not_found" | "
 
 /** `app_erase_lead`: one transaction, so a failure halfway leaves nothing half-erased. */
 export async function eraseLead(db: Db, actor: Actor, input: { leadId: string; identityConfirmed: boolean; dataRequestId?: string | null }): Promise<EraseOutcome> {
+  // The erasure function runs with the owner's rights, so row level security does not reach it: a lead this person may not see is not theirs to erase.
+  if (actor.role === "manager") {
+    const [visible] = await runAs(db, actor, db.execute(sql`select id from lead where id = ${input.leadId}::uuid`));
+    if (rowsOf(visible).length === 0) return "not_found";
+  }
   const [result] = await runAs(
     db,
     actor,

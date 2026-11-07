@@ -12,9 +12,9 @@ export function landingPathFor(input: { storedRole: Role; twoFactorVerified: boo
   switch (input.storedRole) {
     case "student":
       return "/me";
-    case "admin":
+    case "manager":
       return "/admin";
-    case "owner":
+    case "admin":
       if (input.twoFactorVerified) return "/admin";
       return input.twoFactorEnrolled ? "/two-factor/verify" : "/two-factor/enrol";
   }

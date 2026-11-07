@@ -32,7 +32,7 @@ let student: Actor;
 const NOW = new Date("2026-10-26T12:00:00Z");
 const env = (): EndpointEnv => ({ db: t.db, ownerEmail: "", totpKey: "", now: () => NOW });
 
-async function actorOf(role: "admin" | "student" | "owner", verifiedAgoMs: number | null = null): Promise<Actor> {
+async function actorOf(role: "manager" | "student" | "admin", verifiedAgoMs: number | null = null): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
   return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: verifiedAgoMs === null ? null : new Date(NOW.getTime() - verifiedAgoMs) });
@@ -84,10 +84,10 @@ const setting = async (key: string) => (await rows(`select value from site_setti
 
 beforeAll(async () => {
   t = await createTestDb();
-  owner = await actorOf("owner", 0);
+  owner = await actorOf("admin", 0);
   // The same owner on another session, whose last 2FA check is older than the 10 minute window (there is only ever one owner).
-  ownerStale = mintActor({ userId: owner.userId, sessionId: owner.sessionId, storedRole: "owner", role: "owner", twoFactorVerifiedAt: new Date(NOW.getTime() - STEP_UP_WINDOW_MS - 60_000) });
-  admin = await actorOf("admin");
+  ownerStale = mintActor({ userId: owner.userId, sessionId: owner.sessionId, storedRole: "admin", role: "admin", twoFactorVerifiedAt: new Date(NOW.getTime() - STEP_UP_WINDOW_MS - 60_000) });
+  admin = await actorOf("manager");
   student = await actorOf("student");
 });
 

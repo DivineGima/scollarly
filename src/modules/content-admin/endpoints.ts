@@ -171,7 +171,7 @@ async function transition(env: EndpointEnv, actor: Actor, body: unknown, request
   return leftPublic ? jsonResponse({ id: outcome.id, version: outcome.version, status: outcome.status, revalidate: revalidationFor(def, outcome.slug) }) : ok(outcome, def);
 }
 
-const staff = { kind: "role", role: "admin" } as const;
+const staff = { kind: "role", role: "manager" } as const;
 
 export const contentMutations: Record<string, Mutation> = {
   /** B6 steps 3 to 5: create a draft, or save changes to an item. Saving a live item changes the live page, so it is gated like a publish. */

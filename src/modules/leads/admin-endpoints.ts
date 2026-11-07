@@ -4,12 +4,16 @@ import type { DataCall } from "@/server/edge/authed";
 import type { EndpointEnv } from "@/server/edge/endpoint-env";
 import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
+import { logError } from "@/server/log";
+import { deleteAfterErasure } from "@/server/media/purge";
 import { decideClaim, listPendingClaims } from "@/server/repositories/claims";
 import { completeDataRequest, listDataRequests, logDataRequest } from "@/server/repositories/data-requests";
+import { erasureDocumentKeys } from "@/server/repositories/documents";
 import {
   addNote,
   assignLead,
   changeStage,
+  closeLead,
   eraseLead,
   getLeadScreen,
   getOverviewCounts,
@@ -18,6 +22,8 @@ import {
   listStageNames,
   logAdminWhatsAppOpen,
   logReply,
+  moveBack,
+  reopenLead,
   resolveDuplicate,
   type MissOutcome,
 } from "@/server/repositories/lead-admin";
@@ -27,6 +33,7 @@ import {
   addNoteBody,
   assignBody,
   changeStageBody,
+  closeLeadBody,
   completeDataRequestBody,
   dataRequestsQuery,
   decideClaimBody,
@@ -35,6 +42,8 @@ import {
   leadIdQuery,
   leadsQuery,
   logDataRequestBody,
+  moveBackBody,
+  reopenLeadBody,
   resolveDuplicateBody,
 } from "./admin-schema";
 import { notAppliedItem } from "./not-applied";
@@ -74,6 +83,9 @@ function missResponse(miss: MissOutcome, requestId: string): Response {
       return errorResponseFor("NOT_FOUND", "That lead does not exist.", requestId);
     case "unknown_stage":
       return errorResponseFor("VALIDATION", "Unknown stage.", requestId, { fields: { stage: "UNKNOWN_VALUE" } });
+    case "not_allowed":
+      // A move the steps do not allow this person (architecture 24.4): a manager goes one step at a time, only an admin goes back.
+      return errorResponseFor("VALIDATION", "That move is not allowed.", requestId, { fields: { stage: miss.reason === "note_required" ? "REQUIRED" : "NOT_ALLOWED" } });
   }
 }
 
@@ -159,7 +171,7 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
           results: l.results,
           locale: l.locale,
           stage: l.stageCode,
-          assigned: l.assignedAdminId ? { id: l.assignedAdminId, label: people.byId.get(l.assignedAdminId)?.name.trim() || people.byId.get(l.assignedAdminId)?.email || "" } : null,
+          assigned: l.assignedManagerId ? { id: l.assignedManagerId, label: people.byId.get(l.assignedManagerId)?.name.trim() || people.byId.get(l.assignedManagerId)?.email || "" } : null,
           linkedAccount: l.userId !== null,
           receivedAt: l.receivedAt.toISOString(),
           sla: slaView(l, now),
@@ -222,7 +234,7 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
 export const leadMutations: Record<string, Mutation> = {
   /** B3 step 6. */
   "admin/leads.changeStage": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(changeStageBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -231,9 +243,42 @@ export const leadMutations: Record<string, Mutation> = {
     },
   },
 
+  /** Version 5 (ADR-072): the admin puts a file back one step, with a note. */
+  "admin/leads.moveBack": {
+    access: { kind: "role", role: "admin" },
+    async handle({ actor, env, body, requestId }) {
+      const parsed = parseBody(moveBackBody, body, requestId);
+      if (!parsed.ok) return parsed.response;
+      const result = await moveBack(env.db, actor as Actor, parsed.value);
+      return result.kind === "ok" ? jsonResponse({ changed: true, version: result.version, from: result.from, to: result.to }) : missResponse(result, requestId);
+    },
+  },
+
+  /** Version 5 (FR-48): only the admin closes a file. */
+  "admin/leads.close": {
+    access: { kind: "role", role: "admin" },
+    async handle({ actor, env, body, requestId }) {
+      const parsed = parseBody(closeLeadBody, body, requestId);
+      if (!parsed.ok) return parsed.response;
+      const result = await closeLead(env.db, actor as Actor, parsed.value);
+      return result.kind === "ok" ? jsonResponse({ changed: true, version: result.version }) : missResponse(result, requestId);
+    },
+  },
+
+  /** Version 5 (ADR-072): the admin opens a closed file again. */
+  "admin/leads.reopen": {
+    access: { kind: "role", role: "admin" },
+    async handle({ actor, env, body, requestId }) {
+      const parsed = parseBody(reopenLeadBody, body, requestId);
+      if (!parsed.ok) return parsed.response;
+      const result = await reopenLead(env.db, actor as Actor, parsed.value);
+      return result.kind === "ok" ? jsonResponse({ changed: true, version: result.version }) : missResponse(result, requestId);
+    },
+  },
+
   /** B3 step 7. Only a staff member can be assigned. */
   "admin/leads.assign": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(assignBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -249,7 +294,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B3 step 8. */
   "admin/leads.addNote": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(addNoteBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -261,7 +306,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B3 step 5: one tap, no form. */
   "admin/leads.logReply": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(leadIdBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -273,7 +318,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B3 step 3. */
   "admin/leads.logAdminWhatsAppOpen": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(leadIdBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -284,7 +329,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B3 step 10: merge or "not a duplicate". Never automatic. */
   "admin/leads.resolveDuplicate": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(resolveDuplicateBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -305,7 +350,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B4 steps 2 and 3. Approval is refused without a verification method, by the schema and again by the database. */
   "admin/leads.decideClaim": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(decideClaimBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -338,18 +383,24 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B3 step 11 and B5 step 3: erase a person's data after the identity checklist. One transaction. */
   "admin/leads.eraseLead": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(eraseLeadBody, body, requestId);
       if (!parsed.ok) return parsed.response;
+      // The student's files go with the lead (FR-49). The keys are read first and the objects deleted only after the erasure has happened.
+      const keys = parsed.value.identityConfirmed ? await erasureDocumentKeys(env.db, actor as Actor, parsed.value.leadId) : [];
       const outcome = await eraseLead(env.db, actor as Actor, {
         leadId: parsed.value.leadId,
         identityConfirmed: parsed.value.identityConfirmed,
         dataRequestId: parsed.value.dataRequestId ?? null,
       });
       switch (outcome) {
-        case "erased":
-          return jsonResponse({ erased: true });
+        case "erased": {
+          const store = env.documents?.();
+          const failed = store ? await deleteAfterErasure((key) => store.deleteObject(key), keys) : keys.length;
+          if (failed > 0) logError(requestId, "admin/leads.eraseLead", new Error(`${failed} student file(s) could not be deleted from storage`));
+          return jsonResponse({ erased: true, filesNotDeleted: failed });
+        }
         case "not_found":
           return errorResponseFor("NOT_FOUND", "That lead does not exist.", requestId);
         case "already_erased":
@@ -364,7 +415,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B5 step 2. */
   "admin/dataRequests.log": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(logDataRequestBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -377,7 +428,7 @@ export const leadMutations: Record<string, Mutation> = {
 
   /** B5 step 4. */
   "admin/dataRequests.complete": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(completeDataRequestBody, body, requestId);
       if (!parsed.ok) return parsed.response;

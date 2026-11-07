@@ -76,12 +76,12 @@ describe("the shell", () => {
   });
 
   it("lets staff and the owner into staff screens and any signed-in user into /me", async () => {
-    for (const role of ["admin", "owner"] as const) expect((await setup({ actor: actorOf(role) }).run("/admin/phase0"))?.status, role).toBe(200);
-    for (const role of ["student", "admin", "owner"] as const) expect((await setup({ actor: actorOf(role) }).run("/me/phase0"))?.status, role).toBe(200);
+    for (const role of ["manager", "admin"] as const) expect((await setup({ actor: actorOf(role) }).run("/admin/phase0"))?.status, role).toBe(200);
+    for (const role of ["student", "manager", "admin"] as const) expect((await setup({ actor: actorOf(role) }).run("/me/phase0"))?.status, role).toBe(200);
   });
 
   it("on a miss runs Next.js once with no cookie, stores a copy, and answers privately", async () => {
-    const t = setup({ actor: actorOf("admin") });
+    const t = setup({ actor: actorOf("manager") });
     const response = await t.run("/admin/phase0", { headers: { cookie: "__Secure-neon-auth.session_token=secret", accept: "text/html" } });
     expect(await response?.text()).toBe(SHELL_HTML);
     expect(response?.headers.get("cache-control")).toBe("private, no-store");
@@ -94,7 +94,7 @@ describe("the shell", () => {
   });
 
   it("on a hit answers from the cache without starting Next.js, still privately", async () => {
-    const t = setup({ actor: actorOf("admin"), cached: new Response(SHELL_HTML, { headers: { "cache-control": "public, max-age=0, s-maxage=30", "x-edge-cache": "stored" } }) });
+    const t = setup({ actor: actorOf("manager"), cached: new Response(SHELL_HTML, { headers: { "cache-control": "public, max-age=0, s-maxage=30", "x-edge-cache": "stored" } }) });
     const response = await t.run("/admin/phase0");
     expect(await response?.text()).toBe(SHELL_HTML);
     expect(response?.headers.get("cache-control")).toBe("private, no-store");
@@ -103,10 +103,10 @@ describe("the shell", () => {
   });
 
   it("does not store an error page or a page that sets a cookie", async () => {
-    const broken = setup({ actor: actorOf("admin"), next: () => new Response("boom", { status: 500, headers: { "content-type": "text/html" } }) });
+    const broken = setup({ actor: actorOf("manager"), next: () => new Response("boom", { status: 500, headers: { "content-type": "text/html" } }) });
     expect((await broken.run("/admin/phase0"))?.status).toBe(500);
     expect(broken.put).not.toHaveBeenCalled();
-    const cookie = setup({ actor: actorOf("admin"), next: () => new Response("x", { status: 200, headers: { "content-type": "text/html", "set-cookie": "a=b" } }) });
+    const cookie = setup({ actor: actorOf("manager"), next: () => new Response("x", { status: 200, headers: { "content-type": "text/html", "set-cookie": "a=b" } }) });
     await cookie.run("/admin/phase0");
     expect(cookie.put).not.toHaveBeenCalled();
   });
@@ -114,7 +114,7 @@ describe("the shell", () => {
 
 describe("the data call", () => {
   it("returns JSON, never cached, for a user who may see it", async () => {
-    const t = setup({ actor: actorOf("admin") });
+    const t = setup({ actor: actorOf("manager") });
     const response = await t.run("/api/v1/admin/phase0");
     expect(response?.status).toBe(200);
     expect(response?.headers.get("cache-control")).toBe("no-store");
@@ -135,7 +135,7 @@ describe("the data call", () => {
 
   it("answers 503 when the session lookup fails and 500 when the query fails, without leaking details", async () => {
     expect((await setup({ checkFails: true }).run("/api/v1/admin/phase0"))?.status).toBe(503);
-    const failing = await setup({ actor: actorOf("admin"), apiFails: true }).run("/api/v1/admin/phase0");
+    const failing = await setup({ actor: actorOf("manager"), apiFails: true }).run("/api/v1/admin/phase0");
     expect(failing?.status).toBe(500);
     expect(JSON.stringify(await failing?.json())).not.toMatch(/secret\.internal|database down/);
   });
@@ -146,13 +146,13 @@ describe("the data call", () => {
   });
 
   it("leaves unknown data calls to the normal handler", async () => {
-    expect(await setup({ actor: actorOf("admin") }).run("/api/v1/admin/unknown")).toBeNull();
+    expect(await setup({ actor: actorOf("manager") }).run("/api/v1/admin/unknown")).toBeNull();
   });
 });
 
 describe("requests that are not ours", () => {
   it("return null and never build the database handle", async () => {
-    const t = setup({ actor: actorOf("admin") });
+    const t = setup({ actor: actorOf("manager") });
     for (const path of ["/", "/media/" + "b".repeat(64), "/api/auth/get-session"]) expect(await t.run(path), path).toBeNull();
     expect(await t.run("/admin/phase0", { method: "POST" })).toBeNull();
     expect(t.makeDeps).not.toHaveBeenCalled();

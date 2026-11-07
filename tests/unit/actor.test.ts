@@ -5,15 +5,15 @@ describe("effectiveRole (architecture 9.3)", () => {
   const verified = new Date("2026-10-23T10:00:00Z");
 
   it("treats an owner whose session has not passed 2FA as a student", () => {
-    expect(effectiveRole("owner", null)).toBe("student");
+    expect(effectiveRole("admin", null)).toBe("student");
   });
 
   it("gives an owner owner powers once the session passed 2FA", () => {
-    expect(effectiveRole("owner", verified)).toBe("owner");
+    expect(effectiveRole("admin", verified)).toBe("admin");
   });
 
   it("does not require 2FA of admins or students (owner only, PRD F5)", () => {
-    expect(effectiveRole("admin", null)).toBe("admin");
+    expect(effectiveRole("manager", null)).toBe("manager");
     expect(effectiveRole("student", null)).toBe("student");
   });
 
@@ -47,14 +47,14 @@ describe("isStepUpFresh (10-minute window)", () => {
 
 describe("role helpers", () => {
   it("orders student < admin < owner", () => {
-    expect(hasAtLeast({ role: "owner" }, "admin")).toBe(true);
-    expect(hasAtLeast({ role: "admin" }, "owner")).toBe(false);
-    expect(hasAtLeast({ role: "student" }, "admin")).toBe(false);
+    expect(hasAtLeast({ role: "admin" }, "manager")).toBe(true);
+    expect(hasAtLeast({ role: "manager" }, "admin")).toBe(false);
+    expect(hasAtLeast({ role: "student" }, "manager")).toBe(false);
     expect(hasAtLeast({ role: "student" }, "student")).toBe(true);
   });
 
   it("recognises only the three roles", () => {
-    expect(["student", "admin", "owner"].every(isRole)).toBe(true);
+    expect(["student", "manager", "admin"].every(isRole)).toBe(true);
     expect(isRole("moderator")).toBe(false);
     expect(isRole(null)).toBe(false);
   });

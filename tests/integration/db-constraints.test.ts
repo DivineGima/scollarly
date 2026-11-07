@@ -14,7 +14,7 @@ afterAll(async () => {
   await t.close();
 });
 
-const OWNER_CTX = { userId: null, role: "owner" as const };
+const OWNER_CTX = { userId: null, role: "admin" as const };
 const addAppUser = (id: string, role = "student") => t.run(`insert into app_user (id, role) values ('${id}', '${role}')`);
 
 describe("S0.1/S0.3: migrations and the two query paths", () => {
@@ -37,26 +37,31 @@ describe("S0.1/S0.3: migrations and the two query paths", () => {
   });
 });
 
-describe("S0.4: one owner, enforced by the database (ADR-013)", () => {
-  it("allows exactly one owner and refuses a second at the database", async () => {
-    await addAppUser("owner-a", "owner");
-    await addAppUser("owner-b");
-    await expect(t.run(`update app_user set role = 'owner' where id = 'owner-b'`)).rejects.toThrow();
-    const rows = (await t.run(`select count(*)::int as n from app_user where role = 'owner'`)) as { n: number }[];
-    expect(rows[0]?.n).toBe(1);
+describe("S0.4 and S16.1: at most two admins, enforced by the database (ADR-013, ADR-063)", () => {
+  it("allows two admins and refuses a third at the database", async () => {
+    await addAppUser("admin-a", "admin");
+    await addAppUser("admin-b", "admin");
+    await addAppUser("admin-c");
+    await expect(t.run(`update app_user set role = 'admin' where id = 'admin-c'`)).rejects.toThrow(/At most two admins/);
+    const rows = (await t.run(`select count(*)::int as n from app_user where role = 'admin'`)) as { n: number }[];
+    expect(rows[0]?.n).toBe(2);
   });
 
   it("is not defeated by a direct insert", async () => {
-    await expect(addAppUser("owner-c", "owner")).rejects.toThrow();
+    await expect(addAppUser("admin-d", "admin")).rejects.toThrow(/At most two admins/);
   });
 
-  it("allows many admins and students (the index covers only the owner role)", async () => {
-    for (const [id, role] of [["admin-1", "admin"], ["admin-2", "admin"], ["student-1", "student"], ["student-2", "student"]] as const) await addAppUser(id, role);
-    const rows = (await t.run(`select count(*)::int as n from app_user where role in ('admin','student')`)) as { n: number }[];
-    expect(rows[0]?.n).toBeGreaterThanOrEqual(5);
+  it("an admin's role cannot be taken away by an update", async () => {
+    await expect(t.run(`update app_user set role = 'manager' where id = 'admin-a'`)).rejects.toThrow(/admin role cannot be removed/);
   });
 
-  it("refuses a role outside student/admin/owner", async () => {
+  it("allows many managers and students (the limit covers only the admin role)", async () => {
+    for (const [id, role] of [["admin-1", "manager"], ["admin-2", "manager"], ["student-1", "student"], ["student-2", "student"]] as const) await addAppUser(id, role);
+    const rows = (await t.run(`select count(*)::int as n from app_user where role in ('manager','student')`)) as { n: number }[];
+    expect(rows[0]?.n).toBeGreaterThanOrEqual(4);
+  });
+
+  it("refuses a role outside student/manager/admin", async () => {
     await expect(addAppUser("root-1", "superuser")).rejects.toThrow();
   });
 });

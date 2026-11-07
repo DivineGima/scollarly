@@ -84,8 +84,8 @@ interface LeadRow {
  * payments recorded, stale fees and tours, and the two stores at 70% or more. A lead is shown to an admin when it is unassigned or theirs.
  */
 export async function staffNotifications(db: Db, actor: Actor, now: Date = new Date()): Promise<NotificationList> {
-  const owner = actor.role === "owner";
-  const mine = sql`(l.assigned_admin_id is null or l.assigned_admin_id = ${actor.userId})`;
+  const owner = actor.role === "admin";
+  const mine = sql`(l.assigned_manager_id is null or l.assigned_manager_id = ${actor.userId})`;
   const live = sql`l.merged_into_id is null and l.anonymised_at is null`;
   // Fixed numbers from the constants, never from a request, so writing them into the statement is safe.
   const lookback = sql.raw(`interval '${LOOKBACK_DAYS} days'`);
@@ -118,7 +118,7 @@ export async function staffNotifications(db: Db, actor: Actor, now: Date = new D
           db.execute(sql`
             select p.id::text as id, p.amount_usd_cents, p.entered_at, u.name as university
               from placement_payment p left join university u on u.id = p.university_id
-             where p.voided_at is null and p.entered_at > now() - ${lookback}
+             where p.voided_at is null and p.approved_at is not null and p.entered_at > now() - ${lookback}
              order by p.entered_at desc limit 10`),
           staleQuery(db),
           db.execute(sql`select * from public.app_usage_snapshot()`),

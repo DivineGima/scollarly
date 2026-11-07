@@ -16,8 +16,8 @@ import { createTestDb, type TestDb } from "./helpers/db";
 let t: TestDb;
 const student: RlsContext = { userId: "stu-1", role: "student" };
 const otherStudent: RlsContext = { userId: "stu-2", role: "student" };
-const admin: RlsContext = { userId: "adm-1", role: "admin" };
-const owner: RlsContext = { userId: "own-1", role: "owner" };
+const admin: RlsContext = { userId: "adm-1", role: "manager" };
+const owner: RlsContext = { userId: "own-1", role: "admin" };
 
 async function as(ctx: RlsContext, statement: string): Promise<Record<string, unknown>[]> {
   await t.asRuntime();
@@ -52,8 +52,8 @@ beforeAll(async () => {
   t = await createTestDb();
   await appUserRow(t, "stu-1");
   await appUserRow(t, "stu-2");
-  await appUserRow(t, "adm-1", "admin");
-  await appUserRow(t, "own-1", "owner");
+  await appUserRow(t, "adm-1", "manager");
+  await appUserRow(t, "own-1", "admin");
 });
 
 afterAll(async () => {
@@ -93,12 +93,12 @@ describe("account confirmation (ADR-042)", () => {
   it("confirms an account when it is promoted to admin or owner (invite accepted, owner bootstrap)", async () => {
     await appUserRow(t, "promote-1");
     expect((await confirmedAt("promote-1")).account_confirmed_at).toBeNull();
-    await t.run("update app_user set role = 'admin' where id = 'promote-1'");
+    await t.run("update app_user set role = 'manager' where id = 'promote-1'");
     expect((await confirmedAt("promote-1")).account_confirmed_at).not.toBeNull();
   });
 
   it("confirms a staff row that is created as admin or owner, but not a student row", async () => {
-    await appUserRow(t, "staff-1", "admin");
+    await appUserRow(t, "staff-1", "manager");
     await appUserRow(t, "student-new");
     expect((await confirmedAt("staff-1")).account_confirmed_at).not.toBeNull();
     expect((await confirmedAt("student-new")).account_confirmed_at).toBeNull();
@@ -113,7 +113,7 @@ describe("account confirmation (ADR-042)", () => {
 
 describe("the only way a user changes their own app_user columns (21.2)", () => {
   it("cannot change their own role or confirmed time by a direct update", async () => {
-    expect(await as(student, "update app_user set role = 'admin' where id = 'stu-1' returning id")).toEqual([]);
+    expect(await as(student, "update app_user set role = 'manager' where id = 'stu-1' returning id")).toEqual([]);
     expect(await as(student, "update app_user set account_confirmed_at = now() where id = 'stu-1' returning id")).toEqual([]);
     expect(await as(student, "update app_user set notifications_seen_at = now() where id = 'stu-1' returning id")).toEqual([]);
     expect((await t.run("select role from app_user where id = 'stu-1'"))[0]).toEqual({ role: "student" });
@@ -158,8 +158,8 @@ describe("student_profile: row level security (ADR-038)", () => {
     expect(await as(ANONYMOUS, "select user_id from student_profile")).toEqual([]);
   });
 
-  it("lets staff read every row and nobody read another student's row", async () => {
-    expect((await as(admin, "select user_id from student_profile")).length).toBe(2);
+  it("lets an admin read every row, a manager only their students' rows, and nobody read another student's row", async () => {
+    expect((await as(admin, "select user_id from student_profile")).length).toBe(0); // version 5: no student is assigned to this manager
     expect((await as(owner, "select user_id from student_profile")).length).toBe(2);
     expect(await as(otherStudent, "select user_id from student_profile where user_id = 'stu-1'")).toEqual([]);
   });

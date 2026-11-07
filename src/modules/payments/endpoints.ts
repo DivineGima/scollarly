@@ -1,7 +1,7 @@
 import { errorResponseFor, jsonResponse, newRequestId } from "@/lib/http";
 import { plainUsd, parseUsdToCents, isFutureDate } from "./service";
 import { csvFile } from "./csv";
-import { leadSearchQuery, paymentsQuery, recordBody, voidBody } from "./schema";
+import { approveBody, leadSearchQuery, paymentsQuery, recordBody, voidBody } from "./schema";
 import { uuidv7 } from "@/lib/uuid";
 import { formatWat, watDateString } from "@/lib/time";
 import type { Actor } from "@/server/auth/actor";
@@ -9,7 +9,7 @@ import type { DataCall } from "@/server/edge/authed";
 import type { EndpointEnv } from "@/server/edge/endpoint-env";
 import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
-import { exportPayments, listPayments, type PaymentFilter, recordPayment, searchLeadsForPayment, voidPayment } from "@/server/repositories/payments";
+import { approvePayment, exportPayments, listPayments, type PaymentFilter, recordPayment, searchLeadsForPayment, voidPayment } from "@/server/repositories/payments";
 
 /**
  * The Payments screen (S9.1, S9.2; architecture 8.3, 10.6, 16 B9). Admins and the owner only: the facade is the first lock and the
@@ -24,7 +24,7 @@ function queryFields(issues: readonly { path: readonly PropertyKey[]; message: s
 }
 
 /** A range the screen could not have produced (the end before the start) is refused, not silently reversed. */
-function filterOf(data: { university?: string | undefined; from?: string | undefined; to?: string | undefined; status: "all" | "active" | "voided" }): PaymentFilter | Response {
+function filterOf(data: { university?: string | undefined; from?: string | undefined; to?: string | undefined; status: "all" | "active" | "voided" | "pending" }): PaymentFilter | Response {
   if (data.from && data.to && data.from > data.to) return invalid({ to: "INVALID" });
   return { status: data.status, ...(data.university ? { universityId: data.university } : {}), ...(data.from ? { from: data.from } : {}), ...(data.to ? { to: data.to } : {}) };
 }
@@ -41,7 +41,7 @@ function foreignKeyField(error: unknown): "leadId" | "universityId" | null {
 export const paymentMutations: Record<string, Mutation> = {
   /** B9 steps 2 to 3. Validation first, then one statement: the row and its audit entry, once per submission token. */
   "admin/payments.record": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(recordBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -62,7 +62,8 @@ export const paymentMutations: Record<string, Mutation> = {
           note: input.note && input.note !== "" ? input.note : null,
         });
         if (outcome.kind === "token_reused") return errorResponseFor("CONFLICT", "This form was already used. Reload the page to enter another payment.", requestId);
-        return jsonResponse({ id: outcome.id, status: outcome.kind }, outcome.kind === "created" ? 201 : 200);
+        // A manager's entry is pending until the admin approves it (architecture 24.2); an admin's is approved as it is made.
+        return jsonResponse({ id: outcome.id, status: outcome.kind, pending: (actor as Actor).role !== "admin" }, outcome.kind === "created" ? 201 : 200);
       } catch (error) {
         const field = foreignKeyField(error);
         if (field) return errorResponseFor("VALIDATION", "Check the highlighted fields.", requestId, { fields: { [field]: "UNKNOWN_VALUE" } });
@@ -71,9 +72,23 @@ export const paymentMutations: Record<string, Mutation> = {
     },
   },
 
+  /** The admin approves a manager's entry; until then it is in no total. Only the admin (the database checks it too). */
+  "admin/payments.approve": {
+    access: { kind: "role", role: "admin" },
+    async handle({ actor, env, body, requestId }) {
+      const parsed = parseBody(approveBody, body, requestId);
+      if (!parsed.ok) return parsed.response;
+      const outcome = await approvePayment(env.db, actor as Actor, parsed.value.id);
+      if (outcome === "not_found") return errorResponseFor("NOT_FOUND", "That payment does not exist.", requestId);
+      if (outcome === "already_approved") return errorResponseFor("CONFLICT", "That payment was already approved. Reload the page.", requestId);
+      if (outcome === "voided") return errorResponseFor("CONFLICT", "A voided payment cannot be approved.", requestId);
+      return jsonResponse({ approved: true });
+    },
+  },
+
   /** B9 steps 4 to 5. The reason is required (also by a CHECK in the database). A voided payment cannot be voided again. */
   "admin/payments.void": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(voidBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -123,7 +138,7 @@ export function paymentDataCalls(env: EndpointEnv): Record<string, DataCall> {
           r.leadRef ?? "",
           r.enteredByEmail ?? "",
           formatWat(new Date(r.enteredAt)),
-          r.voidedAt ? "Voided" : "Recorded",
+          r.voidedAt ? "Voided" : r.approvedAt ? "Recorded" : "Pending approval",
           r.voidReason ?? "",
           r.note ?? "",
         ]),

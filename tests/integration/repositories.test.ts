@@ -8,21 +8,22 @@ import { appUserRow, leadRow, q } from "./helpers/fixtures";
 import { createTestDb, type TestDb } from "./helpers/db";
 
 let t: TestDb;
-const actor = (userId: string, role: "student" | "admin" | "owner", twoFactor = role === "owner"): Actor =>
+const actor = (userId: string, role: "student" | "manager" | "admin", twoFactor = role === "admin"): Actor =>
   mintActor({ userId, sessionId: `s-${userId}`, storedRole: role, role, twoFactorVerifiedAt: twoFactor ? new Date() : null });
 
 const student = actor("stu-1", "student");
-const admin = actor("adm-1", "admin");
-const owner = actor("own-1", "owner");
+const admin = actor("adm-1", "manager");
+const owner = actor("own-1", "admin");
 const ids: Record<string, string> = {};
 
 beforeAll(async () => {
   t = await createTestDb();
   await appUserRow(t, "stu-1");
-  await appUserRow(t, "adm-1", "admin");
-  await appUserRow(t, "own-1", "owner");
-  ids.mine = await leadRow(t, { user_id: "stu-1" });
-  ids.other = await leadRow(t);
+  await appUserRow(t, "adm-1", "manager");
+  await appUserRow(t, "own-1", "admin");
+  // Both leads are the manager adm-1's (version 5: a manager lists only assigned leads); the owner (an admin) sees them all.
+  ids.mine = await leadRow(t, { user_id: "stu-1", assigned_manager_id: "adm-1" });
+  ids.other = await leadRow(t, { assigned_manager_id: "adm-1" });
   const [mine] = (await t.run(`select ref from lead where id = ${q(ids.mine)}`)) as { ref: string }[];
   ids.mineRef = mine?.ref ?? "";
   await t.asRuntime();
@@ -36,7 +37,7 @@ afterAll(async () => {
 describe("S1.2: repositories take an Actor, and the database is the second lock", () => {
   it("a function that touches protected data does not accept a plain object that is not an Actor (type check)", () => {
     // `tsc --noEmit` is part of CI: removing a ts-expect-error below, or the `Actor` parameter of a repository, fails the build.
-    const forged = { userId: "adm-1", sessionId: "x", storedRole: "admin" as const, role: "admin" as const, twoFactorVerifiedAt: null };
+    const forged = { userId: "adm-1", sessionId: "x", storedRole: "manager" as const, role: "manager" as const, twoFactorVerifiedAt: null };
     // @ts-expect-error a plain object is not a branded Actor; only the auth facade can mint one
     void (() => listLeads(t.db, forged));
     // @ts-expect-error the Actor is required, so an authorisation step cannot be forgotten
@@ -51,7 +52,7 @@ describe("S1.2: repositories take an Actor, and the database is the second lock"
   });
 
   it("an owner whose session has not passed 2FA reads as a student", async () => {
-    const noSecondFactor = mintActor({ userId: "own-1", sessionId: "s", storedRole: "owner", role: "student", twoFactorVerifiedAt: null });
+    const noSecondFactor = mintActor({ userId: "own-1", sessionId: "s", storedRole: "admin", role: "student", twoFactorVerifiedAt: null });
     expect(await listLeads(t.db, noSecondFactor)).toEqual([]);
   });
 
@@ -84,7 +85,7 @@ describe("S1.2: repositories take an Actor, and the database is the second lock"
 
   it("listLeads is newest first", async () => {
     await t.asOwner();
-    const newest = await leadRow(t, { received_at: new Date(Date.now() + 60_000).toISOString() });
+    const newest = await leadRow(t, { received_at: new Date(Date.now() + 60_000).toISOString(), assigned_manager_id: "adm-1" });
     await t.asRuntime();
     expect((await listLeads(t.db, admin))[0]?.id).toBe(newest);
   });
@@ -110,10 +111,10 @@ describe("S1.2: settings and reference data", () => {
     await updateSetting(t.db, owner, "whatsapp_number_e164", null);
   });
 
-  it("lists the six pipeline stages in order", async () => {
+  it("lists the seven pipeline stages in order", async () => {
     const stages = await listPipelineStages(t.db);
-    expect(stages.map((s) => s.code)).toEqual(["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"]);
-    expect(stages.map((s) => s.position)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(stages[0]?.name.en).toBe("Share results");
+    expect(stages.map((s) => s.code)).toEqual(["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"]);
+    expect(stages.map((s) => s.position)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(stages[0]?.name.en).toBe("Course interest");
   });
 });

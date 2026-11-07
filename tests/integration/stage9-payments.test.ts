@@ -31,7 +31,7 @@ let now = new Date("2026-10-26T12:00:00Z");
 
 const env = (): EndpointEnv => ({ db: t.db, ownerEmail: "", totpKey: "", now: () => now });
 
-async function actorOf(role: "admin" | "student"): Promise<Actor> {
+async function actorOf(role: "manager" | "admin" | "student"): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
   return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: null });
@@ -118,7 +118,7 @@ const record = (who: Actor, over: Record<string, unknown> = {}) =>
 beforeAll(async () => {
   t = await createTestDb();
   admin = await actorOf("admin");
-  admin2 = await actorOf("admin");
+  admin2 = await actorOf("manager");
   student = await actorOf("student");
   universityA = await uni(t, { status: "published", name: "Alpha University" });
   universityB = await uni(t, { status: "published", name: "=Beta University" });
@@ -141,7 +141,7 @@ describe("S9.1 recording a payment", () => {
     const audit = await rows(`select actor_id, entity_type, meta from audit_log where action = 'payments.record' and entity_id = ${q(answer.json.id)}`);
     expect(audit).toHaveLength(1);
     expect(audit[0]?.actor_id).toBe(admin.userId);
-    expect(audit[0]?.meta).toEqual({ university_id: universityA, amount_usd_cents: 150050 });
+    expect(audit[0]?.meta).toEqual({ university_id: universityA, amount_usd_cents: 150050, pending: false });
   });
 
   it("records one payment for a double tap and for a replay of the same submission token", async () => {
@@ -151,7 +151,7 @@ describe("S9.1 recording a payment", () => {
     const third = await record(admin2, { submissionToken, amount: "250" });
     expect(first.status).toBe(201);
     expect(second.status).toBe(200);
-    expect(second.json).toEqual({ id: first.json.id, status: "replayed" });
+    expect(second.json).toEqual({ id: first.json.id, status: "replayed", pending: false });
     expect(third.json.id).toBe(first.json.id);
     expect(await count(`select count(*)::int as n from placement_payment where submission_token = ${q(submissionToken)}`)).toBe(1);
     expect(await count(`select count(*)::int as n from audit_log where action = 'payments.record' and entity_id = ${q(first.json.id)}`)).toBe(1);
@@ -414,8 +414,8 @@ describe("S9.3 payments totals in analytics", () => {
   beforeAll(async () => {
     ta = await createTestDb();
     const user = await ta.signIn();
-    await ta.run(`insert into app_user (id, role) values (${q(user.userId)}, 'admin')`);
-    a = mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: "admin", role: "admin", twoFactorVerifiedAt: null });
+    await ta.run(`insert into app_user (id, role) values (${q(user.userId)}, 'manager')`);
+    a = mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: "manager", role: "manager", twoFactorVerifiedAt: null });
     one = await uni(ta, { name: "One" });
     two = await uni(ta, { name: "Two" });
     await paymentRow(ta, one, { amount_usd_cents: 100000, received_on: "2026-10-10", entered_by: a.userId });
@@ -467,17 +467,17 @@ describe("S9.4 all-admin performance", () => {
 
   beforeAll(async () => {
     tp = await createTestDb();
-    const make = async (role: "owner" | "admin") => {
+    const make = async (role: "admin" | "manager") => {
       const user = await tp.signIn();
       await tp.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
       return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: null });
     };
-    boss = await make("owner");
-    busy = await make("admin");
-    idle = await make("admin");
+    boss = await make("admin");
+    busy = await make("manager");
+    idle = await make("manager");
     // Two leads for the busy admin, one answered 30 minutes after it arrived; one overdue lead.
-    await leadRow(tp, { assigned_admin_id: busy.userId, received_at: "2026-10-20T10:00:00Z", first_response_at: "2026-10-20T10:30:00Z", sla_due_at: "2026-10-20T14:00:00Z" });
-    await leadRow(tp, { assigned_admin_id: busy.userId, received_at: "2026-10-21T10:00:00Z", sla_due_at: "2026-10-21T14:00:00Z" });
+    await leadRow(tp, { assigned_manager_id: busy.userId, received_at: "2026-10-20T10:00:00Z", first_response_at: "2026-10-20T10:30:00Z", sla_due_at: "2026-10-20T14:00:00Z" });
+    await leadRow(tp, { assigned_manager_id: busy.userId, received_at: "2026-10-21T10:00:00Z", sla_due_at: "2026-10-21T14:00:00Z" });
   });
   afterAll(async () => {
     await tp.close();

@@ -75,7 +75,7 @@ export function analyticsDataCalls(env: EndpointEnv): Record<string, DataCall> {
 
     /** C3 (S9.4): every admin's numbers. The owner only; an admin gets a 403 here and can only ever read their own through `admin/performance`. */
     "admin/performance-all": async (actor, call) => {
-      if (actor.role !== "owner") throw new AuthError("FORBIDDEN", "Not allowed.");
+      if (actor.role !== "admin") throw new AuthError("FORBIDDEN", "Not allowed.");
       const parsed = performanceQuery.safeParse(Object.fromEntries(call.url.searchParams));
       if (!parsed.success) return invalid(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0] ?? "query"), i.message])));
       const now = env.now();

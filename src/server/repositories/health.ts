@@ -29,7 +29,7 @@ export async function usageSnapshot(db: Db): Promise<UsageSnapshot> {
 }
 
 /** Records that a job ran. `detail` holds counts only (the function adds `ok`). */
-export async function recordJob(db: Db, job: "rollup" | "usage", ok: boolean, detail: Record<string, number | string | boolean> = {}): Promise<void> {
+export async function recordJob(db: Db, job: "rollup" | "usage" | "purge", ok: boolean, detail: Record<string, number | string | boolean> = {}): Promise<void> {
   await db.execute(sql`select public.app_record_job(${job}::text, ${ok}::boolean, ${JSON.stringify(detail)}::jsonb)`);
 }
 

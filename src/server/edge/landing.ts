@@ -9,7 +9,7 @@ import { contextOf } from "@/server/db/rls";
 import { logError } from "@/server/log";
 import type { EndpointEnv } from "./endpoint-env";
 import { confirmAccount } from "@/server/repositories/account";
-import { acceptInvite, bootstrapOwner, scrubSessionPii } from "@/server/repositories/identity";
+import { acceptInvite, bootstrapAdmin, scrubSessionPii } from "@/server/repositories/identity";
 import { writeAudit } from "@/server/repositories/audit";
 import { createSecondFactorStore } from "@/server/repositories/second-factor";
 
@@ -60,8 +60,8 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
 
     let storedRole = actor.storedRole;
     let confirmed = actor.accountConfirmed;
-    if (storedRole === "student" && env.ownerEmail && (await bootstrapOwner(env.db, actor.userId, env.ownerEmail))) {
-      storedRole = "owner";
+    if (storedRole === "student" && env.ownerEmail && (await bootstrapAdmin(env.db, actor.userId, env.ownerEmail))) {
+      storedRole = "admin";
       confirmed = true; // promotion confirms the account in the same statement (migration 0013)
       await writeAudit(env.db, actor, { action: "security.ownerBootstrapped", entityType: "app_user", entityId: actor.userId });
     }
@@ -82,7 +82,7 @@ export async function handleLanding(request: Request, makeDeps: () => LandingDep
     if (storedRole === "student" && back) return redirect(request, `${back}${SIGNED_IN_FRAGMENT}`);
 
     let twoFactorEnrolled = false;
-    if (storedRole === "owner") {
+    if (storedRole === "admin") {
       twoFactorEnrolled = (await createSecondFactorStore(env.db, contextOf({ userId: actor.userId, role: "student" })).getTotp(actor.userId))?.confirmed === true;
     }
     return redirect(request, landingPathFor({ storedRole, twoFactorVerified: actor.twoFactorVerifiedAt !== null, twoFactorEnrolled }));

@@ -12,7 +12,7 @@ import { handleRevalidate, type RevalidateDeps } from "@/server/edge/revalidate"
 import { contentRoute } from "@/components/admin/content/shared";
 import { slugify, toPayload, toRaw } from "@/components/admin/content/field-inputs";
 
-const admin: Actor = mintActor({ userId: "a1", sessionId: "s1", storedRole: "admin", role: "admin", twoFactorVerifiedAt: null });
+const admin: Actor = mintActor({ userId: "a1", sessionId: "s1", storedRole: "manager", role: "manager", twoFactorVerifiedAt: null });
 
 describe("S6.1 the content definitions", () => {
   it("has the fourteen types of architecture 7.3, each with a table, fields and an order", () => {
@@ -303,7 +303,7 @@ describe("a binary operation (the image upload)", () => {
 
   function run(over: { actor?: Actor | null; maxBytes?: number; body?: Uint8Array; headers?: Record<string, string> } = {}) {
     const handle = vi.fn(async ({ bytes }: { bytes: Uint8Array | null }) => new Response(JSON.stringify({ length: bytes?.byteLength ?? -1 }), { status: 201 }));
-    const mutation: Mutation = { access: { kind: "role", role: "admin" }, binary: { maxBytes: over.maxBytes ?? 1000 }, handle: handle as Mutation["handle"] };
+    const mutation: Mutation = { access: { kind: "role", role: "manager" }, binary: { maxBytes: over.maxBytes ?? 1000 }, handle: handle as Mutation["handle"] };
     const deps: MutationDeps = { checkSession: async () => (over.actor === undefined ? admin : over.actor), mutations: { "admin/media.upload": mutation }, env, limit: async () => ({ allowed: true, remaining: 10, retryAfterSeconds: 0 }) };
     const body = over.body ?? new Uint8Array(10);
     const request = new Request("https://x.example/api/v1/admin/media.upload?kind=photo", { method: "POST", headers: { origin: "https://x.example", ...over.headers }, body: body as BodyInit });

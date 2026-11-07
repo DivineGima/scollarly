@@ -36,7 +36,7 @@ afterAll(async () => {
 const cookieOf = (user: SignedInUser) => `__Secure-neon-auth.session_token=${user.token}.sig`;
 
 /** A signed-in account with the given role; confirmed unless said otherwise. */
-async function account(role: "student" | "admin" | "owner" = "student", confirmed = true): Promise<SignedInUser> {
+async function account(role: "student" | "manager" | "admin" = "student", confirmed = true): Promise<SignedInUser> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, ${confirmed ? "now()" : "null"}) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at`);
   return user;
@@ -188,7 +188,7 @@ describe("who may finish onboarding", () => {
   });
 
   it("refuses a staff account: only a student-role account has an onboarding", async () => {
-    for (const role of ["admin", "owner"] as const) {
+    for (const role of ["manager", "admin"] as const) {
       const user = await account(role);
       const response = await post(user, bodyOf(student()));
       expect(response.status, role).toBe(403);

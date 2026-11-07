@@ -7,7 +7,7 @@ import { isCalendarDate, parseUsdToCents } from "./service";
  * strict, so an unknown field is refused. Error messages are tokens, which the screen maps to words.
  */
 
-export const PAYMENT_STATUSES = ["all", "active", "voided"] as const;
+export const PAYMENT_STATUSES = ["all", "active", "voided", "pending"] as const;
 
 const date = z.string({ error: V.INVALID }).refine(isCalendarDate, V.INVALID);
 
@@ -37,3 +37,6 @@ export const voidBody = z.strictObject({
   id: uuidSchema,
   reason: z.string({ error: V.REQUIRED }).trim().min(1, V.REQUIRED).max(300, V.TOO_LONG),
 });
+
+/** The admin approves one entry of the ledger (architecture 24.2). */
+export const approveBody = z.strictObject({ id: uuidSchema });

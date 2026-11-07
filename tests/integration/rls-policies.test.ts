@@ -17,8 +17,8 @@ let t: TestDb;
 const anonymous: RlsContext = ANONYMOUS;
 const student: RlsContext = { userId: "stu-1", role: "student" };
 const otherStudent: RlsContext = { userId: "stu-2", role: "student" };
-const admin: RlsContext = { userId: "adm-1", role: "admin" };
-const owner: RlsContext = { userId: "own-1", role: "owner" };
+const admin: RlsContext = { userId: "adm-1", role: "manager" };
+const owner: RlsContext = { userId: "own-1", role: "admin" };
 /** An owner whose session has not passed 2FA is given the student role by the facade (architecture 9.3). */
 const ownerWithout2fa: RlsContext = { userId: "own-1", role: "student" };
 
@@ -58,8 +58,8 @@ beforeAll(async () => {
   t = await createTestDb();
   await appUserRow(t, "stu-1");
   await appUserRow(t, "stu-2");
-  await appUserRow(t, "adm-1", "admin");
-  await appUserRow(t, "own-1", "owner");
+  await appUserRow(t, "adm-1", "manager");
+  await appUserRow(t, "own-1", "admin");
 
   // Public content: one published and one draft row in each content table.
   const universityPublished = await uni(t, { slug: "pub-uni", status: "published" });
@@ -93,12 +93,13 @@ beforeAll(async () => {
 
   // Staff-only content.
   await consent(t, { scope: "journey" });
-  await insertRow(t, "message_template", { id: uuidv7(), stage_code: "share_results", locale: "en", body: "Hi {name}" });
+  await insertRow(t, "message_template", { id: uuidv7(), stage_code: "documents", locale: "en", body: "Hi {name}" });
 
   // Leads: stu-1's, stu-2's and an anonymous one.
-  const l1 = await leadRow(t, { user_id: "stu-1" });
-  const l2 = await leadRow(t, { user_id: "stu-2" });
-  await leadRow(t);
+  // The manager adm-1 is assigned all three (version 5: a manager sees only assigned leads); the scope itself is proven in the last describe.
+  const l1 = await leadRow(t, { user_id: "stu-1", assigned_manager_id: "adm-1" });
+  const l2 = await leadRow(t, { user_id: "stu-2", assigned_manager_id: "adm-1" });
+  await leadRow(t, { assigned_manager_id: "adm-1" });
   ids.l1 = l1;
   ids.l2 = l2;
   const programmeId = await programmeRow(t, universityPublished);
@@ -131,6 +132,13 @@ beforeAll(async () => {
     await t.run(`insert into student_profile (user_id, relationship, applicant_name, applicant_country, contact_name, contact_whatsapp_e164, qualification_type, level, course_fields, intake_year, consent_notice_version, consent_at)
       values ('${user}', 'student', 'A', 'CM', 'A', '+237612345678', 'olevel_alevel', 'undergraduate', ARRAY['law'], 2027, 'v1', now())`);
   }
+  await t.run(`update student_profile set assigned_manager_id = 'adm-1'`);
+
+  // Version 5 (migration 0024): one private document for each student.
+  for (const user of ["stu-1", "stu-2"]) {
+    const id = uuidv7();
+    await insertRow(t, "student_document", { id, student_id: user, kind: "id", storage_key: `${user}/${id}`, content_type: "image/png", byte_size: 10, state: "uploaded" });
+  }
 });
 
 afterAll(async () => {
@@ -155,7 +163,7 @@ const READS: [string, number, number, number, number][] = [
   ["process_step", 1, 1, 2, 2],
   ["content_block", 1, 1, 2, 2],
   // Open reference data.
-  ["pipeline_stage", 6, 6, 6, 6],
+  ["pipeline_stage", 7, 7, 7, 7],
   ["site_setting", 10, 10, 10, 10],
   ["media_asset", 1, 1, 1, 1],
   ["page_image", 1, 1, 1, 1],
@@ -175,6 +183,7 @@ const READS: [string, number, number, number, number][] = [
   ["data_request", 0, 1, 2, 2],
   ["app_user", 0, 1, 4, 4],
   ["student_profile", 0, 1, 2, 2],
+  ["student_document", 0, 1, 2, 2],
   // Owner only.
   ["admin_invite", 0, 0, 0, 1],
   ["audit_log", 0, 0, 0, 1],
@@ -337,7 +346,7 @@ describe("writes: the right person can, anyone else cannot", () => {
   });
 
   it("only the owner changes a role (the facade also demands the owner's 2FA)", async () => {
-    const promote = `update app_user set role = 'admin' where id = 'stu-2' returning id`;
+    const promote = `update app_user set role = 'manager' where id = 'stu-2' returning id`;
     expect(await as(admin, promote)).toEqual([]);
     expect(await as(student, promote)).toEqual([]);
     expect(await as(ownerWithout2fa, promote)).toEqual([]);
@@ -354,5 +363,51 @@ describe("no physical deletes (ADR-014): the runtime role has no DELETE on anyth
     } finally {
       await t.asOwner();
     }
+  });
+});
+
+describe("version 5: a manager sees and changes only the students assigned to them (architecture 24.2)", () => {
+  const manager2: RlsContext = { userId: "adm-2", role: "manager" };
+  let unassigned = "";
+  let assignedToOther = "";
+
+  beforeAll(async () => {
+    await appUserRow(t, "adm-2", "manager");
+    unassigned = await leadRow(t, { name: "Nobody's Student" });
+    assignedToOther = await leadRow(t, { name: "Other Manager's Student", assigned_manager_id: "adm-2" });
+    await insertRow(t, "lead_note", { id: uuidv7(), lead_id: assignedToOther, author_id: "adm-2", body: "theirs" });
+    await insertRow(t, "lead_activity", { id: uuidv7(), lead_id: assignedToOther, type: "created", actor_id: "adm-2" });
+  });
+
+  it("the admin sees every lead; a manager sees only their own, not the unassigned or another manager's", async () => {
+    expect(await visible(owner, "lead")).toBe(5);
+    expect(await visible(admin, "lead")).toBe(3);
+    expect(await visible(manager2, "lead")).toBe(1);
+    expect((await as(admin, `select id from lead where id in ('${unassigned}', '${assignedToOther}')`)).length).toBe(0);
+  });
+
+  it("the tables that hang off a lead follow the same rule", async () => {
+    expect(await visible(manager2, "lead_note")).toBe(1);
+    expect(await visible(manager2, "lead_activity")).toBe(1);
+    // adm-1 sees notes and activity of their own leads, never those of adm-2's lead; the admin sees both.
+    expect((await as(admin, `select 1 from lead_note where lead_id = '${assignedToOther}'`)).length).toBe(0);
+    expect((await as(admin, `select 1 from lead_activity where lead_id = '${assignedToOther}'`)).length).toBe(0);
+    expect((await as(owner, `select 1 from lead_note where lead_id = '${assignedToOther}'`)).length).toBe(1);
+  });
+
+  it("a manager cannot change, annotate or reassign a lead that is not theirs", async () => {
+    expect(await as(admin, `update lead set stage_code = 'documents' where id = '${assignedToOther}' returning id`)).toEqual([]);
+    expect(await as(admin, `update lead set stage_code = 'documents' where id = '${unassigned}' returning id`)).toEqual([]);
+    await expectDenied(as(admin, `insert into lead_note (id, lead_id, author_id, body) values ('${uuidv7()}', '${assignedToOther}', 'adm-1', 'x')`));
+    // Their own lead cannot be handed to another manager by the manager: only an admin does that.
+    await expectDenied(as(admin, `update lead set assigned_manager_id = 'adm-2' where id = '${ids.l1}'`));
+    expect((await as(owner, `update lead set assigned_manager_id = 'adm-2' where id = '${assignedToOther}' returning id`)).length).toBe(1);
+  });
+
+  it("a manager sees the profiles of their students only; the admin sees all; a student sees their own", async () => {
+    expect(await visible(admin, "student_profile")).toBe(2);
+    expect(await visible(manager2, "student_profile")).toBe(0);
+    expect(await visible(owner, "student_profile")).toBe(2);
+    expect(await visible(student, "student_profile")).toBe(1);
   });
 });

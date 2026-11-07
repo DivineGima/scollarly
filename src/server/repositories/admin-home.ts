@@ -41,11 +41,11 @@ export interface StaffHome {
 const n = (value: unknown) => Number(value ?? 0);
 
 export async function staffHome(db: Db, actor: Actor, w: PeriodWindows): Promise<StaffHome> {
-  const owner = actor.role === "owner";
+  const owner = actor.role === "admin";
   const cur = w.curStart.toISOString();
   const prev = w.prevStart.toISOString();
   const end = w.curEnd.toISOString();
-  const mine = sql`(l.assigned_admin_id is null or l.assigned_admin_id = ${actor.userId})`;
+  const mine = sql`(l.assigned_manager_id is null or l.assigned_manager_id = ${actor.userId})`;
   const live = sql`l.merged_into_id is null and l.anonymised_at is null`;
 
   const queries = [
@@ -79,7 +79,7 @@ export async function staffHome(db: Db, actor: Actor, w: PeriodWindows): Promise
                    coalesce(sum(p.amount_usd_cents) filter (where p.entered_at >= ${prev}::timestamptz and p.entered_at < ${cur}::timestamptz), 0) as pay_prev,
                    (select count(*) from student_profile sp where sp.onboarded_at >= ${cur}::timestamptz and sp.onboarded_at < ${end}::timestamptz) as onb_cur,
                    (select count(*) from student_profile sp where sp.onboarded_at >= ${prev}::timestamptz and sp.onboarded_at < ${cur}::timestamptz) as onb_prev
-              from placement_payment p where p.voided_at is null`),
+              from placement_payment p where p.voided_at is null and p.approved_at is not null`),
         ]
       : []),
   ] as const;

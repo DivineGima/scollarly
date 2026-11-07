@@ -27,7 +27,7 @@ interface Row {
 /** Reads the table under "### 9.5 Permission matrix". */
 function parseMatrix(markdown: string): Row[] {
   const lines = markdown.split(/\r?\n/);
-  const start = lines.findIndex((line) => /^###\s+9\.5\s+Permission matrix/.test(line));
+  const start = lines.findIndex((line) => /^###\s+(?:9\.5|24\.16)\s+Permission matrix/.test(line));
   if (start < 0) throw new Error("Section 9.5 not found");
   const rows: Row[] = [];
   let seenHeader = false;
@@ -42,13 +42,13 @@ function parseMatrix(markdown: string): Row[] {
     if (/^-+$/.test((cells[1] ?? "").replace(/:/g, ""))) continue;
     if ((cells[0] ?? "").toLowerCase() === "capability") {
       seenHeader = true;
-      expect(cells.slice(1).map((c) => c.toLowerCase())).toEqual(["anonymous", "student", "admin", "owner"]);
+      expect(cells.slice(1).map((c) => c.toLowerCase())).toEqual(["anonymous", "student", "manager", "admin"]);
       continue;
     }
     const yes = (cell: string | undefined) => /^yes\b/i.test(cell ?? "");
     rows.push({
       label: cells[0] ?? "",
-      allow: { anonymous: yes(cells[1]), student: yes(cells[2]), admin: yes(cells[3]), owner: yes(cells[4]) },
+      allow: { anonymous: yes(cells[1]), student: yes(cells[2]), manager: yes(cells[3]), admin: yes(cells[4]) },
       needs2fa: /2FA/.test(cells[4] ?? ""),
     });
   }
@@ -113,17 +113,17 @@ describe("the permission helpers", () => {
     expect(can("anonymous", "leads.work")).toBe(false);
     expect(can("student", "student.own")).toBe(true);
     expect(can("student", "leads.work")).toBe(false);
-    expect(can("admin", "leads.work")).toBe(true);
-    expect(can("admin", "team.manage")).toBe(false);
-    expect(can("owner", "team.manage")).toBe(true);
-    expect(can("owner", "does.not.exist")).toBe(false);
-    expect(canDo("admin", "payments.record")).toBe(true);
-    expect(canDo("admin", "settings.update")).toBe(false);
-    expect(canDo("owner", "settings.update")).toBe(true);
+    expect(can("manager", "leads.work")).toBe(true);
+    expect(can("manager", "team.manage")).toBe(false);
+    expect(can("admin", "team.manage")).toBe(true);
+    expect(can("admin", "does.not.exist")).toBe(false);
+    expect(canDo("manager", "payments.record")).toBe(true);
+    expect(canDo("manager", "settings.update")).toBe(false);
+    expect(canDo("admin", "settings.update")).toBe(true);
     expect(canDo("student", "settings.update")).toBe(false);
   });
 
   it("lists the four roles the matrix is run under", () => {
-    expect([...PERMISSION_ROLES]).toEqual(["anonymous", "student", "admin", "owner"]);
+    expect([...PERMISSION_ROLES]).toEqual(["anonymous", "student", "manager", "admin"]);
   });
 });

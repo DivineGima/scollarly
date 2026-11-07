@@ -159,11 +159,11 @@ test.describe("sending", () => {
 
 test.describe("one application per account", () => {
   test("shows where the application stands, and no form, to someone who already applied", async ({ page }) => {
-    const server = await stub(page, context({ lead: { ref: "SC-ABCDE-FGHJK", stage: "choose_course", updatedAt: "2026-11-01T10:00:00.000Z" } }));
+    const server = await stub(page, context({ lead: { ref: "SC-ABCDE-FGHJK", stage: "course_interest", updatedAt: "2026-11-01T10:00:00.000Z" } }));
     await page.goto("/me/apply");
     await expect(page.getByRole("heading", { name: "You already applied" })).toBeVisible();
     await expect(page.getByText("Your reference: SC-ABCDE-FGHJK")).toBeVisible();
-    await expect(page.getByText("Current step: Choose course")).toBeVisible();
+    await expect(page.getByText("Current step: Course interest")).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
     await expect(page.getByTestId("apply-send")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Go to my page" })).toHaveAttribute("href", "/me");

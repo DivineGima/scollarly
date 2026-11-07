@@ -9,7 +9,7 @@ import { pingDatabase } from "@/server/repositories/health";
 export function GET(request: Request): Promise<Response> {
   return handleHealth(request, {
     version: process.env.NEXT_PUBLIC_BUILD_ID ?? "phase0",
-    requireAdmin: (headers) => requireRole(headers, "admin"),
+    requireAdmin: (headers) => requireRole(headers, "manager"),
     pingDatabase: () => pingDatabase(getDb(getEnv())),
   });
 }

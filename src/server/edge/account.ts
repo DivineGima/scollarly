@@ -67,7 +67,7 @@ export async function handleAccount(request: Request, makeDeps: () => AccountDep
     const actor = await checkSession(request.headers);
     if (!actor) return isAccount ? redirect(request, "/sign-in") : null;
     let enrolled = false;
-    if (actor.accountConfirmed && actor.storedRole === "owner" && actor.twoFactorVerifiedAt === null) {
+    if (actor.accountConfirmed && actor.storedRole === "admin" && actor.twoFactorVerifiedAt === null) {
       enrolled = (await createSecondFactorStore(env.db, contextOf({ userId: actor.userId, role: "student" })).getTotp(actor.userId))?.confirmed === true;
     }
     return redirect(request, accountDestination(actor, enrolled));

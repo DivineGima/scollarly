@@ -51,7 +51,7 @@ export function leadListItem(row: LeadListRow, people: ReadonlyMap<string, Staff
     name: row.name,
     country: row.countryCode,
     stage: row.stageCode,
-    assigned: personLabel(row.assignedAdminId, people),
+    assigned: personLabel(row.assignedManagerId, people),
     sla: slaView(row, now),
     receivedAt: row.receivedAt.toISOString(),
     erased: row.anonymisedAt !== null,

@@ -102,11 +102,11 @@ describe("the sign-in steps carry the intent (F14)", () => {
   });
 });
 
-const actorOf = (accountConfirmed: boolean, role: "student" | "admin" | "owner" = "student"): Actor =>
-  mintActor({ userId: "u1", sessionId: "s1", storedRole: role, role, twoFactorVerifiedAt: role === "owner" ? new Date() : null, accountConfirmed });
+const actorOf = (accountConfirmed: boolean, role: "student" | "manager" | "admin" = "student"): Actor =>
+  mintActor({ userId: "u1", sessionId: "s1", storedRole: role, role, twoFactorVerifiedAt: role === "admin" ? new Date() : null, accountConfirmed });
 
 describe("what an unconfirmed login may do: only confirm (ADR-042)", () => {
-  const accesses: Access[] = [{ kind: "signed-in" }, { kind: "role", role: "student" }, { kind: "role", role: "admin" }, { kind: "stored-owner" }];
+  const accesses: Access[] = [{ kind: "signed-in" }, { kind: "role", role: "student" }, { kind: "role", role: "manager" }, { kind: "stored-owner" }];
 
   it("is refused by every operation except account/confirm, with its own code", () => {
     for (const access of accesses) {
@@ -117,8 +117,8 @@ describe("what an unconfirmed login may do: only confirm (ADR-042)", () => {
 
   it("changes nothing for a confirmed account", () => {
     expect(denyAccess({ kind: "signed-in" }, actorOf(true), new Date())).toBeNull();
-    expect(denyAccess({ kind: "role", role: "admin" }, actorOf(true), new Date())).toMatchObject({ code: "FORBIDDEN" });
-    expect(denyAccess({ kind: "role", role: "admin" }, actorOf(true, "admin"), new Date())).toBeNull();
+    expect(denyAccess({ kind: "role", role: "manager" }, actorOf(true), new Date())).toMatchObject({ code: "FORBIDDEN" });
+    expect(denyAccess({ kind: "role", role: "manager" }, actorOf(true, "manager"), new Date())).toBeNull();
     expect(denyAccess({ kind: "account" }, actorOf(true), new Date())).toBeNull();
   });
 
@@ -174,7 +174,7 @@ describe("the signed-in path refuses an unconfirmed login", () => {
   });
 
   it("keeps the owner out of /admin only while the owner is unconfirmed, which the database prevents", async () => {
-    expect((await setup(actorOf(true, "owner")).run("/admin"))?.status).toBe(200);
+    expect((await setup(actorOf(true, "admin")).run("/admin"))?.status).toBe(200);
   });
 });
 

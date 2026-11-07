@@ -56,7 +56,7 @@ export function crmDataCalls(env: EndpointEnv): Record<string, DataCall> {
       const [data, admins] = await Promise.all([
         crmOverview(env.db, actor, f),
         // Every admin's numbers side by side are the owner's view only (architecture 9, C3); an admin never gets this call's second half.
-        actor.role === "owner" ? performanceOfAll(env.db, actor, { start: f.range.start, end: f.range.end }, now) : Promise.resolve(null),
+        actor.role === "admin" ? performanceOfAll(env.db, actor, { start: f.range.start, end: f.range.end }, now) : Promise.resolve(null),
       ]);
       const funnel = funnelFromStages(data.stages.map((stage) => ({ code: stage.code, position: stage.position, count: stage.count })));
       const labelOf = new Map(data.stages.map((stage) => [stage.code, stageLabel(stage.name, stage.code)]));

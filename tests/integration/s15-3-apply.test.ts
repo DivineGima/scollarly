@@ -43,7 +43,7 @@ const cookieOf = (user: SignedInUser) => `__Secure-neon-auth.session_token=${use
 const mutations = { ...accountMutations, ...onboardingMutations, ...applicationMutations };
 
 /** A signed-in account with the given role; confirmed, and (for a student) not yet onboarded unless said otherwise. */
-async function account(role: "student" | "admin" | "owner" = "student", confirmed = true): Promise<SignedInUser> {
+async function account(role: "student" | "manager" | "admin" = "student", confirmed = true): Promise<SignedInUser> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, ${confirmed ? "now()" : "null"}) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at`);
   return user;
@@ -111,7 +111,7 @@ describe("applying from the profile", () => {
 
     // The details are the profile's, read on the server: the body carried none of them.
     const [lead] = (await t.run(`select id, ref, intake_kind, name, whatsapp_e164, country_code, qualification_type, results, user_id, stage_code, source, consent_notice_version from lead where user_id = ${q(user.userId)}`)) as Record<string, unknown>[];
-    expect(lead).toMatchObject({ ref, intake_kind: "full", name: "Ada Eze", country_code: "NG", qualification_type: "olevel_alevel", user_id: user.userId, stage_code: "share_results" });
+    expect(lead).toMatchObject({ ref, intake_kind: "full", name: "Ada Eze", country_code: "NG", qualification_type: "olevel_alevel", user_id: user.userId, stage_code: "course_interest" });
     expect(lead?.whatsapp_e164).toBe(values.contact_whatsapp);
     expect(lead?.results).toEqual([{ subject: "Mathematics", grade: "A" }]);
     expect(lead?.source).toMatchObject({ page: "apply", relationship: "student", contact_name: "Ada Eze", course_fields: ["computer_science_it", "law"], level: "undergraduate", intake_year: 2027 });
@@ -261,7 +261,7 @@ describe("what is refused", () => {
   });
 
   it("refuses staff, a signed-out caller and an unconfirmed account", async () => {
-    for (const role of ["admin", "owner"] as const) {
+    for (const role of ["manager", "admin"] as const) {
       const staff = await account(role);
       const response = await apply(staff);
       expect(response.status, role).toBe(403);
@@ -331,7 +331,7 @@ describe("the Apply screen's data", () => {
     const other = await onboarded();
     expect(await context(user)).toMatchObject({ userId: user.userId, onboarded: true, firstName: "Ada", courseFields: ["computer_science_it", "law"], lead: null });
     const { ref } = (await (await apply(user)).json()) as { ref: string };
-    expect(await context(user)).toMatchObject({ lead: { ref, stage: "share_results" } });
+    expect(await context(user)).toMatchObject({ lead: { ref, stage: "course_interest" } });
     expect((await context(other.user)).lead).toBeNull();
   });
 });
@@ -354,7 +354,7 @@ describe("the guard on the older lead endpoint", () => {
 
     const other = await onboarded();
     expect(await has(other.user)).toBe(false);
-    const staff = await account("admin");
+    const staff = await account("manager");
     await leadRow(t, { user_id: staff.userId });
     expect(await has(staff)).toBe(false);
   });
@@ -369,5 +369,38 @@ describe("the guard on the older lead endpoint", () => {
     await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(ended.userId)}, 'student', now()) on conflict (id) do nothing`);
     await leadRow(t, { user_id: ended.userId });
     expect(await has(ended)).toBe(false);
+  });
+});
+
+describe("version 5: the student's manager, and one OPEN application (architecture 24.2, 24.3)", () => {
+  it("onboarding gives the student the next manager, and applying copies that manager to the lead", async () => {
+    const manager = await account("manager");
+    await t.run(`update app_user set away = false where id = ${q(manager.userId)}`);
+    // Every other manager is away, so this one is the next in turn.
+    await t.run(`update app_user set away = true where role = 'manager' and id <> ${q(manager.userId)}`);
+    const { user } = await onboarded();
+    expect(((await t.run(`select assigned_manager_id as m from student_profile where user_id = ${q(user.userId)}`)) as { m: string }[])[0]?.m).toBe(manager.userId);
+    expect((await apply(user)).status).toBe(201);
+    expect(((await t.run(`select assigned_manager_id as m from lead where user_id = ${q(user.userId)}`)) as { m: string }[])[0]?.m).toBe(manager.userId);
+    await t.run(`update app_user set away = false where role = 'manager'`);
+  });
+
+  it("a second application is refused while the first is open, and allowed once an admin has closed it", async () => {
+    const { user } = await onboarded();
+    const first = await apply(user);
+    expect(first.status).toBe(201);
+    const again = await apply(user, body());
+    expect(again.status).toBe(409);
+    expect((await errorOf(again)).error.code).toBe("ALREADY_APPLIED");
+    expect(await leadsOf(user)).toBe(1);
+
+    await t.run(`update lead set status = 'closed', closed_at = now(), closed_reason = 'refused' where user_id = ${q(user.userId)}`);
+    const second = await apply(user, body());
+    expect(second.status).toBe(201);
+    expect(await leadsOf(user)).toBe(2);
+    expect(await count(`select count(*)::int as n from lead where user_id = ${q(user.userId)} and status = 'open'`)).toBe(1);
+    // The profile points at the new file.
+    const [profile] = (await t.run(`select p.lead_id, l.status from student_profile p join lead l on l.id = p.lead_id where p.user_id = ${q(user.userId)}`)) as { status: string }[];
+    expect(profile?.status).toBe("open");
   });
 });

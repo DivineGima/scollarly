@@ -4,7 +4,8 @@
  * Values are stored exactly as written here.
  */
 
-export const ROLES = ["student", "admin", "owner"] as const;
+/** Version 5 (ADR-063): `manager` is what `admin` was, `admin` is what `owner` was; at most two admins. */
+export const ROLES = ["student", "manager", "admin"] as const;
 
 /** The seven student countries (PRD section 3), as ISO 3166-1 alpha-2 codes. */
 export const STUDENT_COUNTRIES = ["CM", "NG", "GH", "CI", "SN", "GN", "ZA"] as const;
@@ -12,11 +13,19 @@ export type StudentCountry = (typeof STUDENT_COUNTRIES)[number];
 /** The countries a student may type a WhatsApp number from when linking an application: the student countries plus India (ADR-025). */
 export const NUMBER_COUNTRIES = [...STUDENT_COUNTRIES, "IN"] as const;
 
-/** Architecture 7.2: `pipeline_stage` is seeded with these six, in this order. */
-export const PIPELINE_STAGE_CODES = ["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"] as const;
+/** Version 5 (architecture 24.2, ADR-065): `pipeline_stage` holds the owner's seven steps, in this order. */
+export const PIPELINE_STAGE_CODES = ["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"] as const;
 export type PipelineStageCode = (typeof PIPELINE_STAGE_CODES)[number];
 /** ADR-021: a new lead starts at the first stage. */
-export const DEFAULT_STAGE_CODE: PipelineStageCode = "share_results";
+export const DEFAULT_STAGE_CODE: PipelineStageCode = "course_interest";
+
+/** `open` until the student arrives or an admin closes the file (architecture 24.2). */
+export const LEAD_STATUSES = ["open", "arrived", "closed"] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+/** Why an admin closed a file (version 5, FR-48). A code, never free text. */
+export const LEAD_CLOSE_REASONS = ["no_response", "refused", "withdrew", "other"] as const;
+export type LeadCloseReason = (typeof LEAD_CLOSE_REASONS)[number];
 
 export const CONTENT_STATUSES = ["draft", "published", "archived"] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
@@ -49,6 +58,8 @@ export const LEAD_ACTIVITY_TYPES = [
   "merged",
   "duplicate_dismissed",
   "anonymised",
+  "closed",
+  "reopened",
 ] as const;
 export type LeadActivityType = (typeof LEAD_ACTIVITY_TYPES)[number];
 
@@ -58,6 +69,17 @@ export const CLAIM_STATUSES = ["pending", "approved", "rejected"] as const;
 export const VERIFICATION_METHODS = ["email_match", "whatsapp_confirmed"] as const;
 
 export const DUPLICATE_DECISIONS = ["merged", "not_duplicate"] as const;
+
+/** Student documents (architecture 24.2, 24.5). The first five are supplied by the student, the letters by the admin, the proof by the student. */
+export const DOCUMENT_KINDS = ["results", "id", "birth_certificate", "signature", "passport", "offer_letter", "acceptance_letter", "payment_proof"] as const;
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+/** The four every file needs before step 3; the passport joins them when the university asks. */
+export const REQUIRED_DOCUMENT_KINDS = ["results", "id", "birth_certificate", "signature"] as const;
+export const STUDENT_DOCUMENT_KINDS = ["results", "id", "birth_certificate", "signature", "passport", "payment_proof"] as const;
+export const LETTER_KINDS = ["offer_letter", "acceptance_letter"] as const;
+export const DOCUMENT_STATES = ["pending", "uploaded", "approved", "rejected", "purged"] as const;
+export const DOCUMENT_CONTENT_TYPES = ["image/jpeg", "image/png", "application/pdf"] as const;
+export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 
 export const DATA_REQUEST_KINDS = ["export", "erasure"] as const;
 export const DATA_REQUEST_CHANNELS = ["portal", "whatsapp", "other"] as const;

@@ -9,9 +9,9 @@ export { resolveSession } from "./session-lookup";
  * Owner bootstrap (S2.3): the first verified sign-in whose email equals `OWNER_EMAIL` becomes the owner. Returns false
  * when the email does not match or an owner already exists. A SECURITY DEFINER function does it (migration 0002).
  */
-export async function bootstrapOwner(db: Db, userId: string, ownerEmail: string): Promise<boolean> {
-  const [row] = rowsOf<{ app_bootstrap_owner: boolean }>(await db.execute(sql`select public.app_bootstrap_owner(${userId}, ${ownerEmail})`));
-  return row?.app_bootstrap_owner === true;
+export async function bootstrapAdmin(db: Db, userId: string, ownerEmail: string): Promise<boolean> {
+  const [row] = rowsOf<{ app_bootstrap_admin: boolean }>(await db.execute(sql`select public.app_bootstrap_admin(${userId}, ${ownerEmail})`));
+  return row?.app_bootstrap_admin === true;
 }
 
 export type AcceptInviteResult = "accepted" | "wrong_email" | "invalid";
@@ -72,6 +72,6 @@ export async function revokeOtherSessions(db: Db, sessionToken: string): Promise
 }
 
 /** Admin or student role changes (owner only; the policy `app_user_update` enforces it too). */
-export function setRoleQuery(db: Db, userId: string, role: "student" | "admin") {
+export function setRoleQuery(db: Db, userId: string, role: "student" | "manager") {
   return db.update(appUser).set({ role }).where(eq(appUser.id, userId)).returning({ id: appUser.id });
 }

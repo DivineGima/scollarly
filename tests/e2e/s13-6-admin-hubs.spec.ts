@@ -16,10 +16,10 @@ async function axe(page: Page) {
   expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
 }
 
-type Role = "admin" | "owner";
+type Role = "manager" | "admin";
 
-async function signIn(page: Page, role: Role = "admin", toursSeen: string[] = ["home", "leads", "content", "insights"]) {
-  await page.route("**/api/v1/admin/session", (route) => json(route, { role, name: role === "owner" ? "Owner Person" : "Priya Rao", email: `${role}@example.test`, stepUpFresh: false, toursSeen, userId: `${role}-1` }));
+async function signIn(page: Page, role: Role = "manager", toursSeen: string[] = ["home", "leads", "content", "insights"]) {
+  await page.route("**/api/v1/admin/session", (route) => json(route, { role, name: role === "admin" ? "Owner Person" : "Priya Rao", email: `${role}@example.test`, stepUpFresh: false, toursSeen, userId: `${role}-1` }));
   await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
 }
 
@@ -32,8 +32,8 @@ const totals = (role: Role, over: Record<string, unknown> = {}) => ({
   stageMoves: { value: 3, previous: 3 },
   pendingClaims: 1,
   openDataRequests: 0,
-  payments: role === "owner" ? { valueCents: 250000, previousCents: 100000 } : null,
-  onboarded: role === "owner" ? { value: 4, previous: 6 } : null,
+  payments: role === "admin" ? { valueCents: 250000, previousCents: 100000 } : null,
+  onboarded: role === "admin" ? { value: 4, previous: 6 } : null,
   ...over,
 });
 
@@ -42,7 +42,7 @@ const activity = [
   { type: "stage_changed", at: "2026-10-30T08:00:00.000Z", ref: "SC-ABCDE-12345", leadId: "22222222-2222-4222-8222-222222222222" },
 ];
 
-async function stubHome(page: Page, role: Role = "admin", over: Record<string, unknown> = {}) {
+async function stubHome(page: Page, role: Role = "manager", over: Record<string, unknown> = {}) {
   const asked: string[] = [];
   await page.route("**/api/v1/admin/home*", (route) => {
     const period = new URL(route.request().url()).searchParams.get("period") ?? "week";
@@ -54,8 +54,8 @@ async function stubHome(page: Page, role: Role = "admin", over: Record<string, u
 
 test.describe("B2.5 the floating bar and the More sheet", () => {
   test("shows an admin the four tabs and a More sheet with Notifications, Profile and Sign out, and none of the owner's pages", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin");
+    await signIn(page, "manager");
+    await stubHome(page, "manager");
     await page.goto("/admin");
     const bar = page.getByRole("navigation", { name: "Main tabs" });
     for (const name of ["Home", "Leads", "Content", "Insights"]) await expect(bar.getByRole("link", { name })).toBeVisible();
@@ -70,8 +70,8 @@ test.describe("B2.5 the floating bar and the More sheet", () => {
   });
 
   test("shows the owner Team, Audit log, Security, Settings and Health as well", async ({ page }) => {
-    await signIn(page, "owner");
-    await stubHome(page, "owner");
+    await signIn(page, "admin");
+    await stubHome(page, "admin");
     await page.goto("/admin");
     await page.getByRole("button", { name: "More" }).click();
     const sheet = page.getByRole("dialog", { name: "More" });
@@ -81,17 +81,17 @@ test.describe("B2.5 the floating bar and the More sheet", () => {
   });
 
   test("puts a dot on the round button when there is something new", async ({ page }) => {
-    await signIn(page, "admin");
+    await signIn(page, "manager");
     await page.unroute("**/api/v1/admin/notifications*");
     await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 4 }));
-    await stubHome(page, "admin");
+    await stubHome(page, "manager");
     await page.goto("/admin");
     await expect(page.getByRole("button", { name: "More (4)" })).toBeVisible();
   });
 
   test("never covers the last thing on the page at 360 px", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin");
+    await signIn(page, "manager");
+    await stubHome(page, "manager");
     await page.goto("/admin");
     const last = page.locator(".admin-home-activity li").last();
     await last.scrollIntoViewIfNeeded();
@@ -103,8 +103,8 @@ test.describe("B2.5 the floating bar and the More sheet", () => {
 
 test.describe("B2.1 Home", () => {
   test("says what the page is for, what needs the admin today, four tiles that compare with last week, a chart and the latest activity", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin");
+    await signIn(page, "manager");
+    await stubHome(page, "manager");
     await page.goto("/admin");
     await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
     await expect(page.getByText("Your day at a glance")).toBeVisible();
@@ -125,8 +125,8 @@ test.describe("B2.1 Home", () => {
   });
 
   test("gives the owner the owner's four tiles: new leads, overdue, payments received in dollars, students onboarded", async ({ page }) => {
-    await signIn(page, "owner");
-    await stubHome(page, "owner");
+    await signIn(page, "admin");
+    await stubHome(page, "admin");
     await page.goto("/admin");
     await expect(page.locator(".admin-home-tiles li")).toHaveCount(4);
     await expect(page.getByTestId("tile-payments")).toContainText("$2,500");
@@ -137,8 +137,8 @@ test.describe("B2.1 Home", () => {
   });
 
   test("switches between this week and this month, and asks for the month's numbers", async ({ page }) => {
-    await signIn(page, "admin");
-    const asked = await stubHome(page, "admin");
+    await signIn(page, "manager");
+    const asked = await stubHome(page, "manager");
     await page.goto("/admin");
     await expect(page.getByRole("button", { name: "This week" })).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "This month" }).click();
@@ -150,15 +150,15 @@ test.describe("B2.1 Home", () => {
   });
 
   test("keeps the period in the address, so a month stays a month after a reload", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin");
+    await signIn(page, "manager");
+    await stubHome(page, "manager");
     await page.goto("/admin?period=month");
     await expect(page.getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("says what to do when nothing has happened, without drawing a flat line", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin", { series: days(7, () => 0), totals: totals("admin", { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, pendingClaims: 0, stageMoves: { value: 0, previous: 0 } }), activity: [] });
+    await signIn(page, "manager");
+    await stubHome(page, "manager", { series: days(7, () => 0), totals: totals("manager", { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, pendingClaims: 0, stageMoves: { value: 0, previous: 0 } }), activity: [] });
     await page.goto("/admin");
     await expect(page.getByTestId("needs-you")).toContainText("Nothing is waiting for you right now.");
     await expect(page.getByText("No new leads in this period yet.")).toBeVisible();
@@ -169,7 +169,7 @@ test.describe("B2.1 Home", () => {
   });
 
   test("says what went wrong, with a retry, when the numbers cannot be read", async ({ page }) => {
-    await signIn(page, "admin");
+    await signIn(page, "manager");
     await page.route("**/api/v1/admin/home*", (route) => json(route, { error: { code: "INTERNAL", message: "x" }, request_id: "r" }, 500));
     await page.goto("/admin");
     await expect(page.getByRole("button", { name: /try again/i })).toBeVisible();
@@ -178,8 +178,8 @@ test.describe("B2.1 Home", () => {
 
 test.describe("the first-visit tour", () => {
   test("shows three steps once, can be finished, and is recorded so it never repeats", async ({ page }) => {
-    await signIn(page, "admin", []);
-    await stubHome(page, "admin");
+    await signIn(page, "manager", []);
+    await stubHome(page, "manager");
     const recorded: unknown[] = [];
     await page.route("**/api/v1/admin/tour.seen", (route) => {
       recorded.push(route.request().postDataJSON());
@@ -202,8 +202,8 @@ test.describe("the first-visit tour", () => {
   });
 
   test("can be skipped at any step, and is not shown to someone who has seen it", async ({ page }) => {
-    await signIn(page, "admin", []);
-    await stubHome(page, "admin");
+    await signIn(page, "manager", []);
+    await stubHome(page, "manager");
     await page.route("**/api/v1/admin/tour.seen", (route) => json(route, { seen: true }));
     await page.goto("/admin");
     await page.getByRole("button", { name: "Skip" }).click();
@@ -222,7 +222,7 @@ test.describe("B2.2 to B2.4 the hubs", () => {
   }
 
   test("Leads has the list, the link requests and the data requests as sections, and opens the one in the address", async ({ page }) => {
-    await signIn(page, "admin");
+    await signIn(page, "manager");
     await failLists(page);
     await page.goto("/admin/leads");
     const sections = page.getByRole("navigation", { name: "Sections" });
@@ -239,7 +239,7 @@ test.describe("B2.2 to B2.4 the hubs", () => {
   });
 
   test("Leads keeps its own views for a link from Home (overdue, unanswered)", async ({ page }) => {
-    await signIn(page, "admin");
+    await signIn(page, "manager");
     await failLists(page);
     await page.goto("/admin/leads?view=overdue");
     await expect(page.getByRole("heading", { name: "Leads", level: 1 })).toBeVisible();
@@ -247,7 +247,7 @@ test.describe("B2.2 to B2.4 the hubs", () => {
   });
 
   test("Content has the kinds of content, what needs checking and the images", async ({ page }) => {
-    await signIn(page, "admin");
+    await signIn(page, "manager");
     await failLists(page);
     await page.goto("/admin/content");
     const sections = page.getByRole("navigation", { name: "Sections" });
@@ -262,7 +262,7 @@ test.describe("B2.2 to B2.4 the hubs", () => {
   });
 
   test("Insights has the results (with the person's own numbers) and the payments", async ({ page }) => {
-    await signIn(page, "admin");
+    await signIn(page, "manager");
     await failLists(page);
     await page.goto("/admin/insights");
     const sections = page.getByRole("navigation", { name: "Sections" });
@@ -277,7 +277,7 @@ test.describe("B2.2 to B2.4 the hubs", () => {
   });
 
   test("the pages that are reached from More say what they are for", async ({ page }) => {
-    await signIn(page, "owner");
+    await signIn(page, "admin");
     await failLists(page);
     await page.route("**/api/v1/admin/security", (route) => json(route, { twoFactorEnabled: true, stepUpFresh: true, sessions: [] }));
     await page.goto("/admin/security");
@@ -289,8 +289,8 @@ test.describe("B2.2 to B2.4 the hubs", () => {
 
 test.describe("offline: totals only (architecture 21.11)", () => {
   test("keeps the numbers and the chart, never a lead reference, and shows them with when they were last known", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin");
+    await signIn(page, "manager");
+    await stubHome(page, "manager");
     await page.goto("/admin");
     await expect(page.getByTestId("tile-newLeads")).toContainText("12");
     await expect
@@ -308,7 +308,7 @@ test.describe("offline: totals only (architecture 21.11)", () => {
             }),
         ),
       )
-      .toContain('"userId":"admin-1"');
+      .toContain('"userId":"manager-1"');
 
     const kept = await page.evaluate(
       () =>
@@ -333,8 +333,8 @@ test.describe("offline: totals only (architecture 21.11)", () => {
   });
 
   test("sign-out forgets them", async ({ page }) => {
-    await signIn(page, "admin");
-    await stubHome(page, "admin");
+    await signIn(page, "manager");
+    await stubHome(page, "manager");
     await page.route("**/api/auth/sign-out", (route) => json(route, {}));
     await page.goto("/admin");
     await expect(page.getByTestId("tile-newLeads")).toBeVisible();

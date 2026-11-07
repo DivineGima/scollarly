@@ -28,10 +28,10 @@ const filters = (query = "") => {
   return read.filters;
 };
 
-async function actorOf(role: "admin" | "owner" | "student"): Promise<Actor> {
+async function actorOf(role: "manager" | "admin" | "student"): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, now())`);
-  return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: role === "owner" ? new Date() : null });
+  return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: role === "admin" ? new Date() : null });
 }
 
 async function asRuntime<T>(work: () => Promise<T>): Promise<T> {
@@ -59,11 +59,11 @@ const day = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString(
 beforeAll(async () => {
   t = await createTestDb();
   admin = await actorOf("admin");
-  owner = await actorOf("owner");
+  owner = await actorOf("admin");
   student = await actorOf("student");
 
   // Inside the last 30 days: 3 from Cameroon (one answered fast, one at a later stage), 2 from Nigeria, one assigned to the admin.
-  await leadRow(t, { ...at(day(1)), country_code: "CM", source: { page: "/apply" }, first_response_at: new Date(new Date(day(1)).getTime() + 30 * 60_000).toISOString(), assigned_admin_id: admin.userId });
+  await leadRow(t, { ...at(day(1)), country_code: "CM", source: { page: "/apply" }, first_response_at: new Date(new Date(day(1)).getTime() + 30 * 60_000).toISOString(), assigned_manager_id: admin.userId });
   await leadRow(t, { ...at(day(2)), country_code: "CM", source: { page: "onboarding" }, stage_code: "visa" });
   await leadRow(t, { ...at(day(3)), country_code: "CM", source: { page: "/apply" } });
   await leadRow(t, { ...at(day(4)), country_code: "NG", source: { page: "/" } });
@@ -131,13 +131,14 @@ describe("the data calls", () => {
     expect(json.series.reduce((sum: number, p: { value: number }) => sum + p.value, 0)).toBe(6);
     // S15.6: the funnel starts with the students who finished their profile (none here); the stage steps follow, unchanged.
     expect(json.funnel[0]).toMatchObject({ code: "profile_onboarded", reached: 0 });
-    expect(json.funnel[1]).toMatchObject({ code: "share_results", reached: 6, ofAll: 100 });
+    expect(json.funnel[1]).toMatchObject({ code: "course_interest", reached: 6, ofAll: 100 });
     expect(json.funnel.at(-1)).toMatchObject({ code: "arrived", reached: 1 });
     expect(json.filters).toEqual({ country: null, source: null, assigned: "all" });
   });
 
   it("shows every adviser's numbers to the owner only", async () => {
-    expect((await call("crm", admin)).json.admins).toBeNull();
+    const manager = await actorOf("manager"); // version 5: a manager is the one who sees only their own numbers; the admin sees everyone's
+    expect((await call("crm", manager)).json.admins).toBeNull();
     const asOwner = (await call("crm", owner)).json.admins;
     expect(Array.isArray(asOwner)).toBe(true);
     expect(asOwner.find((a: any) => a.userId === admin.userId)).toMatchObject({ assigned: 1, answered: 1 });
@@ -162,8 +163,8 @@ describe("a student gets nothing, from the database as well as the facade", () =
 describe("the pipeline board", () => {
   it("has a column per stage with the total and the newest cards, and carries the version a stage change needs", async () => {
     const columns = await asRuntime(() => pipelineBoard(t.db, admin, filters(), NOW));
-    expect(columns.map((c) => c.code)).toEqual(["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"]);
-    const first = columns.find((c) => c.code === "share_results");
+    expect(columns.map((c) => c.code)).toEqual(["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"]);
+    const first = columns.find((c) => c.code === "course_interest");
     expect(first?.total).toBe(6);
     expect(first?.cards.length).toBeLessThanOrEqual(BOARD_COLUMN_LIMIT);
     expect(first?.cards[0]?.version).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -172,7 +173,7 @@ describe("the pipeline board", () => {
 
   it("does not use the date range: an old lead still waiting is on the board", async () => {
     const columns = await asRuntime(() => pipelineBoard(t.db, admin, filters("from=2026-10-20&to=2026-10-25"), NOW));
-    expect(columns.find((c) => c.code === "share_results")?.total).toBe(6);
+    expect(columns.find((c) => c.code === "course_interest")?.total).toBe(6);
   });
 
   it("shows at most one screenful per column and still counts the rest", async () => {

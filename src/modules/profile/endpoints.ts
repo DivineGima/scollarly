@@ -24,7 +24,7 @@ const emptyBody = z.strictObject({});
 export const profileMutations: Record<string, Mutation> = {
   /** B11: "Edit name". */
   "admin/profile.setName": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ env, token, body, requestId }) {
       const parsed = parseBody(nameBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -37,7 +37,7 @@ export const profileMutations: Record<string, Mutation> = {
 
   /** B11: "sign out of other devices". The current session stays. */
   "admin/profile.signOutOthers": {
-    access: { kind: "role", role: "admin" },
+    access: { kind: "role", role: "manager" },
     async handle({ env, token, body, requestId }) {
       const parsed = parseBody(emptyBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -47,7 +47,7 @@ export const profileMutations: Record<string, Mutation> = {
 
   /** C6 step 3: "Sign out everywhere" (this session stays). */
   "admin/security.signOutEverywhere": {
-    access: { kind: "role", role: "owner" },
+    access: { kind: "role", role: "admin" },
     async handle({ actor, env, token, body, requestId }) {
       const parsed = parseBody(emptyBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -59,7 +59,7 @@ export const profileMutations: Record<string, Mutation> = {
 
   /** C6 step 2: new recovery codes, shown once; the old ones stop working. Needs a fresh 2FA check. */
   "admin/security.regenerateRecoveryCodes": {
-    access: { kind: "role", role: "owner", stepUp: true },
+    access: { kind: "role", role: "admin", stepUp: true },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(emptyBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -84,7 +84,7 @@ export function profileDataCalls(env: EndpointEnv): Record<string, DataCall> {
 
     /** C6 step 1: 2FA status and active sessions (the current one is marked). Owner only. */
     "admin/security": async (actor, call) => {
-      if (actor.role !== "owner" || !call.token) throw new AuthError("FORBIDDEN", "Not allowed.");
+      if (actor.role !== "admin" || !call.token) throw new AuthError("FORBIDDEN", "Not allowed.");
       const [record, sessions] = await Promise.all([
         createSecondFactorStore(env.db, contextOf(actor)).getTotp(actor.userId),
         mySessions(env.db, call.token),

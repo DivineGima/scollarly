@@ -101,10 +101,10 @@ describe("S1.1: closed value lists in the database match src/lib/constants.ts", 
 });
 
 describe("S1.1: seeds", () => {
-  it("seeds the six pipeline stages in order, with an English name each", async () => {
+  it("seeds the seven pipeline stages in order, with an English name each", async () => {
     const rows = (await t.run("select code, position, name->>'en' as en from pipeline_stage order by position")) as { code: string; position: number; en: string }[];
     expect(rows.map((r) => r.code)).toEqual([...C.PIPELINE_STAGE_CODES]);
-    expect(rows.map((r) => r.position)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(rows.map((r) => r.position)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     for (const row of rows) expect(row.en.length).toBeGreaterThan(0);
   });
 
@@ -283,10 +283,10 @@ describe("S1.1: leads (architecture 7.2, ADR-030)", () => {
     await expect(leadRow(t, { client_ref: row?.client_ref })).resolves.toBeTruthy();
   });
 
-  it("starts at the share_results stage and refuses an unknown stage", async () => {
+  it("starts at the course_interest stage and refuses an unknown stage", async () => {
     const id = await leadRow(t);
     const [row] = (await t.run(`select stage_code from lead where id = ${q(id)}`)) as { stage_code: string }[];
-    expect(row?.stage_code).toBe("share_results");
+    expect(row?.stage_code).toBe("course_interest");
     await expect(leadRow(t, { stage_code: "nope" })).rejects.toThrow(/foreign key|stage_code/);
   });
 
@@ -356,23 +356,24 @@ describe("S1.1: other constraints", () => {
 
   it("refuses an admin invite that expires before it is created", async () => {
     await expect(
-      insertRow(t, "admin_invite", { id: uuidv7(), email: "a@example.test", token_hash: `h-${randomUUID()}`, invited_by: "owner", created_at: "2026-10-02T00:00:00Z", expires_at: "2026-10-01T00:00:00Z" }),
+      insertRow(t, "admin_invite", { id: uuidv7(), email: "a@example.test", token_hash: `h-${randomUUID()}`, invited_by: "admin", created_at: "2026-10-02T00:00:00Z", expires_at: "2026-10-01T00:00:00Z" }),
     ).rejects.toThrow(/admin_invite_expiry_check/);
   });
 
-  it("keeps the single-owner index from the first slice", async () => {
-    await appUserRow(t, "the-owner", "owner");
-    await expect(appUserRow(t, "second-owner", "owner")).rejects.toThrow(/app_user_single_owner/);
+  it("allows two admins and refuses a third (version 5; it was the single-owner index)", async () => {
+    await appUserRow(t, "the-admin", "admin");
+    await appUserRow(t, "the-backup-admin", "admin");
+    await expect(appUserRow(t, "third-admin", "admin")).rejects.toThrow(/At most two admins/);
   });
 });
 
 describe("S1.1: append-only tables have no update or delete right, even for the runtime role (ADR-007, 7.1)", () => {
   it("lead_activity and audit_log accept inserts and refuse update and delete", async () => {
-    await appUserRow(t, "staff-1", "admin");
-    const leadId = await leadRow(t);
+    await appUserRow(t, "staff-1", "manager");
+    const leadId = await leadRow(t, { assigned_manager_id: "staff-1" }); // a manager writes activity only on an assigned lead (version 5)
     await t.asRuntime();
     try {
-      const ctx = `select set_config('app.user_id', 'staff-1', false), set_config('app.role', 'admin', false)`;
+      const ctx = `select set_config('app.user_id', 'staff-1', false), set_config('app.role', 'manager', false)`;
       await t.run(ctx);
       const activity = uuidv7();
       await t.run(`insert into lead_activity (id, lead_id, type, actor_id) values (${q(activity)}, ${q(leadId)}, 'created', 'staff-1')`);
