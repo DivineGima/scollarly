@@ -11,9 +11,9 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 | Current PRD | `PRD_5.md` (2026-11-06, full copy: part A amendments, part B the whole of PRD_4) |
 | Current architecture | `system_architecture_5.md` (2026-11-06, derived from `PRD_5.md`; section 24 wins over older text) |
 | Essentials file | `essentials/system_architecture_essential_5.md` (Stages 16 to 19, at most three modules each) |
-| Phase | Documents written 2026-11-06; **the owner signed off the three documents 2026-11-07.** No code started. Nothing is committed yet: the owner wants one commit after Stages 16 and 17 are finished. |
-| Next module | S16.1 (`CLAUDE.md` Step 2 now selects essentials 5). Waiting for the owner to say start. |
-| Blocked by | The guardrail amendments (F37) block S17 and the F41 clean-out, not the rest of S16. Legal review (F38) is confirmed by the owner's lawyer, so it no longer blocks S17 going live. |
+| Phase | Stages 16 and 17 are built, CI is green and they are merged to `main` (pull request #89, 2026-11-07). **Stage 18 is next.** Nothing is deployed to production yet: migrations 0022 to 0025 wait for the manual deploy. |
+| Next module | S18.1 (Inbox and student screen). |
+| Blocked by | Nothing blocks S18. Owner items for the deploy: read the storage quota (F42, F43); the first deploy smoke check (upload one document, open one letter); decide how to follow up files that fail to delete after an erasure. |
 
 ## Start-of-task check results (CLAUDE.md steps 1 to 7), 2026-11-06
 
@@ -36,12 +36,12 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 
 | ID | Module | Status |
 |---|---|---|
-| S16.1 | Roles | in-progress (code and tests done, passing locally; complete when CI passes; the F41 clean-out is written and tested but NOT yet run on production) |
-| S16.2 | Assignment | in-progress (code and tests done, passing locally; complete when CI passes) |
-| S16.3 | Seven steps | in-progress (code and tests done, passing locally; complete when CI passes) |
-| S17.1 | Private documents | in-progress (code and tests done, passing locally: 1952 tests; complete when CI passes; the production `student-docs` bucket is NOT yet created; see the 2026-11-07 Session 4 entry) |
-| S17.2 | Step-2 form | in-progress (code and tests done, passing locally; complete when CI passes; see the Session 5 entry) |
-| S17.3 | Letters, proof, ledger, purge | in-progress (code and tests done, passing locally; complete when CI passes; see the Session 5 entry) |
+| S16.1 | Roles | complete (CI green on pull request #89, merged 2026-11-07; the F41 clean-out was run on production, see below; migrations 0022 and 0023 are NOT yet deployed) |
+| S16.2 | Assignment | complete (CI green on pull request #89, merged 2026-11-07) |
+| S16.3 | Seven steps | complete (CI green on pull request #89, merged 2026-11-07) |
+| S17.1 | Private documents | complete (CI green on pull request #89, merged 2026-11-07; the production `student-docs` bucket was created private on 2026-11-07 at the owner's instruction, see Session 6; not yet verified against the real bucket) |
+| S17.2 | Step-2 form | complete (CI green on pull request #89, merged 2026-11-07; see the Session 5 entry) |
+| S17.3 | Letters, proof, ledger, purge | complete (CI green on pull request #89, merged 2026-11-07; see the Session 5 entry) |
 | S18.1 | Inbox and student screen | not started |
 | S18.2 | Admin trim | not started |
 | S18.3 | Student and public text | not started |
@@ -81,6 +81,13 @@ Built against: essentials 5 and architecture 5. Done in code, nothing committed.
 7. **Not done in S17:** the staff side of documents (approve or reject a file on a student screen, upload a letter, the Inbox sections and the alerts) is S18.1; there are endpoints for all of it and `uploadDocument` takes the admin's paths, but no staff screen yet. Nothing sets `lead.last_student_activity_at` yet (quiet files, S18.2). The apply form still asks for programme choices (the one-university rule of the PRD is not enforced there). Sign-out has no queued upload to clear, because uploads are online-only with a retry of the one file.
 8. **Not verified against the real bucket:** see Session 4 (the signed link's response overrides). The first deploy's smoke check must open one letter and one document link.
 
+### 2026-11-07: Session 6 (S16 and S17 merged; production storage)
+
+Built against: essentials 5 and architecture 5. Pull request #89 (S16 and S17) went through CI and was merged to `main` (merge commit 6a2ca1e). CI found four things that local runs had not: the S16.1 admin-cap test opened a second database in the same file, which wipes the first on the shared CI Postgres (moved to `tests/integration/s16-roles-admin-cap.test.ts`); older end-to-end fixtures still used the six old step codes, the old WhatsApp default text and, in the audit test, a wrong action name; the university editor showed the raw key for the new passport switch (labels added in English and French); one Lighthouse page scored low once on a cold start and passed on the rerun (no code change).
+
+On the owner's instruction ("complete all the steps"): the private bucket `student-docs` was created on the production Neon branch `production` (br-shiny-resonance-b9kn9vx1); the existing public bucket `images` is untouched. The Neon API shows the project on the free plan (`free_v3`) and does not show an object storage quota, so the quota is still for the owner to read in the Neon console (F42, F43). The CSP `connect-src` is narrowed from the whole storage cluster to the production host `https://br-shiny-resonance-b9kn9vx1.storage.c-7.eu-central-1.aws.neon.tech` (decision 1 of Session 5 is closed).
+
+Still open and not done by Claude: deploy (manual workflow `Stage 0 deploy and measure`, from `main`) with migrations 0022 to 0025; the Worker needs the four `NEON_STORAGE_*` settings it already uses for `images`; the first smoke check must upload one document and open one letter against the real bucket; the owner reads the storage quota; the owner decides how to follow up files that fail to delete after an erasure (`filesNotDeleted`).
 ## Flags (need the owner)
 
 | # | Flag | Status |
