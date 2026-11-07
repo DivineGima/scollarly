@@ -60,7 +60,14 @@ export async function runDocumentPurge(env: CloudflareEnv, db: ReturnType<typeof
   try {
     store = getDocumentStore(env);
   } catch {
-    // Storage is not set up for this deployment (a preview, a test): there are no files to purge, so the step has nothing to do. Production has the secrets (S0.10).
+    // Storage is not set up for this deployment (a preview, a test): with no files to purge the step has nothing to do. But if files are waiting
+    // (the secrets were lost), the run fails so the retention promise is not silently broken.
+    const waiting = await purgeCandidates(db, 1).catch(() => null);
+    if (waiting === null || waiting.length > 0) {
+      console.error(JSON.stringify({ level: "error", job: "purge", message: "storage is not configured and files are waiting to be purged" }));
+      await recordJob(db, "purge", false, {}).catch(() => undefined);
+      return null;
+    }
     console.warn(JSON.stringify({ level: "warn", job: "purge", message: "storage is not configured; nothing to purge" }));
     return { found: 0, deleted: 0, marked: 0, failed: 0 };
   }

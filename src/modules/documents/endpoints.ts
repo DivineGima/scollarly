@@ -2,11 +2,11 @@ import { errorResponseFor, jsonResponse, newRequestId } from "@/lib/http";
 import { uuidv7 } from "@/lib/uuid";
 import type { Actor } from "@/server/auth/actor";
 import type { DataCall } from "@/server/edge/authed";
-import type { EndpointEnv } from "@/server/edge/endpoint-env";
+import { documentStoreOf, type EndpointEnv } from "@/server/edge/endpoint-env";
 import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
 import { logError } from "@/server/log";
-import { documentKey, type DocumentStore } from "@/server/media/documents";
+import { documentKey } from "@/server/media/documents";
 import {
   createPendingDocument,
   createPendingLetter,
@@ -32,14 +32,7 @@ import { approveProofBody, confirmBody, idQuery, reviewBody, signBody, signLette
 const unavailable = () => errorResponseFor("TEMPORARILY_UNAVAILABLE", "Please try again shortly.", newRequestId(), { headers: { "Retry-After": "30" } });
 const invalid = (fields: Record<string, string>) => errorResponseFor("VALIDATION", "Check the request.", newRequestId(), { fields });
 
-/** The store, or null when storage is not configured here (a test, a preview). */
-function storeOf(env: EndpointEnv): DocumentStore | null {
-  try {
-    return env.documents ? env.documents() : null;
-  } catch {
-    return null;
-  }
-}
+const storeOf = documentStoreOf;
 
 /** The no-store answer a link goes out in: a link must never be kept by a cache. */
 function linkResponse(link: { url: string; expiresInSeconds: number }): Response {
@@ -51,9 +44,14 @@ function linkResponse(link: { url: string; expiresInSeconds: number }): Response
 async function openLink(env: EndpointEnv, actor: Actor, id: string, audit: boolean): Promise<Response> {
   const store = storeOf(env);
   if (!store) return unavailable();
-  const key = await keyToOpen(env.db, actor, id, audit);
-  if (!key) return errorResponseFor("NOT_FOUND", "That document does not exist.", newRequestId());
-  return linkResponse(await store.signDownload(key));
+  const found = await keyToOpen(env.db, actor, id, audit);
+  if (!found) return errorResponseFor("NOT_FOUND", "That document does not exist.", newRequestId());
+  // The upload link signs only the content type, so the object is measured again before a link goes out: a file swapped for one of another size
+  // after it was checked is not served. (A same-size swap is closed by the short upload link.)
+  const object = await store.head(found.key).catch(() => undefined);
+  if (object === undefined) return unavailable();
+  if (object === null || object.size !== found.byteSize) return errorResponseFor("NOT_FOUND", "That document does not exist.", newRequestId());
+  return linkResponse(await store.signDownload(found.key));
 }
 
 export const documentMutations: Record<string, Mutation> = {

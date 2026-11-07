@@ -249,6 +249,17 @@ describe("S17.1 review and links", () => {
     expect((await read("me/document-link", actor(A.student, "student"), `id=${pending.json.id}`)).status).toBe(404);
   });
 
+  it("a file swapped for one of another size after it was checked is not served", async () => {
+    const fresh = (await read("me/documents", actor(A.student, "student"), "")).json.documents.find((d: { kind: string; state: string }) => d.kind === "passport" && d.state === "uploaded");
+    const key = `${A.student}/${fresh.id}`;
+    const original = bucket.objects.get(key) as Uint8Array;
+    bucket.objects.set(key, PNG(500));
+    expect((await read("admin/document-link", actor(A.manager, "manager"), `id=${fresh.id}`)).status).toBe(404);
+    expect((await read("me/document-link", actor(A.student, "student"), `id=${fresh.id}`)).status).toBe(404);
+    bucket.objects.set(key, original);
+    expect((await read("admin/document-link", actor(A.manager, "manager"), `id=${fresh.id}`)).status).toBe(200);
+  });
+
   it("a malformed id is a validation error, not a fault", async () => {
     expect((await read("admin/document-link", actor(A.manager, "manager"), "id=nope")).status).toBe(400);
   });

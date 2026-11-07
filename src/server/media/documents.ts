@@ -17,7 +17,8 @@ export const DOCUMENTS_BUCKET = "student-docs";
 /** A student id (any id Neon Auth issues) and a document id (a UUID): the only shape of key this store will sign. */
 const KEY = /^[A-Za-z0-9_-]{1,64}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-export const UPLOAD_LINK_SECONDS = 600;
+/** Short, because the signature cannot bind the size: a link that lives on after the file was checked could be used to swap it. */
+export const UPLOAD_LINK_SECONDS = 180;
 export const DOWNLOAD_LINK_SECONDS = 300;
 
 export function documentKey(studentId: string, documentId: string): string {

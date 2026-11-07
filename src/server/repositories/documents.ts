@@ -69,7 +69,31 @@ export async function createPendingDocument(
   input: { id: string; kind: DocumentKind; contentType: string; byteSize: number; key: string; applicationId: string | null },
 ): Promise<CreatePendingOutcome> {
   const replace = ONE_LIVE_KINDS.has(input.kind);
-  try {
+  // Two signs of one kind at once (a double tap, two tabs) both pass the "nothing live" check and the second hits the unique index. That is not an
+  // approved document: only an approved row is. After a collision the second attempt replaces the first one's pending row.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await insertPending(db, actor, input, replace);
+    } catch (error) {
+      if (!mentions(error, "student_document_one_live_per_kind")) throw error;
+      if (await hasApproved(db, actor, input.kind)) return { kind: "already_approved" };
+      if (attempt >= 1) throw error;
+    }
+  }
+}
+
+async function hasApproved(db: Db, actor: Actor, kind: DocumentKind): Promise<boolean> {
+  const [result] = await runAs(db, actor, db.execute(sql`select 1 from student_document where student_id = ${actor.userId} and kind = ${kind} and state = 'approved' limit 1`));
+  return rowsOf(result).length > 0;
+}
+
+async function insertPending(
+  db: Db,
+  actor: Actor,
+  input: { id: string; kind: DocumentKind; contentType: string; byteSize: number; key: string; applicationId: string | null },
+  replace: boolean,
+): Promise<CreatePendingOutcome> {
+  {
     const [replaced] = await runAs(
       db,
       actor,
@@ -88,9 +112,6 @@ export async function createPendingDocument(
         select storage_key from put_aside`),
     );
     return { kind: "ok", replacedKeys: rowsOf<{ storage_key: string | null }>(replaced).flatMap((r) => (r.storage_key ? [r.storage_key] : [])) };
-  } catch (error) {
-    if (mentions(error, "student_document_one_live_per_kind")) return { kind: "already_approved" };
-    throw error;
   }
 }
 
@@ -181,21 +202,22 @@ export async function reviewDocument(
  * The key of a file the caller may open, or null. A staff opening is written to the audit log in the same statement (the document id and its
  * kind, nothing else); a student opening their own letter is not. The signed link is made by the caller and is never logged.
  */
-export async function keyToOpen(db: Db, actor: Actor, id: string, audit: boolean): Promise<string | null> {
+export async function keyToOpen(db: Db, actor: Actor, id: string, audit: boolean): Promise<{ key: string; byteSize: number } | null> {
   const [result] = await runAs(
     db,
     actor,
     db.execute(sql`
       with d as (
-        select id, storage_key, kind from student_document
+        select id, storage_key, kind, byte_size from student_document
          where id = ${id}::uuid and storage_key is not null and state in ('uploaded', 'approved', 'rejected')
       ), aud as (
         insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
         select ${uuidv7()}::uuid, ${actor.userId}, 'documents.open', 'student_document', id::text, jsonb_build_object('kind', kind) from d where ${audit}::boolean
       )
-      select storage_key from d`),
+      select storage_key, byte_size from d`),
   );
-  return rowsOf<{ storage_key: string }>(result)[0]?.storage_key ?? null;
+  const row = rowsOf<{ storage_key: string; byte_size: number }>(result)[0];
+  return row ? { key: row.storage_key, byteSize: row.byte_size } : null;
 }
 
 /** Step 2 to step 3: the four required documents are approved (and the passport, when the application's university asks). */

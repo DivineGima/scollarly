@@ -25,7 +25,7 @@ describe("the document store", () => {
     const signed = await store.signUpload(key, "image/png");
     const url = new URL(signed.url);
     expect(url.pathname).toBe(`/student-docs/${key}`);
-    expect(url.searchParams.get("X-Amz-Expires")).toBe("600");
+    expect(url.searchParams.get("X-Amz-Expires")).toBe("180");
     expect(url.searchParams.get("X-Amz-SignedHeaders")).toContain("content-type");
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[a-f0-9]{64}$/);
     expect(signed.headers).toEqual({ "content-type": "image/png" });

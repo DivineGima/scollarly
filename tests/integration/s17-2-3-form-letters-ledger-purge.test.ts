@@ -518,6 +518,17 @@ describe("S17.3 the purge (architecture 24.7, ADR-068)", () => {
     expect(await runPurge({ ...base, deleteObject: (k) => bucket.store.deleteObject(k) })).toMatchObject({ found: 1, deleted: 1, marked: 1 });
   });
 
+  it("with no storage configured, the run fails when files are waiting and stays quiet when none are", async () => {
+    const { runDocumentPurge } = await import("@/server/edge/cron");
+    const none = {} as unknown as Parameters<typeof runDocumentPurge>[0];
+    await t.run(`delete from student_document where student_id like 'pg-%'`);
+    await t.run(`update student_document set state = 'purged', storage_key = null where storage_key is not null and state = 'pending'`);
+    await student("pg-nostore");
+    expect(await runDocumentPurge(none, t.db)).toEqual({ found: 0, deleted: 0, marked: 0, failed: 0 });
+    await file("pg-nostore", "pending", 2);
+    expect(await runDocumentPurge(none, t.db)).toBeNull();
+  });
+
   it("the database refuses to mark a row purged that does not qualify, even if asked", async () => {
     await student("pg-guard");
     const f = await file("pg-guard");

@@ -6,7 +6,7 @@ import { parseRef } from "@/lib/ref";
 import { requiredText, V } from "@/lib/schemas/common";
 import { AuthError, type Actor } from "@/server/auth/actor";
 import type { DataCall } from "@/server/edge/authed";
-import type { EndpointEnv } from "@/server/edge/endpoint-env";
+import { documentStoreOf, type EndpointEnv } from "@/server/edge/endpoint-env";
 import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
 import { logError } from "@/server/log";
@@ -162,7 +162,7 @@ export const studentMutations: Record<string, Mutation> = {
       const outcome = await eraseMyAccount(env.db, actor as Actor, token);
       switch (outcome) {
         case "erased": {
-          const store = env.documents?.();
+          const store = documentStoreOf(env);
           const failed = store ? await deleteAfterErasure((key) => store.deleteObject(key), keys) : keys.length;
           if (failed > 0) logError(requestId, "me/student.requestErasure", new Error(`${failed} student file(s) could not be deleted from storage`));
           return jsonResponse({ erased: true });

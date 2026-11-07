@@ -1,7 +1,7 @@
 import { errorResponseFor, jsonResponse, newRequestId } from "@/lib/http";
 import { type Actor } from "@/server/auth/actor";
 import type { DataCall } from "@/server/edge/authed";
-import type { EndpointEnv } from "@/server/edge/endpoint-env";
+import { documentStoreOf, type EndpointEnv } from "@/server/edge/endpoint-env";
 import type { Mutation } from "@/server/edge/mutations";
 import { parseBody } from "@/server/edge/validate";
 import { logError } from "@/server/log";
@@ -396,7 +396,7 @@ export const leadMutations: Record<string, Mutation> = {
       });
       switch (outcome) {
         case "erased": {
-          const store = env.documents?.();
+          const store = documentStoreOf(env);
           const failed = store ? await deleteAfterErasure((key) => store.deleteObject(key), keys) : keys.length;
           if (failed > 0) logError(requestId, "admin/leads.eraseLead", new Error(`${failed} student file(s) could not be deleted from storage`));
           return jsonResponse({ erased: true, filesNotDeleted: failed });
