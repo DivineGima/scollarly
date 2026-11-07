@@ -6,7 +6,7 @@
 
 export type NavRole = "student" | "manager" | "admin";
 
-export type TabKey = "home" | "universities" | "progress" | "help" | "leads" | "content" | "insights";
+export type TabKey = "home" | "universities" | "progress" | "file" | "help" | "leads" | "content" | "insights";
 
 export type IconName = TabKey | "file" | "more" | "bell" | "profile" | "data" | "team" | "audit" | "security" | "settings" | "health" | "signOut";
 
@@ -24,11 +24,12 @@ export interface MoreItem {
   ownerOnly?: true;
 }
 
-/** Student: Home, Universities, My progress, Help (owner decision, 2026-10-31). */
+/** Student: Home, Universities, My progress, My file, Help (owner decision 2026-10-31; My file became a tab in version 5, architecture 24.15). */
 const STUDENT_TABS: readonly NavTab[] = [
   { key: "home", href: "/me", icon: "home" },
   { key: "universities", href: "/me/universities", icon: "universities" },
   { key: "progress", href: "/me/progress", icon: "progress" },
+  { key: "file", href: "/me/file", icon: "file" },
   { key: "help", href: "/me/help", icon: "help" },
 ];
 
@@ -41,7 +42,6 @@ const STAFF_TABS: readonly NavTab[] = [
 ];
 
 const STUDENT_MORE: readonly MoreItem[] = [
-  { key: "file", href: "/me/file", icon: "file" },
   { key: "profile", href: "/me/profile", icon: "profile" },
   { key: "data", href: "/me/data", icon: "data" },
 ];
@@ -72,7 +72,7 @@ export function notificationsHref(role: NavRole): string {
 }
 
 /** The tour keys the server accepts for `app_mark_tour_seen`: one per tab. */
-export const TOUR_KEYS: readonly TabKey[] = ["home", "universities", "progress", "help", "leads", "content", "insights"];
+export const TOUR_KEYS: readonly TabKey[] = ["home", "universities", "progress", "file", "help", "leads", "content", "insights"];
 
 const LOCALE_PREFIX = /^\/en(?=\/|$)/;
 

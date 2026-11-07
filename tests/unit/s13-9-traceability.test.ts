@@ -17,7 +17,7 @@ const E = "tests/e2e";
 const MAP: Record<string, { file: string; title: string }[]> = {
   "FR-19": [
     { file: `${E}/s13-6-admin-hubs.spec.ts`, title: "shows an admin the four tabs and a More sheet" },
-    { file: `${E}/s13-4-student-app.spec.ts`, title: "shows the four student tabs and the More button" },
+    { file: `${E}/s13-4-student-app.spec.ts`, title: "shows the five student tabs (My file is one) and the More button" },
     { file: `${U}/s13-foundations.test.ts`, title: "never offers an admin an owner-only row" },
     { file: `${I}/s13-6-admin-hubs.test.ts`, title: "refuses a student, and a signed-out caller" },
   ],

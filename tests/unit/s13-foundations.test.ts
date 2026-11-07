@@ -24,7 +24,7 @@ import fr from "../../messages/fr.json";
 
 describe("the tab bar config (21.10, ADR-041)", () => {
   it("gives a student Home, Universities, My progress and Help", () => {
-    expect(tabsFor("student").map((tab) => tab.key)).toEqual(["home", "universities", "progress", "help"]);
+    expect(tabsFor("student").map((tab) => tab.key)).toEqual(["home", "universities", "progress", "file", "help"]);
   });
 
   it("gives an admin and an owner the same four tabs: Home, Leads, Content, Insights", () => {
@@ -36,7 +36,7 @@ describe("the tab bar config (21.10, ADR-041)", () => {
     const adminKeys = moreItemsFor("manager").map((item) => item.key);
     expect(adminKeys).toEqual(["profile"]);
     expect(moreItemsFor("admin").map((item) => item.key)).toEqual(["profile", "team", "audit", "security", "settings", "health"]);
-    expect(moreItemsFor("student").map((item) => item.key)).toEqual(["file", "profile", "data"]);
+    expect(moreItemsFor("student").map((item) => item.key)).toEqual(["profile", "data"]);
   });
 
   it("keeps a screen inside a tab lit under that tab, and the pages behind More under the round button", () => {
@@ -76,7 +76,7 @@ describe("the tab bar config (21.10, ADR-041)", () => {
 
 const labels: AppNavLabels = {
   nav: "Main tabs",
-  tabs: { home: "Home", universities: "Universities", progress: "My progress", help: "Help", leads: "Leads", content: "Content", insights: "Insights" },
+  tabs: { home: "Home", universities: "Universities", progress: "My progress", file: "My file", help: "Help", leads: "Leads", content: "Content", insights: "Insights" },
   more: "More",
   sheet: {
     title: "More",
@@ -93,7 +93,7 @@ describe("the tab bar HTML (FR-19)", () => {
 
   it("renders every tab as a link with its label, and a round More button", () => {
     const out = html("student");
-    for (const label of ["Home", "Universities", "My progress", "Help"]) expect(out).toContain(label);
+    for (const label of ["Home", "Universities", "My progress", "My file", "Help"]) expect(out).toContain(label);
     expect(out).toContain('href="/me/universities"');
     expect(out).toContain('aria-haspopup="dialog"');
   });

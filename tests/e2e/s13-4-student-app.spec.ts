@@ -40,17 +40,20 @@ async function stubPreferences(page: Page, data = preferences()) {
 }
 
 test.describe("the floating bar", () => {
-  test("shows the four student tabs and the More button, lights the current tab, and reaches each in one tap", async ({ page }) => {
+  test("shows the five student tabs (My file is one) and the More button, lights the current tab, and reaches each in one tap", async ({ page }) => {
     await stubHome(page);
     await page.goto("/me");
     const bar = page.getByRole("navigation", { name: "Main tabs" });
-    for (const name of ["Home", "Universities", "My progress", "Help"]) await expect(bar.getByRole("link", { name })).toBeVisible();
+    for (const name of ["Home", "Universities", "Progress", "My file", "Help"]) await expect(bar.getByRole("link", { name })).toBeVisible();
     await expect(bar.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("button", { name: "More" })).toBeVisible();
     await axe(page);
     await expect(bar.getByRole("link", { name: "Universities" })).toHaveAttribute("href", "/me/universities");
-    await expect(bar.getByRole("link", { name: "My progress" })).toHaveAttribute("href", "/me/progress");
+    await expect(bar.getByRole("link", { name: "Progress" })).toHaveAttribute("href", "/me/progress");
+    await expect(bar.getByRole("link", { name: "My file" })).toHaveAttribute("href", "/me/file");
     await expect(bar.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/me/help");
+    // Five tabs and the round button still fit a 360 px phone without a sideways scroll.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
   test("never covers the last thing on a page at 360 px", async ({ page }) => {

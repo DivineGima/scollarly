@@ -10,6 +10,7 @@ import { Testimonials, TrustStats } from "@/components/public/trust";
 import { UniversityCard } from "@/components/public/university-card";
 import { CreateAccountLink } from "@/components/public/create-account-link";
 import { toCourseCatalogue } from "@/modules/content/course-catalogue";
+import { sevenSteps } from "@/modules/content/seven-steps";
 import { readCatalogue, readPageImages, readSite, readTrust } from "@/modules/content/read";
 import { pageMetadata } from "@/components/public/page-metadata";
 
@@ -29,7 +30,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const [t, courses, snapshot, site, trust, pageImages] = await Promise.all([getTranslations("home"), getTranslations("courses"), readCatalogue(), readSite(), readTrust(), readPageImages()]);
   const { universities } = snapshot;
   const { blocks } = site;
-  const steps = site.processSteps.filter((s) => s.kind === "application");
+  const processWords = await getTranslations("process");
+  const steps = sevenSteps((key) => processWords(key as never));
   const featured = universities.slice(0, 6);
   const heroPhoto = pageImages["home.hero"];
   // The course finder (F13): the public catalogue is the same for everyone, so it is safe in this cached page. It lists every course on the
@@ -97,23 +99,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         )}
       </section>
 
-      {steps.length > 0 ? (
-        <section aria-labelledby="process-heading" className="section">
-          <h2 id="process-heading">{t("processHeading")}</h2>
-          <ol className="steps compact">
-            {steps.map((step) => (
-              <li key={step.id}>
-                <PageLink href={`/process#step-${step.position}`}>
-                  <span className="step-number" aria-hidden="true">
-                    {step.position}
-                  </span>
-                  {step.title}
-                </PageLink>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
+      <section aria-labelledby="process-heading" className="section">
+        <h2 id="process-heading">{t("processHeading")}</h2>
+        <ol className="steps compact">
+          {steps.map((step) => (
+            <li key={step.id}>
+              <PageLink href={`/process#step-${step.position}`}>
+                <span className="step-number" aria-hidden="true">
+                  {step.position}
+                </span>
+                {step.title}
+              </PageLink>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       {WHY.some((key) => blocks[`why.${key}.title`]) ? (
         <section aria-labelledby="why-heading" className="section">

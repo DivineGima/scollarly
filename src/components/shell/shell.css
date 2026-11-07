@@ -59,10 +59,11 @@
   justify-content: center;
   gap: 2px;
   min-height: var(--touch-target);
-  padding: var(--space-1) var(--space-2);
+  /* Five tabs share a 360 px bar (the student bar since version 5), so the label gets almost the whole width of its tab. */
+  padding: var(--space-1) 0.125rem;
   border-radius: 999px;
   color: var(--color-fg-muted);
-  font-size: 0.6875rem;
+  font-size: 0.65rem;
   font-weight: 600;
   line-height: 1.1;
   text-decoration: none;
@@ -86,8 +87,8 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   color: var(--color-fg-muted);
   cursor: pointer;
