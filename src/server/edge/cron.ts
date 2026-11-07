@@ -31,7 +31,7 @@ export async function runScheduled(env: CloudflareEnv, scheduledTime: number, no
   const collector = env.COLLECTOR.get(env.COLLECTOR.idFromName("global")) as unknown as CollectorStub;
   // Bookkeeping from Stage 0. If it fails the rollup must still run: a day's counts are worth more than the "it ran" marker.
   await collector.recordCron(scheduledTime).catch((error: unknown) => {
-    console.error(JSON.stringify({ level: "error", job: "rollup", step: "recordCron", message: error instanceof Error ? error.message : "unknown" }));
+    console.error(JSON.stringify({ level: "error", job: "rollup", step: "recordCron", error: error instanceof Error ? error.name : typeof error }));
   });
   const db = getDb(env);
   const result = await runDailyRollup({
@@ -81,7 +81,7 @@ export async function runDocumentPurge(env: CloudflareEnv, db: ReturnType<typeof
     await recordJob(db, "purge", result.failed === 0, { ...result }).catch(() => undefined);
     return result.failed === 0 ? result : null;
   } catch (error) {
-    console.error(JSON.stringify({ level: "error", job: "purge", message: error instanceof Error ? error.message : "unknown" }));
+    console.error(JSON.stringify({ level: "error", job: "purge", error: error instanceof Error ? error.name : typeof error }));
     await recordJob(db, "purge", false, {}).catch(() => undefined);
     return null;
   }
