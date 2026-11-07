@@ -16,8 +16,8 @@ async function axe(page: Page) {
   expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
 }
 
-async function signIn(page: Page, role: "admin" | "owner" = "admin") {
-  await page.route("**/api/v1/admin/session", (route) => json(route, { role, name: role === "owner" ? "Owner Person" : "Priya Rao", email: `${role}@example.test`, stepUpFresh: false, toursSeen: ["home", "leads", "content", "insights"], userId: `${role}-1` }));
+async function signIn(page: Page, role: "manager" | "admin" = "manager") {
+  await page.route("**/api/v1/admin/session", (route) => json(route, { role, name: role === "admin" ? "Owner Person" : "Priya Rao", email: `${role}@example.test`, stepUpFresh: false, toursSeen: ["home", "leads", "content", "insights"], userId: `${role}-1` }));
   await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
 }
 
@@ -92,7 +92,7 @@ test.describe("the CRM overview", () => {
   });
 
   test("shows every adviser to the owner only", async ({ page }) => {
-    await signIn(page, "owner");
+    await signIn(page, "admin");
     await page.route("**/api/v1/admin/crm*", (route) => json(route, overview({ admins: [{ userId: "a1", name: "Priya Rao", assigned: 12, answered: 10, overdue: 1, medianMinutes: 40 }] })));
     await page.goto("/admin/insights?view=overview");
     await expect(page.getByTestId("crm-admins")).toContainText("Priya Rao");

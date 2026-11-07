@@ -21,7 +21,7 @@ let admin: Actor;
 let student: Actor;
 const store = createMemoryMediaStore();
 
-async function actorOf(role: "admin" | "student"): Promise<Actor> {
+async function actorOf(role: "manager" | "student"): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
   return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: null });
@@ -71,7 +71,7 @@ const count = async (sql: string) => Number((await rows(sql))[0]?.n);
 
 beforeAll(async () => {
   t = await createTestDb();
-  admin = await actorOf("admin");
+  admin = await actorOf("manager");
   student = await actorOf("student");
 });
 
@@ -344,7 +344,7 @@ describe("S6.2 content types and their publish gates", () => {
     expect((live.json.revalidate as { paths: string[] }).paths).toContain("/blog/visa-tips");
     const step = await post("content.save", admin, { type: "steps", values: { kind: "application", position: 1, title: "Send results", body: "Share your results." } });
     expect(step.status).toBe(201);
-    const template = await post("content.save", admin, { type: "templates", values: { stageCode: "share_results", locale: "en", body: "Hi {name}, your reference is {ref}." } });
+    const template = await post("content.save", admin, { type: "templates", values: { stageCode: "documents", locale: "en", body: "Hi {name}, your reference is {ref}." } });
     expect(template.status).toBe(201);
     const badStage = await post("content.save", admin, { type: "templates", values: { stageCode: "no_such_stage", locale: "en", body: "x" } });
     expect(badStage.status).toBe(400);

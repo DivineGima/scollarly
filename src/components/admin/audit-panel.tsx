@@ -57,7 +57,7 @@ export function AuditPanel() {
   }, []);
 
   useEffect(() => {
-    if (session.role === "owner") void load(applied);
+    if (session.role === "admin") void load(applied);
   }, [applied, load, session.role]);
 
   async function more() {
@@ -74,7 +74,7 @@ export function AuditPanel() {
     return t.has(key) ? t(key) : action;
   }
 
-  if (session.role !== "owner") return null;
+  if (session.role !== "admin") return null;
 
   return (
     <section>

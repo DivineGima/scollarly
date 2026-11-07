@@ -14,7 +14,7 @@ import { changeStatus, createContent } from "@/server/repositories/content-admin
 import { archiveMedia, insertMediaAs } from "@/server/repositories/media-admin";
 import { eraseMyAccount, exportMyData, requestLink } from "@/server/repositories/student";
 import { updateSetting } from "@/server/repositories/settings";
-import { createInvite, removeAdmin, revokeInvite } from "@/server/repositories/team";
+import { createInvite, removeManager, revokeInvite } from "@/server/repositories/team";
 import { uuidv7 } from "@/lib/uuid";
 import { recordPayment, voidPayment } from "@/server/repositories/payments";
 import { leadRow, q, uni } from "./helpers/fixtures";
@@ -79,7 +79,7 @@ beforeAll(async () => {
   ids.student = student.userId;
   ids.target = target.userId;
   // These students existed before version 2, so their accounts are confirmed (migration 0013); an unconfirmed login is tested in s13-2-sign-up.
-  await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(admin.userId)}, 'admin', now(), now()), (${q(owner.userId)}, 'owner', now(), now()), (${q(target.userId)}, 'student', now(), now()), (${q(student.userId)}, 'student', now(), now())`);
+  await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(admin.userId)}, 'manager', now(), now()), (${q(owner.userId)}, 'admin', now(), now()), (${q(target.userId)}, 'student', now(), now()), (${q(student.userId)}, 'student', now(), now())`);
 
   const ownerFresh = await addSession(owner.userId);
   const ownerStale = await addSession(owner.userId);
@@ -92,9 +92,9 @@ beforeAll(async () => {
   subjects.push(
     { name: "anonymous", role: "anonymous", stepUpFresh: false, headers: cookie(null) },
     { name: "student", role: "student", stepUpFresh: false, headers: cookie(student.token) },
-    { name: "admin", role: "admin", stepUpFresh: false, headers: cookie(admin.token) },
-    { name: "owner (2FA just verified)", role: "owner", stepUpFresh: true, headers: cookie(ownerFresh) },
-    { name: "owner (2FA verified 11 minutes ago)", role: "owner", stepUpFresh: false, headers: cookie(ownerStale) },
+    { name: "manager", role: "manager", stepUpFresh: false, headers: cookie(admin.token) },
+    { name: "owner (2FA just verified)", role: "admin", stepUpFresh: true, headers: cookie(ownerFresh) },
+    { name: "owner (2FA verified 11 minutes ago)", role: "admin", stepUpFresh: false, headers: cookie(ownerStale) },
     { name: "owner (no 2FA yet: treated as a student)", role: "student", stepUpFresh: false, headers: cookie(ownerNo2fa) },
   );
 
@@ -149,7 +149,7 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
       (f, h) => f.requireOwner(h, { stepUp: true }),
       (actor) => updateSetting(t.db, actor, "sla_weekday_hours", 4),
     ),
-  // Stage 2 (S2.5). The facade is the first lock; row level security (admin_invite policies, app_remove_admin) is the second.
+  // Stage 2 (S2.5). The facade is the first lock; row level security (admin_invite policies, app_remove_manager) is the second.
   // The attempt counts as done when the repository call returns, whatever it found to change: what is under test is who gets in.
   "team.invite": (subject) =>
     guarded(
@@ -157,7 +157,7 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
       (f, h) => f.requireOwner(h, { stepUp: true }),
       async (actor) => {
         const email = `matrix-${randomBytes(6).toString("hex")}@example.test`;
-        await createInvite(t.db, actor, { id: uuidv7(), email, tokenHash: randomBytes(32).toString("hex"), expiresAt: new Date(Date.now() + 86_400_000) });
+        await createInvite(t.db, actor, { id: uuidv7(), email, tokenHash: randomBytes(32).toString("hex"), expiresAt: new Date(Date.now() + 86_400_000), role: "manager" });
         return true;
       },
     ),
@@ -175,7 +175,7 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
       subject,
       (f, h) => f.requireOwner(h, { stepUp: true }),
       async (actor) => {
-        await removeAdmin(t.db, actor, ids.target ?? "");
+        await removeManager(t.db, actor, ids.target ?? "");
         return true;
       },
     ),
@@ -192,53 +192,53 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
   // Stage 5 (S5.2 to S5.5). The facade is the first lock (an admin, or an owner after 2FA); the lead policies and the database
   // functions (which check for staff themselves) are the second. As above, an attempt counts as done when the call returns.
   "leads.changeStage": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
-      await changeStage(t.db, actor, { leadId: ids.lead ?? "", stage: "choose_course", version: "2000-01-01T00:00:00.000000Z" });
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
+      await changeStage(t.db, actor, { leadId: ids.lead ?? "", stage: "course_interest", version: "2000-01-01T00:00:00.000000Z" });
       return true;
     }),
   "leads.assign": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await assignLead(t.db, actor, { leadId: ids.lead ?? "", adminId: null, version: "2000-01-01T00:00:00.000000Z" });
       return true;
     }),
   "leads.addNote": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await addNote(t.db, actor, { leadId: ids.lead2 ?? "", body: "matrix" });
       return true;
     }),
   "leads.logReply": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await logReply(t.db, actor, ids.lead2 ?? "");
       return true;
     }),
   "leads.logAdminWhatsAppOpen": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await logAdminWhatsAppOpen(t.db, actor, ids.lead2 ?? "");
       return true;
     }),
   "leads.resolveDuplicate": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await resolveDuplicate(t.db, actor, ids.lead ?? "", uuidv7(), "not_duplicate");
       return true;
     }),
   "leads.decideClaim": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await decideClaim(t.db, actor, uuidv7(), { decision: "reject", reason: "matrix" });
       return true;
     }),
   "leads.eraseLead": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       // Identity not confirmed: the function runs its staff check and then refuses, so no lead is erased by the harness.
       await eraseLead(t.db, actor, { leadId: ids.lead ?? "", identityConfirmed: false });
       return true;
     }),
   "dataRequests.log": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await logDataRequest(t.db, actor, { kind: "export", channel: "whatsapp", leadRef: ids.leadRef ?? "" });
       return true;
     }),
   "dataRequests.complete": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await completeDataRequest(t.db, actor, uuidv7());
       return true;
     }),
@@ -246,37 +246,37 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
   // Stage 6 (S6.1 to S6.3). The facade is the first lock (an admin, or an owner after 2FA); the content and media policies are the second
   // (tests/integration/stage6-content.test.ts shows a student refused by them). As above, an attempt counts as done when the call returns.
   "content.save": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       const outcome = await createContent(t.db, actor, TYPE_DEFS.faqs, { id: null, version: null, newId: uuidv7(), values: { category: null, question: "Matrix?", answer: "Yes.", sortOrder: 0 } });
       return outcome.kind === "ok";
     }),
   "content.publish": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "publish");
       return true;
     }),
   "content.unpublish": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "unpublish");
       return true;
     }),
   "content.archive": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "archive");
       return true;
     }),
   "content.restore": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await changeStatus(t.db, actor, TYPE_DEFS.faqs, { id: uuidv7(), version: "2000-01-01T00:00:00.000000Z" }, "restore");
       return true;
     }),
   "media.upload": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       const sha256 = randomBytes(32).toString("hex");
       return (await insertMediaAs(t.db, actor, { id: uuidv7(), kind: "photo", width: 10, height: 10, bytes: 1000, sha256 }, { document: false })) !== null;
     }),
   "media.archive": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await archiveMedia(t.db, actor, uuidv7());
       return true;
     }),
@@ -284,12 +284,12 @@ const IMPLEMENTED: Partial<Record<ActionId, Attempt>> = {
   // Stage 9 (S9.1). The facade is the first lock (an admin, or an owner after 2FA); the ledger policies, the column grants and the guard
   // trigger are the second (tests/integration/stage9-payments.test.ts shows a student refused by them).
   "payments.record": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       const outcome = await recordPayment(t.db, actor, { id: uuidv7(), submissionToken: randomUUID(), universityId: ids.university ?? "", leadId: null, amountUsdCents: 12345, receivedOn: "2026-01-01", note: null });
       return outcome.kind === "created";
     }),
   "payments.void": (subject) =>
-    guarded(subject, (f, h) => f.requireRole(h, "admin"), async (actor) => {
+    guarded(subject, (f, h) => f.requireRole(h, "manager"), async (actor) => {
       await voidPayment(t.db, actor, randomUUID(), "matrix");
       return true;
     }),
@@ -323,7 +323,7 @@ describe.each(Object.keys(IMPLEMENTED) as ActionId[])("matrix for %s", (action) 
   it.each([
     "anonymous",
     "student",
-    "admin",
+    "manager",
     "owner (2FA just verified)",
     "owner (2FA verified 11 minutes ago)",
     "owner (no 2FA yet: treated as a student)",
@@ -346,7 +346,8 @@ describe("authorisation matrix: reads", () => {
         },
         async (actor) => (await listLeads(t.db, actor)).length >= 2,
       );
-      expect(saw, subject.name).toBe(can(subject.role, "leads.work"));
+      // Version 5: a manager works the leads assigned to them (row level security), and none is assigned here, so only an admin sees them all.
+      expect(saw, subject.name).toBe(subject.role === "manager" ? false : can(subject.role, "leads.work"));
     }
   });
 });
@@ -355,11 +356,11 @@ describe("authorisation matrix: the facade guard of every capability", () => {
   const GUARD: Record<string, ((f: AuthFacade, h: Headers) => Promise<unknown>) | null> = {
     "public.use": null,
     "student.own": (f, h) => f.requireRole(h, "student"),
-    "leads.work": (f, h) => f.requireRole(h, "admin"),
-    "content.manage": (f, h) => f.requireRole(h, "admin"),
-    "payments.manage": (f, h) => f.requireRole(h, "admin"),
-    "analytics.view": (f, h) => f.requireRole(h, "admin"),
-    "performance.own": (f, h) => f.requireRole(h, "admin"),
+    "leads.work": (f, h) => f.requireRole(h, "manager"),
+    "content.manage": (f, h) => f.requireRole(h, "manager"),
+    "payments.manage": (f, h) => f.requireRole(h, "manager"),
+    "analytics.view": (f, h) => f.requireRole(h, "manager"),
+    "performance.own": (f, h) => f.requireRole(h, "manager"),
     "performance.all": (f, h) => f.requireOwner(h),
     "team.manage": (f, h) => f.requireOwner(h),
     "owner.pages": (f, h) => f.requireOwner(h),

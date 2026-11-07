@@ -173,8 +173,8 @@
       "audit": "Journal d'audit",
       "security": "Sécurité",
       "signOut": "Se déconnecter",
-      "roleOwner": "Propriétaire",
       "roleAdmin": "Administrateur",
+      "roleManager": "Gestionnaire",
       "leads": "Dossiers",
       "dataRequests": "Demandes de données",
       "notifications": "Notifications",
@@ -235,8 +235,8 @@
       "signOutOthers": "Se déconnecter des autres appareils",
       "signedOutOthers": "Déconnecté de {count} autres sessions.",
       "signOut": "Se déconnecter",
-      "roleOwner": "Propriétaire",
       "roleAdmin": "Administrateur",
+      "roleManager": "Gestionnaire",
       "purpose": "Votre nom et les informations avec lesquelles vous vous connectez."
     },
     "team": {
@@ -246,8 +246,8 @@
       "colEmail": "E-mail",
       "colRole": "Rôle",
       "colLeads": "Demandes suivies",
-      "roleOwner": "Propriétaire",
       "roleAdmin": "Administrateur",
+      "roleManager": "Gestionnaire",
       "invites": "Invitations en attente",
       "noInvites": "Aucune invitation en attente.",
       "invite": "Inviter un administrateur",
@@ -498,10 +498,11 @@
       },
       "templates": {
         "default": "Bonjour {name}, c’est Scollarly au sujet de votre dossier {ref}.",
-        "share_results": "Bonjour {name}, c’est Scollarly. Merci pour votre demande {ref}. Pouvez-vous nous envoyer vos résultats (O-level et A-level, ou Grade 10 et 11) pour que nous vous proposions des programmes à {university} ?",
-        "choose_course": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Voici des programmes qui correspondent à vos résultats. Lesquels souhaitez-vous que nous demandions ?",
+        "course_interest": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Dites-nous ce que vous voulez étudier et nous verrons quelles universités partenaires le proposent avec une bourse.",
+        "documents": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Envoyez-nous des photos nettes ou des PDF de vos résultats GCE O et A Level, de votre pièce d’identité, de votre acte de naissance et de votre signature.",
+        "university_review": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Votre dossier est à {university}. Ils étudient vos notes et nous vous écrirons dès leur réponse.",
         "offer_letter": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Nous faisons le point sur votre lettre d’offre. Avez-vous besoin de quelque chose de notre part ?",
-        "confirm_admission": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Merci de confirmer que vous acceptez votre admission afin que nous continuions.",
+        "registration": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Pour garantir votre place, vous payez les frais d’inscription à l’université. Nous vous expliquerons comment, puis l’université émet votre lettre d’acceptation.",
         "visa": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Préparons vos documents de visa. Lesquels avez-vous déjà ?",
         "arrived": "Bonjour {name}, c’est Scollarly au sujet de {ref}. Nous espérons que vous êtes bien arrivé. Comment se passe votre installation ?"
       },
@@ -1148,6 +1149,7 @@
       "statusAll": "Tous les paiements",
       "statusActive": "Enregistrés seulement",
       "statusVoided": "Annulés seulement",
+      "statusPending": "En attente de l'admin",
       "apply": "Afficher",
       "clear": "Effacer",
       "errorFilters": "Vérifiez les filtres : les dates doivent être réelles et la première ne doit pas être après la dernière.",
@@ -1170,6 +1172,8 @@
       "formerMember": "Ancien membre de l'équipe",
       "voided": "Annulé",
       "recorded": "Enregistré",
+      "pending": "En attente d'approbation",
+      "approve": "Approuver",
       "void": "Annuler",
       "truncated": "Seuls les {count} paiements les plus récents sont affichés. Réduisez les dates pour voir les plus anciens.",
       "recordTitle": "Enregistrer un paiement",
@@ -1996,20 +2000,130 @@
       "retry": "Réessayer"
     },
     "stages": {
-      "share_results": "Envoi des résultats",
-      "choose_course": "Choix de la formation",
+      "course_interest": "Choix du cours",
+      "documents": "Documents",
+      "university_review": "Étude par l'université",
       "offer_letter": "Lettre d'admission",
-      "confirm_admission": "Confirmation de l'admission",
-      "visa": "Visa",
-      "arrived": "Arrivé"
+      "registration": "Inscription",
+      "visa": "Visa et voyage",
+      "arrived": "Arrivée"
     },
     "next": {
-      "share_results": "Envoyez-nous vos résultats scolaires sur WhatsApp. Nous les lisons et vous disons quelles formations conviennent.",
-      "choose_course": "Parlez avec nous des formations et choisissez celles pour lesquelles vous voulez postuler.",
+      "course_interest": "Dites-nous ce que vous voulez étudier. Nous vérifions quelles universités partenaires le proposent avec une bourse.",
+      "documents": "Envoyez-nous des photos nettes ou des PDF de vos résultats, de votre pièce d'identité, de votre acte de naissance et de votre signature.",
+      "university_review": "Nous avons envoyé votre dossier à l'université. Elle étudie vos notes et décide de votre bourse.",
       "offer_letter": "Nous préparons votre lettre d'admission avec l'université. Nous vous écrirons dès qu'elle sera prête.",
-      "confirm_admission": "Confirmez votre place auprès de l'université. Écrivez-nous si vous avez besoin d'aide pour les frais ou les papiers.",
+      "registration": "Payez les frais d'inscription pour garantir votre place. Nous vous expliquons comment, puis l'université émet votre lettre d'acceptation.",
       "visa": "Préparez votre visa étudiant. Nous vous dirons quels papiers il faut et nous vous aiderons à les vérifier.",
       "arrived": "Vous êtes arrivé. Écrivez-nous à tout moment si vous avez besoin d'aide pour vous installer."
+    },
+    "file": {
+      "title": "Mon dossier",
+      "form": {
+        "title": "Vos informations",
+        "intro": "Nous avons besoin de ces informations pour envoyer votre candidature à l'université. Merci de remplir chaque champ.",
+        "notApplied": "Votre dossier s'ouvre quand vous candidatez à une université. Candidatez d'abord, puis revenez ici pour remplir vos informations et envoyer vos documents.",
+        "applyFirst": "Candidater maintenant",
+        "readOnly": "Cette candidature est fermée : vos informations ne peuvent plus être modifiées.",
+        "fixedHelp": "Ces informations viennent de votre inscription. Pour en corriger une, écrivez à votre conseiller sur WhatsApp.",
+        "fixed": {
+          "name": "Nom",
+          "whatsapp": "WhatsApp",
+          "email": "E-mail",
+          "course": "Filière",
+          "year": "Année d'études"
+        },
+        "fields": {
+          "dateOfBirth": "Date de naissance",
+          "gender": "Sexe",
+          "nationality": "Nationalité",
+          "residenceState": "État ou région où vous habitez",
+          "city": "Ville",
+          "address": "Adresse du domicile",
+          "guardianName": "Père ou tuteur : nom complet",
+          "guardianPhone": "Père ou tuteur : téléphone",
+          "motherName": "Mère : nom complet",
+          "motherPhone": "Mère : téléphone",
+          "passportNumber": "Numéro de passeport"
+        },
+        "choose": "Choisir",
+        "gender": {
+          "female": "Féminin",
+          "male": "Masculin",
+          "other": "Autre"
+        },
+        "passportHelp": "Cette université demande votre numéro de passeport. Saisissez-le tel qu'il est imprimé, puis envoyez-en une copie dans Documents.",
+        "save": "Enregistrer mes informations",
+        "update": "Mettre à jour mes informations",
+        "saving": "Enregistrement…",
+        "saved": "Enregistré. Merci.",
+        "failure": {
+          "fields": "Merci de vérifier les champs signalés ci-dessous.",
+          "network": "Nous n'avons pas pu joindre le serveur. Vérifiez votre connexion et réessayez.",
+          "signIn": "Votre session a pris fin. Merci de vous reconnecter.",
+          "closed": "Cette candidature est fermée : elle ne peut plus être modifiée.",
+          "notApplied": "Candidatez d'abord, puis remplissez vos informations.",
+          "generic": "Un problème est survenu. Merci de réessayer."
+        },
+        "errors": {
+          "REQUIRED": "Ce champ est obligatoire.",
+          "INVALID": "Merci de vérifier ce champ.",
+          "TOO_LONG": "Ce texte est trop long.",
+          "PHONE_INVALID": "Ce numéro ne semble pas correct. Ajoutez l'indicatif du pays, par exemple +237.",
+          "UNKNOWN_VALUE": "Merci de choisir l'une des options."
+        }
+      },
+      "documents": {
+        "title": "Documents",
+        "intro": "Envoyez une photo ou un scan net de chaque document. JPG, PNG ou PDF, {mb} Mo au maximum chacun. Votre conseiller les vérifie tous.",
+        "kinds": {
+          "results": "Relevés de notes",
+          "id": "Pièce d'identité",
+          "birth_certificate": "Acte de naissance",
+          "signature": "Votre signature",
+          "passport": "Passeport",
+          "payment_proof": "Preuve de paiement",
+          "offer_letter": "Lettre d'offre",
+          "acceptance_letter": "Lettre d'acceptation"
+        },
+        "states": {
+          "none": "Pas encore envoyé",
+          "pending": "Envoi non terminé. Merci de le renvoyer.",
+          "uploaded": "Envoyé. Votre conseiller doit le vérifier.",
+          "approved": "Approuvé",
+          "rejected": "Non accepté. Merci d'envoyer une copie plus nette."
+        },
+        "rejectedNote": "Votre conseiller précise : {note}",
+        "choose": "Choisir un fichier",
+        "replace": "Envoyer un autre fichier",
+        "sending": "Envoi…",
+        "retry": "Réessayer",
+        "errors": {
+          "EMPTY": "Ce fichier est vide. Merci d'en choisir un autre.",
+          "TOO_LARGE": "Ce fichier est trop lourd. Le maximum est de 5 Mo.",
+          "WRONG_TYPE": "Seuls les fichiers JPG, PNG ou PDF peuvent être envoyés.",
+          "NETWORK": "Nous n'avons pas pu l'envoyer. Vérifiez votre connexion.",
+          "SIGN_IN": "Votre session a pris fin. Merci de vous reconnecter.",
+          "ALREADY_APPROVED": "Ce document a déjà été approuvé : il ne peut pas être remplacé.",
+          "SEND_FAILED": "L'envoi n'a pas abouti. Merci de réessayer.",
+          "MISSING": "Le fichier n'est pas arrivé. Merci de réessayer.",
+          "TYPE_DIFFERS": "Ce fichier ne ressemble pas à un JPG, PNG ou PDF. Merci d'en choisir un autre.",
+          "SIZE_DIFFERS": "Le fichier a changé pendant l'envoi. Merci de réessayer.",
+          "UNAVAILABLE": "L'envoi de fichiers n'est pas disponible pour le moment. Merci de réessayer bientôt.",
+          "UNKNOWN": "Un problème est survenu. Merci de réessayer."
+        }
+      },
+      "proof": {
+        "title": "Preuve de paiement",
+        "intro": "Après avoir payé, envoyez une photo de votre preuve de paiement. Nous ne demandons jamais de coordonnées de paiement dans cette application : votre conseiller vous les envoie sur WhatsApp."
+      },
+      "letters": {
+        "title": "Vos lettres",
+        "download": "Télécharger",
+        "opening": "Ouverture…",
+        "offline": "Nous n'avons pas pu joindre le serveur. Vérifiez votre connexion.",
+        "error": "Nous n'avons pas pu ouvrir cette lettre. Merci de réessayer."
+      }
     },
     "progress": {
       "title": "Ma candidature",
@@ -2147,6 +2261,7 @@
       "notifications": "Notifications",
       "unreadCount": "{count} nouvelle(s)",
       "items": {
+        "file": "Mon dossier",
         "profile": "Profil",
         "data": "Mes données",
         "team": "Équipe",

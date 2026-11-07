@@ -93,7 +93,7 @@ export function SettingsPanel() {
   const session = useAdminSession();
   const stepUp = useStepUp();
   const id = useId();
-  const { state, reload } = useAdminData<SettingsData>(session.role === "owner" ? "/api/v1/admin/settings" : null);
+  const { state, reload } = useAdminData<SettingsData>(session.role === "admin" ? "/api/v1/admin/settings" : null);
   const [form, setForm] = useState<Form | null>(null);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -105,7 +105,7 @@ export function SettingsPanel() {
     if (state.status === "ready") setForm(formFromValues(state.data.values));
   }, [state]);
 
-  if (session.role !== "owner") return null;
+  if (session.role !== "admin") return null;
 
   async function save(event: React.FormEvent) {
     event.preventDefault();

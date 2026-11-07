@@ -1,4 +1,5 @@
 import type { Db } from "@/server/db/client";
+import type { DocumentStore } from "@/server/media/documents";
 import type { MediaStore } from "@/server/media/store";
 
 /**
@@ -15,4 +16,6 @@ export interface EndpointEnv {
   now: () => Date;
   /** The image store (Neon Object Storage). Built on first use, so a request that never touches images pays nothing. */
   media?: () => MediaStore;
+  /** The private student-document store (architecture 24.5). Built on first use, like `media`. */
+  documents?: () => DocumentStore;
 }

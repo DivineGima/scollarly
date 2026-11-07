@@ -29,8 +29,8 @@ const NOW = new Date("2026-10-21T12:00:00Z");
 describe("the list query (B2)", () => {
   it("defaults to the All view and accepts every filter the screen can produce", () => {
     expect(leadsQuery.parse({})).toEqual({ view: "all" });
-    const parsed = leadsQuery.parse({ view: "overdue", stage: "choose_course", country: "GH", university: UUID, assigned: "me", q: "  ama  ", before: OTHER });
-    expect(parsed).toMatchObject({ view: "overdue", stage: "choose_course", country: "GH", university: UUID, assigned: "me", q: "ama", before: OTHER });
+    const parsed = leadsQuery.parse({ view: "overdue", stage: "course_interest", country: "GH", university: UUID, assigned: "me", q: "  ama  ", before: OTHER });
+    expect(parsed).toMatchObject({ view: "overdue", stage: "course_interest", country: "GH", university: UUID, assigned: "me", q: "ama", before: OTHER });
     expect(leadsQuery.parse({ assigned: "none" }).assigned).toBe("none");
     expect(leadsQuery.parse({ assigned: "user_123" }).assigned).toBe("user_123");
   });
@@ -137,7 +137,7 @@ describe("what the screens are sent", () => {
 
   it("a list row carries no number or email, and an erased lead is marked", () => {
     const item = leadListItem(
-      { id: UUID, ref: "SC-ABCDE-FGHJK", name: null, countryCode: "GH", stageCode: "visa", assignedAdminId: "u1", receivedAt: NOW, slaDueAt: NOW, firstResponseAt: null, anonymisedAt: NOW, intakeKind: "quick" },
+      { id: UUID, ref: "SC-ABCDE-FGHJK", name: null, countryCode: "GH", stageCode: "visa", assignedManagerId: "u1", receivedAt: NOW, slaDueAt: NOW, firstResponseAt: null, anonymisedAt: NOW, intakeKind: "quick" },
       people,
       NOW,
     );
@@ -152,7 +152,7 @@ describe("what the screens are sent", () => {
         { id: "a1", type: "note", actorId: "u1", data: { note_id: "n1", body: "leaked text" }, createdAt: NOW },
         { id: "a2", type: "note", actorId: "u1", data: { note_id: "n2" }, createdAt: NOW },
         { id: "a3", type: "note", actorId: "u1", data: { note_id: "missing" }, createdAt: NOW },
-        { id: "a4", type: "stage_changed", actorId: null, data: { from: "share_results", to: "visa", comment: "free text" }, createdAt: NOW },
+        { id: "a4", type: "stage_changed", actorId: null, data: { from: "documents", to: "visa", comment: "free text" }, createdAt: NOW },
         { id: "a5", type: "something_new", actorId: "gone", data: { anything: 1 }, createdAt: NOW },
       ],
       [
@@ -165,7 +165,7 @@ describe("what the screens are sent", () => {
     expect(items[0]?.data).toEqual({ note_id: "n1" });
     expect(items[1]?.note).toEqual({ body: null, erased: true });
     expect(items[2]?.note).toEqual({ body: null, erased: true });
-    expect(items[3]?.data).toEqual({ from: "share_results", to: "visa" });
+    expect(items[3]?.data).toEqual({ from: "documents", to: "visa" });
     expect(items[3]?.by).toBeNull();
     expect(items[4]?.data).toEqual({});
   });

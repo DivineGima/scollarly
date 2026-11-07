@@ -12,6 +12,7 @@ import { cn } from "./ui/cn";
 import { Dialog } from "./ui/dialog";
 import { FieldError, Input, Label } from "./ui/input";
 import { ScrollRegion } from "./ui/scroll-region";
+import { useAdminSession } from "./admin-shell";
 import { DataStatus } from "./use-admin-data";
 
 interface PaymentRow {
@@ -27,6 +28,8 @@ interface PaymentRow {
   enteredAt: string;
   voidedAt: string | null;
   voidReason: string | null;
+  /** Null while a manager's entry waits for the admin (architecture 24.2). */
+  approvedAt: string | null;
 }
 
 interface PaymentsData {
@@ -46,7 +49,7 @@ interface Filters {
   university: string;
   from: string;
   to: string;
-  status: "all" | "active" | "voided";
+  status: "all" | "active" | "voided" | "pending";
 }
 
 const NO_FILTERS: Filters = { university: "", from: "", to: "", status: "all" };
@@ -59,7 +62,7 @@ export function filtersFromSearch(search: string): Filters {
     university: params.get("university") ?? "",
     from: params.get("from") ?? "",
     to: params.get("to") ?? "",
-    status: status === "active" || status === "voided" ? status : "all",
+    status: status === "active" || status === "voided" || status === "pending" ? status : "all",
   };
 }
 
@@ -86,6 +89,7 @@ function monthLabel(month: string): string {
 export function PaymentsPanel() {
   const t = useTranslations("admin.payments");
   const common = useTranslations("admin.common");
+  const session = useAdminSession();
   const id = useId();
   const [applied, setApplied] = useState<Filters | null>(null);
   const [draft, setDraft] = useState<Filters>(NO_FILTERS);
@@ -239,6 +243,22 @@ export function PaymentsPanel() {
     } else setVoidError(result.status === 0 ? t("errorNetwork") : t("errorGeneric"));
   }
 
+  // ---- approve (the admin approves a manager's entry; architecture 24.2) ---------------------------------------
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approveError, setApproveError] = useState<string | null>(null);
+
+  async function approve(row: PaymentRow) {
+    if (approvingId) return;
+    setApprovingId(row.id);
+    setApproveError(null);
+    const result = await api("POST", "/api/v1/admin/payments.approve", { id: row.id });
+    setApprovingId(null);
+    // Already approved or voided meanwhile (409) or gone (404): the list is out of date, so show it again rather than an error.
+    if (result.ok || result.status === 409 || result.status === 404) {
+      if (applied) void load(applied);
+    } else setApproveError(result.status === 0 ? t("errorNetwork") : t("errorGeneric"));
+  }
+
   // ---- CSV export ---------------------------------------------------------------------------------------------
   // Fetched, not a plain download link: a link would save an error answer (too many rows, a lapsed sign-in) as if it were the file.
   const [exporting, setExporting] = useState(false);
@@ -302,6 +322,7 @@ export function PaymentsPanel() {
             <option value="all">{t("statusAll")}</option>
             <option value="active">{t("statusActive")}</option>
             <option value="voided">{t("statusVoided")}</option>
+            <option value="pending">{t("statusPending")}</option>
           </select>
         </div>
         <div className="flex items-end gap-2">
@@ -409,11 +430,18 @@ export function PaymentsPanel() {
                             <Badge variant="warning">{t("voided")}</Badge>
                             <span className="block text-sm text-fg-muted">{row.voidReason}</span>
                           </>
-                        ) : (
+                        ) : row.approvedAt ? (
                           <Badge variant="success">{t("recorded")}</Badge>
+                        ) : (
+                          <Badge variant="warning">{t("pending")}</Badge>
                         )}
                       </td>
                       <td className="py-2 text-right">
+                        {!row.voidedAt && !row.approvedAt && session.role === "admin" ? (
+                          <Button size="sm" className="mr-2" disabled={approvingId !== null} onClick={() => void approve(row)}>
+                            {t("approve")}
+                          </Button>
+                        ) : null}
                         {row.voidedAt ? null : (
                           <Button
                             variant="outline"
@@ -434,6 +462,7 @@ export function PaymentsPanel() {
               </table>
             </ScrollRegion>
           )}
+          {approveError ? <p role="alert" className="mt-3 text-danger">{approveError}</p> : null}
           {data.truncated ? <p className="mt-3 text-warning">{t("truncated", { count: data.rows.length })}</p> : null}
         </>
       ) : null}

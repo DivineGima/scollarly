@@ -173,8 +173,8 @@
       "audit": "Audit log",
       "security": "Security",
       "signOut": "Sign out",
-      "roleOwner": "Owner",
       "roleAdmin": "Admin",
+      "roleManager": "Manager",
       "leads": "Leads",
       "dataRequests": "Data requests",
       "notifications": "Notifications",
@@ -235,8 +235,8 @@
       "signOutOthers": "Sign out of other devices",
       "signedOutOthers": "Signed out of {count} other sessions.",
       "signOut": "Sign out",
-      "roleOwner": "Owner",
       "roleAdmin": "Admin",
+      "roleManager": "Manager",
       "purpose": "Your name and the details you sign in with."
     },
     "team": {
@@ -246,8 +246,8 @@
       "colEmail": "Email",
       "colRole": "Role",
       "colLeads": "Leads held",
-      "roleOwner": "Owner",
       "roleAdmin": "Admin",
+      "roleManager": "Manager",
       "invites": "Pending invites",
       "noInvites": "No pending invites.",
       "invite": "Invite admin",
@@ -498,10 +498,11 @@
       },
       "templates": {
         "default": "Hello {name}, this is Scollarly about your application {ref}.",
-        "share_results": "Hello {name}, this is Scollarly. Thank you for your request {ref}. Please send us your O-level and A-level results (or Grade 10 and 11) so we can suggest programmes for {university}.",
-        "choose_course": "Hello {name}, this is Scollarly about {ref}. Here are programmes that fit your results. Which ones would you like us to apply to?",
+        "course_interest": "Hello {name}, this is Scollarly about {ref}. Tell us what you want to study and we will check which partner universities offer it with a scholarship.",
+        "documents": "Hello {name}, this is Scollarly about {ref}. Please send us clear photos or PDFs of your GCE O and A Level results, ID, birth certificate and signature.",
+        "university_review": "Hello {name}, this is Scollarly about {ref}. Your file is with {university}. They are reviewing your grades and we will tell you as soon as they reply.",
         "offer_letter": "Hello {name}, this is Scollarly about {ref}. We are following up on your offer letter. Is there anything you need from us?",
-        "confirm_admission": "Hello {name}, this is Scollarly about {ref}. Please confirm that you want to accept your admission so we can continue.",
+        "registration": "Hello {name}, this is Scollarly about {ref}. To secure your place you pay the registration fee to the university. We will explain how, and then the university issues your Acceptance Letter.",
         "visa": "Hello {name}, this is Scollarly about {ref}. Let's prepare your visa documents. Which of them do you already have?",
         "arrived": "Hello {name}, this is Scollarly about {ref}. We hope you arrived safely. How are you settling in?"
       },
@@ -1148,6 +1149,7 @@
       "statusAll": "All payments",
       "statusActive": "Recorded only",
       "statusVoided": "Voided only",
+      "statusPending": "Waiting for the admin",
       "apply": "Show",
       "clear": "Clear",
       "errorFilters": "Check the filters: the dates must be real and the first day must not be after the last.",
@@ -1170,6 +1172,8 @@
       "formerMember": "Former team member",
       "voided": "Voided",
       "recorded": "Recorded",
+      "pending": "Pending approval",
+      "approve": "Approve",
       "void": "Void",
       "truncated": "Only the newest {count} payments are listed. Narrow the dates to see older ones.",
       "recordTitle": "Record a payment",
@@ -1996,20 +2000,130 @@
       "retry": "Try again"
     },
     "stages": {
-      "share_results": "Share results",
-      "choose_course": "Choose course",
+      "course_interest": "Course interest",
+      "documents": "Documents",
+      "university_review": "University review",
       "offer_letter": "Offer letter",
-      "confirm_admission": "Confirm admission",
-      "visa": "Visa",
-      "arrived": "Arrived"
+      "registration": "Registration",
+      "visa": "Visa and travel",
+      "arrived": "Arrival"
     },
     "next": {
-      "share_results": "Send your school results to us on WhatsApp. We read them and tell you which courses fit.",
-      "choose_course": "Talk to us about the courses and choose the ones you want to apply for.",
+      "course_interest": "Tell us what you want to study. We check which partner universities offer it with a scholarship.",
+      "documents": "Send us clear photos or PDFs of your results, ID, birth certificate and signature.",
+      "university_review": "We have sent your file to the university. They review your grades and decide your scholarship.",
       "offer_letter": "We are working on your offer letter with the university. We will message you as soon as it is ready.",
-      "confirm_admission": "Confirm your place with the university. Message us if you need help with the fees or the papers.",
+      "registration": "Pay the registration fee to secure your place. We explain how, and the university then issues your Acceptance Letter.",
       "visa": "Get your student visa ready. We will tell you which papers you need and help you check them.",
       "arrived": "You have arrived. Message us any time if you need help settling in."
+    },
+    "file": {
+      "title": "My file",
+      "form": {
+        "title": "Your details",
+        "intro": "We need these details to send your application to the university. Please fill in every field.",
+        "notApplied": "Your file opens when you apply to a university. Apply first, then come back here to fill in your details and send your documents.",
+        "applyFirst": "Apply now",
+        "readOnly": "This application is closed, so your details can no longer be changed.",
+        "fixedHelp": "These details come from your sign-up. To correct one, message your adviser on WhatsApp.",
+        "fixed": {
+          "name": "Name",
+          "whatsapp": "WhatsApp",
+          "email": "Email",
+          "course": "Course",
+          "year": "Year of study"
+        },
+        "fields": {
+          "dateOfBirth": "Date of birth",
+          "gender": "Gender",
+          "nationality": "Nationality",
+          "residenceState": "State or region where you live",
+          "city": "City",
+          "address": "Home address",
+          "guardianName": "Father or guardian: full name",
+          "guardianPhone": "Father or guardian: phone",
+          "motherName": "Mother: full name",
+          "motherPhone": "Mother: phone",
+          "passportNumber": "Passport number"
+        },
+        "choose": "Choose",
+        "gender": {
+          "female": "Female",
+          "male": "Male",
+          "other": "Other"
+        },
+        "passportHelp": "This university asks for your passport number. Enter it exactly as printed, then upload a copy under Documents.",
+        "save": "Save my details",
+        "update": "Update my details",
+        "saving": "Saving…",
+        "saved": "Saved. Thank you.",
+        "failure": {
+          "fields": "Please check the fields marked below.",
+          "network": "We could not reach the server. Check your connection and try again.",
+          "signIn": "Your session has ended. Please sign in again.",
+          "closed": "This application is closed, so it cannot be changed.",
+          "notApplied": "Apply first, then fill in your details.",
+          "generic": "Something went wrong. Please try again."
+        },
+        "errors": {
+          "REQUIRED": "This is needed.",
+          "INVALID": "Please check this.",
+          "TOO_LONG": "This is too long.",
+          "PHONE_INVALID": "This phone number does not look right. Include the country code, for example +237.",
+          "UNKNOWN_VALUE": "Please choose one of the options."
+        }
+      },
+      "documents": {
+        "title": "Documents",
+        "intro": "Send a clear photo or scan of each document. JPG, PNG or PDF, up to {mb} MB each. Your adviser checks every one.",
+        "kinds": {
+          "results": "Exam results",
+          "id": "ID card",
+          "birth_certificate": "Birth certificate",
+          "signature": "Your signature",
+          "passport": "Passport",
+          "payment_proof": "Proof of payment",
+          "offer_letter": "Offer letter",
+          "acceptance_letter": "Acceptance letter"
+        },
+        "states": {
+          "none": "Not sent yet",
+          "pending": "Not finished. Please send it again.",
+          "uploaded": "Sent. Waiting for your adviser to check it.",
+          "approved": "Approved",
+          "rejected": "Not accepted. Please send a clearer copy."
+        },
+        "rejectedNote": "Your adviser says: {note}",
+        "choose": "Choose a file",
+        "replace": "Send a different file",
+        "sending": "Sending…",
+        "retry": "Try again",
+        "errors": {
+          "EMPTY": "This file is empty. Please choose another.",
+          "TOO_LARGE": "This file is too big. The most is 5 MB.",
+          "WRONG_TYPE": "Only JPG, PNG or PDF files can be sent.",
+          "NETWORK": "We could not send it. Check your connection.",
+          "SIGN_IN": "Your session has ended. Please sign in again.",
+          "ALREADY_APPROVED": "This document was already approved, so it cannot be replaced.",
+          "SEND_FAILED": "The upload did not go through. Please try again.",
+          "MISSING": "The file did not arrive. Please try again.",
+          "TYPE_DIFFERS": "This does not look like a JPG, PNG or PDF. Please choose another file.",
+          "SIZE_DIFFERS": "The file changed while it was sent. Please try again.",
+          "UNAVAILABLE": "Uploads are not available right now. Please try again shortly.",
+          "UNKNOWN": "Something went wrong. Please try again."
+        }
+      },
+      "proof": {
+        "title": "Proof of payment",
+        "intro": "After you have paid, send a photo of your proof of payment. We never ask for payment details in this app: your adviser sends them to you on WhatsApp."
+      },
+      "letters": {
+        "title": "Letters for you",
+        "download": "Download",
+        "opening": "Opening…",
+        "offline": "We could not reach the server. Check your connection.",
+        "error": "We could not open this letter. Please try again."
+      }
     },
     "progress": {
       "title": "My application",
@@ -2147,6 +2261,7 @@
       "notifications": "Notifications",
       "unreadCount": "{count} new",
       "items": {
+        "file": "My file",
         "profile": "Profile",
         "data": "My data",
         "team": "Team",

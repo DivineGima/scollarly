@@ -11,7 +11,7 @@ import type { Role } from "./actor";
  */
 
 export type PermissionRole = "anonymous" | Role;
-export const PERMISSION_ROLES: readonly PermissionRole[] = ["anonymous", "student", "admin", "owner"];
+export const PERMISSION_ROLES: readonly PermissionRole[] = ["anonymous", "student", "manager", "admin"];
 
 export interface Permission {
   /** A stable id used by the action registry and the tests. */
@@ -23,7 +23,7 @@ export interface Permission {
   ownerNeeds2fa: boolean;
 }
 
-const allow = (anonymous: boolean, student: boolean, admin: boolean, owner: boolean) => ({ anonymous, student, admin, owner });
+const allow = (anonymous: boolean, student: boolean, manager: boolean, admin: boolean) => ({ anonymous, student, manager, admin });
 
 export const PERMISSIONS = [
   { id: "public.use", label: "Read public pages, create lead, send events", allow: allow(true, true, true, true), ownerNeeds2fa: false },

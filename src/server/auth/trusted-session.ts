@@ -18,5 +18,5 @@ export function isTrustedSession(session: { emailVerified: boolean; role: string
  * does everywhere else.
  */
 export function sessionNeedsOnboarding(session: { role: string; onboardingDone?: boolean }): boolean {
-  return session.role !== "admin" && session.role !== "owner" && session.onboardingDone === false;
+  return session.role !== "manager" && session.role !== "admin" && session.onboardingDone === false;
 }

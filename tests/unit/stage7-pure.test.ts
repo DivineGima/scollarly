@@ -135,18 +135,19 @@ describe("S7.2 the date range (WAT)", () => {
 });
 
 describe("S7.2 the funnel", () => {
-  const stages = ["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"].map((code, i) => ({ code, position: i + 1 }));
+  const stages = ["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"].map((code, i) => ({ code, position: i + 1 }));
 
   it("counts a stage as reached by every lead at it or after it, so the numbers only fall", () => {
-    const leadsByStage = new Map([["share_results", 4], ["choose_course", 3], ["offer_letter", 2], ["arrived", 1]]);
+    const leadsByStage = new Map([["course_interest", 4], ["documents", 3], ["offer_letter", 2], ["arrived", 1]]);
     const rows = buildFunnel({ pageViews: 1000, waTaps: 100, leadsByStage, stages });
     expect(rows.map((r) => [r.key, r.count])).toEqual([
       ["visit", 1000],
       ["wa_tap", 100],
       ["lead", 10],
-      ["stage:choose_course", 6],
+      ["stage:documents", 6],
+      ["stage:university_review", 3],
       ["stage:offer_letter", 3],
-      ["stage:confirm_admission", 1],
+      ["stage:registration", 1],
       ["stage:visa", 1],
       ["stage:arrived", 1],
     ]);
@@ -164,7 +165,7 @@ describe("S7.2 the funnel", () => {
   });
 
   it("leaves out the visit step when page views are not collected, and starts the ratios afresh", () => {
-    const rows = buildFunnel({ pageViews: 500, waTaps: 50, leadsByStage: new Map([["share_results", 10]]), stages, includeVisits: false });
+    const rows = buildFunnel({ pageViews: 500, waTaps: 50, leadsByStage: new Map([["documents", 10]]), stages, includeVisits: false });
     expect(rows[0]?.key).toBe("wa_tap");
     expect(rows[0]?.ratio).toBeNull();
     expect(rows[1]).toMatchObject({ key: "lead", count: 10 });
@@ -172,7 +173,7 @@ describe("S7.2 the funnel", () => {
   });
 
   it("can show a lead count above the taps (not every lead taps first), and says so with a ratio over 100%", () => {
-    const rows = buildFunnel({ pageViews: 100, waTaps: 2, leadsByStage: new Map([["share_results", 5]]), stages });
+    const rows = buildFunnel({ pageViews: 100, waTaps: 2, leadsByStage: new Map([["documents", 5]]), stages });
     expect(rows[2]?.ratio).toBeGreaterThan(1);
   });
 });

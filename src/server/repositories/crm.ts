@@ -20,8 +20,8 @@ function leadFilter(actor: Actor, f: Pick<CrmFilters, "country" | "source" | "as
   const parts: SQL[] = [sql`l.merged_into_id is null and l.anonymised_at is null`];
   if (f.country) parts.push(sql`l.country_code = ${f.country}`);
   if (f.source) parts.push(sql`coalesce(l.source ->> 'page', 'unknown') = ${f.source}`);
-  if (f.assigned === "me") parts.push(sql`l.assigned_admin_id = ${actor.userId}`);
-  if (f.assigned === "unassigned") parts.push(sql`l.assigned_admin_id is null`);
+  if (f.assigned === "me") parts.push(sql`l.assigned_manager_id = ${actor.userId}`);
+  if (f.assigned === "unassigned") parts.push(sql`l.assigned_manager_id is null`);
   return sql.join(parts, sql` and `);
 }
 
@@ -145,7 +145,7 @@ export async function pipelineBoard(db: Db, actor: Actor, f: Pick<CrmFilters, "c
         select l.id::text as id, l.ref, l.name, l.country_code, l.received_at, l.stage_code,
                (l.first_response_at is not null) as answered,
                (l.first_response_at is null and l.stage_code <> 'arrived' and l.sla_due_at < ${now.toISOString()}::timestamptz) as overdue,
-               (l.assigned_admin_id is not null) as assigned,
+               (l.assigned_manager_id is not null) as assigned,
                to_char(l.updated_at at time zone 'UTC', ${sql.raw(`'${VERSION_FORMAT}'`)}) as version,
                row_number() over (partition by l.stage_code order by l.received_at desc) as rn
           from lead l where ${where}) ranked
@@ -205,7 +205,7 @@ export async function exportLeads(db: Db, actor: Actor, f: CrmFilters, now: Date
     actor,
     db.execute(sql`
       select l.ref, l.received_at, l.stage_code, l.country_code, coalesce(l.source ->> 'page', 'unknown') as source, l.intake_kind,
-             (l.assigned_admin_id is not null) as assigned,
+             (l.assigned_manager_id is not null) as assigned,
              case when l.first_response_at is null then null else extract(epoch from (l.first_response_at - l.received_at)) / 60.0 end as minutes,
              (l.first_response_at is null and l.stage_code <> 'arrived' and l.sla_due_at < ${now.toISOString()}::timestamptz) as overdue
         from lead l

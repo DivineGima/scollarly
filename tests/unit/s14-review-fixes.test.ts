@@ -6,11 +6,11 @@ import * as fastPath from "@/server/edge/fast-path";
 
 describe("review fix 1 and 2: one trust rule", () => {
   it("trusts a verified email for any role and an unverified email for a student only", () => {
-    expect(isTrustedSession({ emailVerified: true, role: "owner" })).toBe(true);
     expect(isTrustedSession({ emailVerified: true, role: "admin" })).toBe(true);
+    expect(isTrustedSession({ emailVerified: true, role: "manager" })).toBe(true);
     expect(isTrustedSession({ emailVerified: false, role: "student" })).toBe(true);
+    expect(isTrustedSession({ emailVerified: false, role: "manager" })).toBe(false);
     expect(isTrustedSession({ emailVerified: false, role: "admin" })).toBe(false);
-    expect(isTrustedSession({ emailVerified: false, role: "owner" })).toBe(false);
     // An unknown stored role is treated as a student elsewhere (`isRole`), but never as staff here.
     expect(isTrustedSession({ emailVerified: false, role: "superuser" })).toBe(false);
   });
@@ -82,7 +82,7 @@ describe("review fix 3: the lead endpoint limits before it looks the session up"
     createLead.mockResolvedValue({ ok: true, replayed: false, status: 201, ref: "SC-AAAAA-AAAAB" });
     resolveSession.mockResolvedValue({ userId: "u", role: "student", emailVerified: false, accountConfirmed: true });
     expect((await handleLeadPost(request(), env)).status).toBe(201);
-    resolveSession.mockResolvedValue({ userId: "u", role: "admin", emailVerified: false, accountConfirmed: true });
+    resolveSession.mockResolvedValue({ userId: "u", role: "manager", emailVerified: false, accountConfirmed: true });
     expect((await handleLeadPost(request(), env)).status).toBe(401);
   });
 });

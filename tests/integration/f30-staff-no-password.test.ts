@@ -32,7 +32,7 @@ afterAll(async () => {
 });
 
 describe("F30: staff and the owner sign in with Google only", () => {
-  it.each(["admin", "owner"])("refuses a %s whose account also has a password login", async (role) => {
+  it.each(["manager", "admin"])("refuses a %s whose account also has a password login", async (role) => {
     const user = await t.signIn();
     await setRole(user.userId, role);
     await addAccount(user.userId, "google");
@@ -43,9 +43,9 @@ describe("F30: staff and the owner sign in with Google only", () => {
 
   it("lets a staff member with Google only through", async () => {
     const user = await t.signIn();
-    await setRole(user.userId, "admin");
+    await setRole(user.userId, "manager");
     await addAccount(user.userId, "google");
-    expect((await resolveAsRuntime(user.token))?.role).toBe("admin");
+    expect((await resolveAsRuntime(user.token))?.role).toBe("manager");
   });
 
   it("does not touch a student with a password login", async () => {

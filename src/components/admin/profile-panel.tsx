@@ -50,7 +50,7 @@ export function ProfilePanel() {
           <Input id={`${id}-email`} value={session.email} readOnly />
         </div>
         <p className="text-fg-muted">
-          {t("roleLabel")}: {session.role === "owner" ? t("roleOwner") : t("roleAdmin")}
+          {t("roleLabel")}: {session.role === "admin" ? t("roleAdmin") : t("roleManager")}
         </p>
         <Button type="submit" disabled={busy || name.trim() === ""}>
           {t("save")}

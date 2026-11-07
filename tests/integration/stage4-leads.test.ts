@@ -94,7 +94,7 @@ describe("S4.4: the lead is stored once, with everything the rules need", () => 
     await t.asOwner();
     try {
       const [row] = (await t.run(`select * from lead where idempotency_key = ${q(key)}`)) as Record<string, unknown>[];
-      expect(row).toMatchObject({ intake_kind: "full", whatsapp_e164: "+2348031234567", country_code: "NG", stage_code: "share_results", sla_hours_applied: 4, qualification_type: "olevel_alevel" });
+      expect(row).toMatchObject({ intake_kind: "full", whatsapp_e164: "+2348031234567", country_code: "NG", stage_code: "course_interest", sla_hours_applied: 4, qualification_type: "olevel_alevel" });
       expect(new Date(row!.received_at as string).toISOString()).toBe(NOW.toISOString());
       expect(new Date(row!.sla_due_at as string).toISOString()).toBe("2026-10-21T16:00:00.000Z");
       const prefs = (await t.run(`select programme_id, rank from lead_programme_pref where lead_id = ${q(row!.id)} order by rank`)) as { programme_id: string; rank: number }[];

@@ -150,7 +150,7 @@ test.describe("the dot on the round button", () => {
 
 test.describe("staff Notifications", () => {
   test("shows a lead due for a reply, the requests waiting and, for the owner, a payment, each with its own action", async ({ page }) => {
-    await page.route("**/api/v1/admin/session", (route) => json(route, { role: "owner", name: "Owner", email: "owner@example.test", stepUpFresh: false }));
+    await page.route("**/api/v1/admin/session", (route) => json(route, { role: "admin", name: "Owner", email: "owner@example.test", stepUpFresh: false }));
     await page.route("**/api/v1/admin/notifications*", (route) => json(route, { items: staffItems, unread: 2 }));
     await page.goto("/admin/notifications");
     await expect(page.getByRole("heading", { name: "Notifications", level: 1 })).toBeVisible();
@@ -165,11 +165,11 @@ test.describe("staff Notifications", () => {
   });
 
   test("is linked from the admin menu", async ({ page }) => {
-    await page.route("**/api/v1/admin/session", (route) => json(route, { role: "admin", name: "Priya", email: "p@example.test", stepUpFresh: false }));
+    await page.route("**/api/v1/admin/session", (route) => json(route, { role: "manager", name: "Priya", email: "p@example.test", stepUpFresh: false }));
     await page.route("**/api/v1/admin/home*", (route) =>
       json(route, {
         period: "week",
-        role: "admin",
+        role: "manager",
         days: 7,
         series: [],
         totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null },

@@ -115,6 +115,7 @@ export const TYPE_DEFS: Readonly<Record<ContentTypeKey, TypeDef>> = {
       { key: "websiteUrl", kind: "url", max: 500 },
       { key: "logoMediaId", kind: "media", mediaKind: "logo" },
       { key: "overview", kind: "textarea", max: 5000, store: "translations.en" },
+      { key: "passportRequired", kind: "boolean" },
       sort,
     ],
     gates: [

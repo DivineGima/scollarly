@@ -68,7 +68,8 @@ export async function homeOf(db: Db, actor: Actor): Promise<MyHome> {
        where l.user_id = ${actor.userId} and l.anonymised_at is null and l.merged_into_id is null
        order by l.received_at desc limit 1`),
     db.execute(sql`select code, position from pipeline_stage order by position`),
-    db.execute(sql`select value from site_setting where key = 'whatsapp_number_e164'`),
+    // The assigned manager's own number when they have one (version 5, architecture 24.9), else the site's (one helper builds the link either way).
+    db.execute(sql`select coalesce(to_jsonb(public.app_my_manager_whatsapp()), (select value from site_setting where key = 'whatsapp_number_e164')) as value`),
   );
   const lead = rowsOf<{ ref: string; stage_code: string; updated_at: string | Date }>(leads)[0];
   const number = rowsOf<{ value: unknown }>(setting)[0]?.value;

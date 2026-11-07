@@ -10,7 +10,7 @@
 
 declare const actorBrand: unique symbol;
 
-export type Role = "student" | "admin" | "owner";
+export type Role = "student" | "manager" | "admin";
 
 /** What the one session query returns (repository `resolveSession`). Tests inject their own. */
 export interface ResolvedSession {
@@ -70,13 +70,13 @@ export function needsOnboarding(actor: Pick<ActorData, "storedRole" | "onboardin
 }
 
 export function isRole(value: unknown): value is Role {
-  return value === "student" || value === "admin" || value === "owner";
+  return value === "student" || value === "manager" || value === "admin";
 }
 
 /** Pure: decides the effective role from what is stored. Unknown stored values fall back to student. */
 export function effectiveRole(storedRole: unknown, twoFactorVerifiedAt: Date | null): Role {
   if (!isRole(storedRole)) return "student";
-  if (storedRole === "owner" && twoFactorVerifiedAt === null) return "student";
+  if (storedRole === "admin" && twoFactorVerifiedAt === null) return "student";
   return storedRole;
 }
 
@@ -88,7 +88,7 @@ export function isStepUpFresh(actor: Pick<ActorData, "twoFactorVerifiedAt">, now
 }
 
 export function hasAtLeast(actor: Pick<ActorData, "role">, required: Role): boolean {
-  const rank: Record<Role, number> = { student: 0, admin: 1, owner: 2 };
+  const rank: Record<Role, number> = { student: 0, manager: 1, admin: 2 };
   return rank[actor.role] >= rank[required];
 }
 

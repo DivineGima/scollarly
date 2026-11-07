@@ -14,7 +14,7 @@ import { DataStatus, useAdminData } from "./use-admin-data";
 
 export interface AdminSession {
   /** The effective role: an owner who has not passed 2FA never gets here. */
-  role: "admin" | "owner";
+  role: "manager" | "admin";
   name: string;
   email: string;
   stepUpFresh: boolean;
@@ -87,7 +87,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {session ? (
             <p className="flex items-center gap-2 text-sm text-fg-muted">
               <span>{session.email}</span>
-              <Badge variant={session.role === "owner" ? "owner" : "default"}>{t(session.role === "owner" ? "nav.roleOwner" : "nav.roleAdmin")}</Badge>
+              <Badge variant={session.role === "admin" ? "admin" : "default"}>{t(session.role === "admin" ? "nav.roleAdmin" : "nav.roleManager")}</Badge>
             </p>
           ) : null}
         </div>

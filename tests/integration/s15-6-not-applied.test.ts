@@ -23,7 +23,7 @@ const NOW = new Date("2026-10-26T12:00:00Z");
 const env = (): EndpointEnv => ({ db: t.db, ownerEmail: "", totpKey: "", now: () => NOW });
 const day = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString();
 
-async function actorOf(role: "admin" | "student"): Promise<Actor> {
+async function actorOf(role: "manager" | "admin" | "student"): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role, account_confirmed_at) values (${q(user.userId)}, ${q(role)}, now())`);
   return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: null });
@@ -101,9 +101,17 @@ describe("admin/not-applied", () => {
 });
 
 describe("admin/crm onboarding numbers", () => {
+  // A manager sees only the students and leads assigned to them (version 5), so this group works as one manager who has them all.
+  let mgr: Actor;
+  beforeAll(async () => {
+    mgr = await actorOf("manager");
+    await t.run(`update student_profile set assigned_manager_id = ${q(mgr.userId)}`);
+    await t.run(`update lead set assigned_manager_id = ${q(mgr.userId)}`);
+  });
+
   it("adds onboarded, applied of onboarded and the first funnel step, and leaves the lead numbers alone", async () => {
-    await leadRow(t, { received_at: day(1), sla_due_at: day(0) });
-    const answer = await call(crmDataCalls(env()), "crm", admin);
+    await leadRow(t, { received_at: day(1), sla_due_at: day(0), assigned_manager_id: mgr.userId });
+    const answer = await call(crmDataCalls(env()), "crm", mgr);
     expect(answer.totals.onboarded).toBeGreaterThanOrEqual(4);
     expect(answer.totals.appliedOfOnboarded).toBe(1);
     expect(answer.totals.appliedOfOnboardedPercent).toBe(Math.round((1 / answer.totals.onboarded) * 100));
@@ -113,13 +121,13 @@ describe("admin/crm onboarding numbers", () => {
   });
 
   it("follows the country filter and drops the onboarding numbers when a filter a profile does not have is set", async () => {
-    const gh = await call(crmDataCalls(env()), "crm", admin, "?country=GH");
+    const gh = await call(crmDataCalls(env()), "crm", mgr, "?country=GH");
     expect(gh.totals.onboarded).toBe(1);
-    const bySource = await call(crmDataCalls(env()), "crm", admin, "?source=%2Fapply");
+    const bySource = await call(crmDataCalls(env()), "crm", mgr, "?source=%2Fapply");
     expect(bySource.totals.onboarded).toBeNull();
     expect(bySource.totals.appliedOfOnboardedPercent).toBeNull();
     expect(bySource.funnel[0].code).not.toBe("profile_onboarded");
-    const mine = await call(crmDataCalls(env()), "crm", admin, "?assigned=me");
+    const mine = await call(crmDataCalls(env()), "crm", mgr, "?assigned=me");
     expect(mine.totals.onboarded).toBeNull();
   });
 });

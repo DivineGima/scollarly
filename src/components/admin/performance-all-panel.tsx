@@ -17,7 +17,7 @@ interface AdminRow {
   userId: string;
   email: string;
   name: string;
-  role: "admin" | "owner";
+  role: "manager" | "admin";
   assigned: number;
   answered: number;
   medianMinutes: number | null;
@@ -85,7 +85,7 @@ export function PerformanceAllPanel() {
   }, []);
 
   useEffect(() => {
-    if (applied && session.role === "owner") void load(applied);
+    if (applied && session.role === "admin") void load(applied);
   }, [applied, load, session.role]);
 
   function apply(next: Range) {
@@ -94,7 +94,7 @@ export function PerformanceAllPanel() {
     setDraft(next);
   }
 
-  if (session.role !== "owner") return null;
+  if (session.role !== "admin") return null;
 
   return (
     <section>

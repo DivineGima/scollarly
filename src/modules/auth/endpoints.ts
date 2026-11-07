@@ -106,7 +106,7 @@ export function authDataCalls(env: EndpointEnv): Record<string, DataCall> {
   return {
     /** Where the owner stands, so the two-factor pages show the right screen. Anyone but the owner account is refused. */
     "auth/two-factor-status": async (actor) => {
-      if (actor.storedRole !== "owner") throw new AuthError("FORBIDDEN", "Not allowed.");
+      if (actor.storedRole !== "admin") throw new AuthError("FORBIDDEN", "Not allowed.");
       const record = await createSecondFactorStore(env.db, contextOf(actor)).getTotp(actor.userId);
       return {
         enrolled: record?.confirmed === true,

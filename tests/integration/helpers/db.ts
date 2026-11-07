@@ -12,7 +12,7 @@ import { schema } from "@/server/db/schema";
 const MIGRATIONS = "./src/server/db/migrations";
 
 /**
- * The slice of Neon Auth's own schema our SQL reads (`app_resolve_session`, `app_bootstrap_owner`). In production Neon
+ * The slice of Neon Auth's own schema our SQL reads (`app_resolve_session`, `app_bootstrap_admin`). In production Neon
  * creates and owns these tables; tests create just enough of them so the committed migrations and functions run for real.
  * Column names and types were read from the live `neon_auth` schema on 2026-10-24.
  */

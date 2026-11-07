@@ -30,11 +30,11 @@ describe("S14.7: the CRM numbers", () => {
   it("builds the funnel from current stages: a lead at a later stage has passed the earlier ones", () => {
     const steps = funnelFromStages([
       { code: "visa", position: 5, count: 1 },
-      { code: "share_results", position: 1, count: 6 },
+      { code: "documents", position: 1, count: 6 },
       { code: "offer_letter", position: 3, count: 2 },
-      { code: "choose_course", position: 2, count: 3 },
+      { code: "course_interest", position: 2, count: 3 },
     ]);
-    expect(steps.map((s) => [s.code, s.reached])).toEqual([["share_results", 12], ["choose_course", 6], ["offer_letter", 3], ["visa", 1]]);
+    expect(steps.map((s) => [s.code, s.reached])).toEqual([["documents", 12], ["course_interest", 6], ["offer_letter", 3], ["visa", 1]]);
     expect(steps[0]).toMatchObject({ ofAll: 100, ofPrevious: null });
     expect(steps[1]).toMatchObject({ ofAll: 50, ofPrevious: 50 });
     expect(steps[3]).toMatchObject({ ofAll: 8, ofPrevious: 33 });

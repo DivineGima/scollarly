@@ -131,7 +131,7 @@ describe("what an unconfirmed login can call", () => {
     const person = await t.signIn();
     await t.asRuntime();
     try {
-      const bad = new Request(`${ORIGIN}/api/v1/account/confirm`, { method: "POST", headers: { cookie: cookieOf(person), origin: ORIGIN, "content-type": "application/json" }, body: JSON.stringify({ as: "admin" }) });
+      const bad = new Request(`${ORIGIN}/api/v1/account/confirm`, { method: "POST", headers: { cookie: cookieOf(person), origin: ORIGIN, "content-type": "application/json" }, body: JSON.stringify({ as: "manager" }) });
       const response = (await handleMutation(bad, () => ({ checkSession: facade.checkSession, mutations: accountMutations, env, limit: async () => ({ allowed: true, remaining: 100, retryAfterSeconds: 0 }) }))) as Response;
       expect(response.status).toBe(400);
     } finally {
@@ -145,7 +145,7 @@ describe("accounts that existed before", () => {
   it("lands an owner and an invited admin as before, because promotion confirms the account", async () => {
     const admin = await t.signIn();
     await t.run(`insert into app_user (id) values (${q(admin.userId)}) on conflict do nothing`);
-    await t.run(`update app_user set role = 'admin' where id = ${q(admin.userId)}`);
+    await t.run(`update app_user set role = 'manager' where id = ${q(admin.userId)}`);
     expect(await confirmedAt(admin)).not.toBeNull();
     expect(await landing(admin)).toBe("/admin");
   });

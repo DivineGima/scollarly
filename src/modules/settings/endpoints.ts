@@ -21,7 +21,7 @@ const PUBLIC_REFRESH_PATHS = [...PUBLIC_PAGE_PATHS].filter((path) => path !== "/
 export const settingsMutations: Record<string, Mutation> = {
   /** C4 step 2. Validation first (a bad value is a 400 naming the field), then one statement for the whole change. */
   "admin/settings.update": {
-    access: { kind: "role", role: "owner", stepUp: true },
+    access: { kind: "role", role: "admin", stepUp: true },
     async handle({ actor, env, body, requestId }) {
       const parsed = parseBody(updateSettingsBody, body, requestId);
       if (!parsed.ok) return parsed.response;
@@ -37,7 +37,7 @@ export function settingsDataCalls(env: EndpointEnv): Record<string, DataCall> {
   return {
     /** C4 step 1: the current values and the limits the form shows. */
     "admin/settings": async (actor) => {
-      if (actor.role !== "owner") throw new AuthError("FORBIDDEN", "Not allowed.");
+      if (actor.role !== "admin") throw new AuthError("FORBIDDEN", "Not allowed.");
       const all = await readSettings(env.db);
       return {
         values: Object.fromEntries(EDITABLE_SETTING_KEYS.map((key) => [key, all[key] ?? null])),

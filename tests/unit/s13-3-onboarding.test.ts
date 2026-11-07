@@ -193,7 +193,7 @@ describe("the request it builds", () => {
 
   it("refuses unknown fields, and still accepts the reference and time an earlier version sent (a request queued on a phone)", () => {
     const body = buildOnboardingPayload(studentValues(), CONTEXT);
-    expect(onboardingBodySchema.safeParse({ ...body, role: "owner" }).success).toBe(false);
+    expect(onboardingBodySchema.safeParse({ ...body, role: "admin" }).success).toBe(false);
     expect(onboardingBodySchema.safeParse({ ...body, client_ref: "nope" }).success).toBe(false);
     expect(onboardingBodySchema.safeParse({ ...body, client_ref: "SC-ABCDE-FGHJK", client_created_at: "2026-11-02T10:00:00.000Z" }).success).toBe(true);
   });

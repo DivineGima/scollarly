@@ -33,7 +33,7 @@ afterAll(async () => {
 const cookieOf = (user: SignedInUser) => `__Secure-neon-auth.session_token=${user.token}.sig`;
 const mutations = { ...accountMutations, ...onboardingMutations, ...notificationMutations };
 
-async function account(role: "student" | "admin" | "owner" = "student"): Promise<SignedInUser> {
+async function account(role: "student" | "manager" | "admin" = "student"): Promise<SignedInUser> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(user.userId)}, ${q(role)}, now(), now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at, onboarding_done_at = excluded.onboarding_done_at`);
   return user;
@@ -43,7 +43,7 @@ let ownerOnce: Promise<SignedInUser> | null = null;
 /** The one owner the database allows, signed in with a fresh second factor (an owner without one is only a student). */
 function ownerAccount(): Promise<SignedInUser> {
   ownerOnce ??= (async () => {
-    const user = await account("owner");
+    const user = await account("admin");
     await t.run(`insert into step_up (session_id, user_id, verified_at) values (${q(user.sessionId)}, ${q(user.userId)}, now())`);
     return user;
   })();
@@ -103,12 +103,12 @@ describe("the student's notifications", () => {
   it("shows a stage change and an adviser's reply on their own application, unread, newest first", async () => {
     const user = await account();
     const leadId = await onboard(user);
-    await activity(leadId, "stage_changed", { from: "share_results", to: "choose_course" }, "now() - interval '2 hours'");
+    await activity(leadId, "stage_changed", { from: "documents", to: "course_interest" }, "now() - interval '2 hours'");
     await activity(leadId, "reply_logged", { first: true }, "now() - interval '1 hour'");
     const result = await list(user, "me");
     expect(kinds(result)).toEqual(["reply_logged", "stage_changed"]);
     expect(result.items[0]?.kind).toBe("reply_logged");
-    expect(result.items.find((i) => i.kind === "stage_changed")).toMatchObject({ stage: "choose_course", unread: true });
+    expect(result.items.find((i) => i.kind === "stage_changed")).toMatchObject({ stage: "course_interest", unread: true });
     expect(result.unread).toBe(2);
   });
 
@@ -169,7 +169,7 @@ describe("the student's notifications", () => {
   it("marks all read without losing the list, and a later change is unread again", async () => {
     const user = await account();
     const leadId = await onboard(user);
-    await activity(leadId, "stage_changed", { to: "choose_course" }, "now() - interval '1 minute'");
+    await activity(leadId, "stage_changed", { to: "course_interest" }, "now() - interval '1 minute'");
     expect((await list(user, "me")).unread).toBe(1);
 
     const response = await post(user, "/api/v1/me/notifications.seen");
@@ -189,7 +189,7 @@ describe("the student's notifications", () => {
   it("answers only the number for ?count=1", async () => {
     const user = await account();
     const leadId = await onboard(user);
-    await activity(leadId, "stage_changed", { to: "choose_course" });
+    await activity(leadId, "stage_changed", { to: "course_interest" });
     expect(await list(user, "me", "?count=1")).toEqual({ unread: 1 });
   });
 
@@ -198,8 +198,8 @@ describe("the student's notifications", () => {
     const second = await account();
     const firstLead = await onboard(first);
     const secondLead = await onboard(second);
-    await activity(firstLead, "stage_changed", { to: "choose_course" });
-    await activity(secondLead, "stage_changed", { to: "choose_course" });
+    await activity(firstLead, "stage_changed", { to: "course_interest" });
+    await activity(secondLead, "stage_changed", { to: "course_interest" });
     await post(first, "/api/v1/me/notifications.seen");
     expect((await list(first, "me")).unread).toBe(0);
     expect((await list(second, "me")).unread).toBe(1);
@@ -213,26 +213,26 @@ describe("a staff member's notifications", () => {
   const minutes = (n: number) => new Date(Date.now() + n * 60_000).toISOString();
   const lead = (over: Record<string, unknown> = {}) => leadRow(t, { name: "Probe Lead", ...over });
 
-  it("shows a new lead that is unassigned or theirs, and hides one assigned to another admin", async () => {
-    const me = await account("admin");
-    const other = await account("admin");
+  it("shows a new lead that is theirs, and hides one that is unassigned or another manager's (version 5: a manager sees only assigned leads)", async () => {
+    const me = await account("manager");
+    const other = await account("manager");
     const unassigned = await lead({ received_at: minutes(-5) });
-    const mine = await lead({ received_at: minutes(-6), assigned_admin_id: me.userId });
-    const theirs = await lead({ received_at: minutes(-7), assigned_admin_id: other.userId });
+    const mine = await lead({ received_at: minutes(-6), assigned_manager_id: me.userId });
+    const theirs = await lead({ received_at: minutes(-7), assigned_manager_id: other.userId });
     const result = await list(me, "admin");
     const ids = result.items.filter((i) => i.kind === "new_lead").map((i) => i.leadId);
-    expect(ids).toContain(unassigned);
+    expect(ids).not.toContain(unassigned);
     expect(ids).toContain(mine);
     expect(ids).not.toContain(theirs);
   });
 
   it("shows a lead whose reply is due within the hour, or overdue, and nothing once it has been answered or has arrived", async () => {
-    const me = await account("admin");
-    const soon = await lead({ received_at: minutes(-300), sla_due_at: minutes(30) });
-    const late = await lead({ received_at: minutes(-300), sla_due_at: minutes(-30) });
-    const farAway = await lead({ received_at: minutes(-300), sla_due_at: minutes(90) });
-    const answered = await lead({ received_at: minutes(-300), sla_due_at: minutes(-30), first_response_at: minutes(-60) });
-    const arrived = await lead({ received_at: minutes(-300), sla_due_at: minutes(-30), stage_code: "arrived" });
+    const me = await account("manager");
+    const soon = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-300), sla_due_at: minutes(30) });
+    const late = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-300), sla_due_at: minutes(-30) });
+    const farAway = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-300), sla_due_at: minutes(90) });
+    const answered = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-300), sla_due_at: minutes(-30), first_response_at: minutes(-60) });
+    const arrived = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-300), sla_due_at: minutes(-30), stage_code: "arrived" });
     const sla = (await list(me, "admin")).items.filter((i) => i.kind === "sla_due");
     const byLead = new Map(sla.map((i) => [i.leadId, i]));
     expect(byLead.get(soon)?.overdue).toBe(false);
@@ -243,19 +243,19 @@ describe("a staff member's notifications", () => {
   });
 
   it("shows a lead nobody has touched for three days, not one touched two days ago", async () => {
-    const me = await account("admin");
-    const waiting = await lead({ received_at: minutes(-60 * 24 * 5), last_activity_at: minutes(-60 * 24 * 4) });
-    const recent = await lead({ received_at: minutes(-60 * 24 * 5), last_activity_at: minutes(-60 * 24 * 2) });
+    const me = await account("manager");
+    const waiting = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-60 * 24 * 5), last_activity_at: minutes(-60 * 24 * 4) });
+    const recent = await lead({ assigned_manager_id: me.userId,  received_at: minutes(-60 * 24 * 5), last_activity_at: minutes(-60 * 24 * 2) });
     const ids = (await list(me, "admin")).items.filter((i) => i.kind === "lead_waiting").map((i) => i.leadId);
     expect(ids).toContain(waiting);
     expect(ids).not.toContain(recent);
   });
 
   it("counts the link requests and data requests waiting, as one item each", async () => {
-    const me = await account("admin");
+    const me = await account("manager");
     const student1 = await account();
     const student2 = await account();
-    const target = await lead();
+    const target = await lead({ assigned_manager_id: me.userId });
     for (const user of [student1, student2]) {
       await t.run(`insert into lead_claim (id, user_id, lead_id, method, status) values (gen_random_uuid(), ${q(user.userId)}, ${q(target)}, 'ref', 'pending')`);
     }
@@ -266,10 +266,10 @@ describe("a staff member's notifications", () => {
   });
 
   it("is refused to a student, and the owner-only items never reach an admin", async () => {
-    const admin = await account("admin");
+    const admin = await account("manager");
     const owner = await ownerAccount();
     const university = await uni(t, { name: "Paid University", status: "published" });
-    await t.run(`insert into placement_payment (id, submission_token, university_id, amount_usd_cents, received_on, entered_by, entered_at) values (gen_random_uuid(), gen_random_uuid(), ${q(university)}, 150000, current_date, ${q(owner.userId)}, now())`);
+    await t.run(`insert into placement_payment (id, submission_token, university_id, amount_usd_cents, received_on, entered_by, entered_at, approved_at) values (gen_random_uuid(), gen_random_uuid(), ${q(university)}, 150000, current_date, ${q(owner.userId)}, now(), now())`);
     expect(kinds(await list(admin, "admin"))).not.toContain("payment");
     const ownerItems = (await list(owner, "admin")).items.filter((i) => i.kind === "payment");
     expect(ownerItems.length).toBeGreaterThanOrEqual(1);
@@ -288,13 +288,13 @@ describe("a staff member's notifications", () => {
   it("does not show a voided payment", async () => {
     const owner = await ownerAccount();
     const university = await uni(t, { name: "Void University", status: "published" });
-    await t.run(`insert into placement_payment (id, submission_token, university_id, amount_usd_cents, received_on, entered_by, entered_at, voided_at, voided_by, void_reason) values (gen_random_uuid(), gen_random_uuid(), ${q(university)}, 99900, current_date, ${q(owner.userId)}, now(), now(), ${q(owner.userId)}, 'entered twice')`);
+    await t.run(`insert into placement_payment (id, submission_token, university_id, amount_usd_cents, received_on, entered_by, entered_at, approved_at, voided_at, voided_by, void_reason) values (gen_random_uuid(), gen_random_uuid(), ${q(university)}, 99900, current_date, ${q(owner.userId)}, now(), now(), now(), ${q(owner.userId)}, 'entered twice')`);
     expect((await list(owner, "admin")).items.find((i) => i.university === "Void University")).toBeUndefined();
   });
 
   it("marks all read for the caller only, and the admin route refuses a student", async () => {
-    const admin = await account("admin");
-    const other = await account("admin");
+    const admin = await account("manager");
+    const other = await account("manager");
     await lead({ received_at: minutes(-1) });
     expect((await list(admin, "admin")).unread).toBeGreaterThan(0);
     expect((await post(admin, "/api/v1/admin/notifications.seen")).status).toBe(200);
@@ -305,9 +305,9 @@ describe("a staff member's notifications", () => {
   });
 
   it("returns at most 50 items", async () => {
-    const admin = await account("admin");
-    for (let i = 0; i < 25; i += 1) await lead({ received_at: minutes(-i - 1), sla_due_at: minutes(-i - 1) });
-    for (let i = 0; i < 25; i += 1) await lead({ received_at: minutes(-i - 30), sla_due_at: minutes(-i - 30), last_activity_at: minutes(-60 * 24 * 4) });
+    const admin = await account("manager");
+    for (let i = 0; i < 25; i += 1) await lead({ assigned_manager_id: admin.userId, received_at: minutes(-i - 1), sla_due_at: minutes(-i - 1) });
+    for (let i = 0; i < 25; i += 1) await lead({ assigned_manager_id: admin.userId, received_at: minutes(-i - 30), sla_due_at: minutes(-i - 30), last_activity_at: minutes(-60 * 24 * 4) });
     const result = await list(admin, "admin");
     expect(result.items.length).toBeLessThanOrEqual(50);
     expect(result.items.length).toBeGreaterThan(20);

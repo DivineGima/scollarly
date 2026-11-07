@@ -15,7 +15,7 @@ import { FieldError, Input, Label } from "./ui/input";
 import { DataStatus, useAdminData } from "./use-admin-data";
 
 interface TeamData {
-  members: { userId: string; email: string; name: string; role: "admin" | "owner"; leadsHeld: number; since: string; isYou: boolean }[];
+  members: { userId: string; email: string; name: string; role: "manager" | "admin"; leadsHeld: number; since: string; isYou: boolean }[];
   invites: { id: string; email: string; createdAt: string; expiresAt: string; state: "open" | "expired" }[];
 }
 
@@ -27,7 +27,7 @@ export function TeamPanel() {
   const common = useTranslations("admin.common");
   const session = useAdminSession();
   const stepUp = useStepUp();
-  const { state, reload } = useAdminData<TeamData>(session.role === "owner" ? "/api/v1/admin/team" : null);
+  const { state, reload } = useAdminData<TeamData>(session.role === "admin" ? "/api/v1/admin/team" : null);
   const id = useId();
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -94,7 +94,7 @@ export function TeamPanel() {
     } else setError(t("errorGeneric"));
   }
 
-  if (session.role !== "owner") return null;
+  if (session.role !== "admin") return null;
 
   return (
     <section>
@@ -126,11 +126,11 @@ export function TeamPanel() {
                     </td>
                     <td className="py-2 pr-4 break-all">{member.email}</td>
                     <td className="py-2 pr-4">
-                      <Badge variant={member.role === "owner" ? "owner" : "default"}>{member.role === "owner" ? t("roleOwner") : t("roleAdmin")}</Badge>
+                      <Badge variant={member.role === "admin" ? "admin" : "default"}>{member.role === "admin" ? t("roleAdmin") : t("roleManager")}</Badge>
                     </td>
                     <td className="py-2 pr-4">{member.leadsHeld}</td>
                     <td className="py-2 text-right">
-                      {member.role === "admin" ? (
+                      {member.role === "manager" ? (
                         <Button
                           variant="outline"
                           size="sm"

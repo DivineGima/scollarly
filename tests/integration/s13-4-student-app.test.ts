@@ -31,7 +31,7 @@ afterAll(async () => {
 
 const cookieOf = (user: SignedInUser) => `__Secure-neon-auth.session_token=${user.token}.sig`;
 
-async function account(role: "student" | "admin" | "owner" = "student"): Promise<SignedInUser> {
+async function account(role: "student" | "manager" | "admin" = "student"): Promise<SignedInUser> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role, account_confirmed_at, onboarding_done_at) values (${q(user.userId)}, ${q(role)}, now(), now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at, onboarding_done_at = excluded.onboarding_done_at`);
   return user;
@@ -114,15 +114,15 @@ describe("me/preferences", () => {
 });
 
 describe("me/home", () => {
-  it("returns the caller's own lead and stage with the answers, and the order of the six stages", async () => {
+  it("returns the caller's own lead and stage with the answers, and the order of the seven stages", async () => {
     const user = await account();
     await onboard(user, student());
     const home = (await call(user, "me/home")) as { lead: { ref: string; stage: string; updatedAt: string } | null; stages: { code: string; position: number }[]; firstName: string; courseFields: string[]; whatsappE164: string | null };
     expect(home.firstName).toBe("Ada");
     expect(home.courseFields).toEqual(["computer_science_it", "law"]);
-    expect(home.lead?.stage).toBe("share_results");
+    expect(home.lead?.stage).toBe("course_interest");
     expect(home.lead?.ref).toMatch(/^SC-/);
-    expect(home.stages.map((s) => s.code)).toEqual(["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"]);
+    expect(home.stages.map((s) => s.code)).toEqual(["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"]);
   });
 
   it("does not return another student's lead or reference", async () => {

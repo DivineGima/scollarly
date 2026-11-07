@@ -280,8 +280,8 @@ test.describe("C1 later sign-ins: the code prompt", () => {
 
 // ---- The admin shell and its screens -------------------------------------------------------------------------------------
 
-const OWNER = { role: "owner", name: "Boss", email: "boss@example.test", stepUpFresh: true };
-const ADMIN = { role: "admin", name: "Priya", email: "priya@example.test", stepUpFresh: false };
+const OWNER = { role: "admin", name: "Boss", email: "boss@example.test", stepUpFresh: true };
+const ADMIN = { role: "manager", name: "Priya", email: "priya@example.test", stepUpFresh: false };
 
 const sessionHolders = new WeakMap<Page, { current: typeof OWNER | typeof ADMIN }>();
 async function asRole(page: Page, session: typeof OWNER | typeof ADMIN) {
@@ -298,7 +298,7 @@ async function asRole(page: Page, session: typeof OWNER | typeof ADMIN) {
 test.describe("S2.6 the admin shell", () => {
   test("shows an admin the four tabs, and Profile and Sign out behind More; the owner gets the owner's pages there too", async ({ page }) => {
     await asRole(page, ADMIN);
-    await page.route("**/api/v1/admin/home*", (route) => json(route, { period: "week", role: "admin", days: 7, series: [], totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null }, activity: [] }));
+    await page.route("**/api/v1/admin/home*", (route) => json(route, { period: "week", role: "manager", days: 7, series: [], totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null }, activity: [] }));
     await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
     await page.goto("/admin");
     const bar = page.getByRole("navigation", { name: "Main tabs" });
@@ -347,7 +347,7 @@ test.describe("S2.6 the admin shell", () => {
     await page.route("**/api/v1/admin/home*", (route) =>
       json(route, {
         period: "week",
-        role: "admin",
+        role: "manager",
         days: 7,
         series: [],
         totals: { newLeads: { value: 0, previous: 0 }, waiting: 0, overdue: 0, stageMoves: { value: 0, previous: 0 }, pendingClaims: 0, openDataRequests: 0, payments: null, onboarded: null },
@@ -394,9 +394,9 @@ test.describe("S2.6 the admin shell", () => {
 test.describe("C2 team", () => {
   const TEAM = {
     members: [
-      { userId: "o1", email: "boss@example.test", name: "Boss", role: "owner", leadsHeld: 0, since: "2026-10-01T10:00:00.000Z", isYou: true },
-      { userId: "a1", email: "priya@example.test", name: "Priya", role: "admin", leadsHeld: 3, since: "2026-10-02T10:00:00.000Z", isYou: false },
-      { userId: "a2", email: "ravi@example.test", name: "Ravi", role: "admin", leadsHeld: 1, since: "2026-10-03T10:00:00.000Z", isYou: false },
+      { userId: "o1", email: "boss@example.test", name: "Boss", role: "admin", leadsHeld: 0, since: "2026-10-01T10:00:00.000Z", isYou: true },
+      { userId: "a1", email: "priya@example.test", name: "Priya", role: "manager", leadsHeld: 3, since: "2026-10-02T10:00:00.000Z", isYou: false },
+      { userId: "a2", email: "ravi@example.test", name: "Ravi", role: "manager", leadsHeld: 1, since: "2026-10-03T10:00:00.000Z", isYou: false },
     ],
     invites: [
       { id: "11111111-1111-4111-8111-111111111111", email: "new@example.test", createdAt: "2026-10-23T10:00:00.000Z", expiresAt: "2099-10-30T10:00:00.000Z", state: "open" },
@@ -549,11 +549,11 @@ test.describe("C5 audit log", () => {
   const AUDIT = (extra: Partial<{ nextBefore: string | null }> = {}) => ({
     entries: [
       { id: "e1", at: "2026-10-23T22:30:00.000Z", actorId: "o1", actorEmail: "boss@example.test", action: "team.invite", entityType: "admin_invite", entityId: "i1", meta: {} },
-      { id: "e2", at: "2026-10-23T10:00:00.000Z", actorId: "gone", actorEmail: null, action: "team.removeAdmin", entityType: "app_user", entityId: "gone", meta: {} },
+      { id: "e2", at: "2026-10-23T10:00:00.000Z", actorId: "gone", actorEmail: null, action: "team.removeManager", entityType: "app_user", entityId: "gone", meta: {} },
       { id: "e3", at: "2026-10-22T10:00:00.000Z", actorId: null, actorEmail: null, action: "brand.new.action", entityType: "thing", entityId: null, meta: {} },
     ],
     people: [{ id: "o1", email: "boss@example.test" }],
-    actions: ["team.invite", "team.removeAdmin"],
+    actions: ["team.invite", "team.removeManager"],
     nextBefore: null,
     ...extra,
   });
@@ -649,7 +649,7 @@ test("the admin pages work at 375 px without sideways scrolling", async ({ page 
   await asRole(page, OWNER);
   await page.route("**/api/v1/admin/team", (route) =>
     json(route, {
-      members: [{ userId: "a1", email: "a.very.long.address.for.layout@example-university-partner.test", name: "A Very Long Name Indeed", role: "admin", leadsHeld: 12, since: "2026-10-02T10:00:00.000Z", isYou: false }],
+      members: [{ userId: "a1", email: "a.very.long.address.for.layout@example-university-partner.test", name: "A Very Long Name Indeed", role: "manager", leadsHeld: 12, since: "2026-10-02T10:00:00.000Z", isYou: false }],
       invites: [],
     }),
   );

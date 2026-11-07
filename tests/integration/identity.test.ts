@@ -10,7 +10,7 @@ import { createLead } from "@/modules/leads/service";
 import { insertLead } from "@/server/repositories/leads";
 import { insertMediaAssetQuery } from "@/server/repositories/media";
 import { adminOverviewQuery, ownRowQuery, rlsProbe } from "@/server/repositories/phase0-probe";
-import { bootstrapOwner, resolveSession, setRoleQuery } from "@/server/repositories/identity";
+import { bootstrapAdmin, resolveSession, setRoleQuery } from "@/server/repositories/identity";
 import { createSecondFactorStore } from "@/server/repositories/second-factor";
 import { createTestDb, type SignedInUser, type TestDb } from "./helpers/db";
 
@@ -103,8 +103,8 @@ describe("ADR-034: the one session query", () => {
   it("ends the session as soon as Neon Auth deletes it (sign-out), and cuts staff access on the next request", async () => {
     const admin = await t.signIn();
     await asRuntime(() => resolveSession(t.db, admin.token));
-    await t.run(`update app_user set role = 'admin' where id = '${admin.userId}'`);
-    expect(await asRuntime(() => resolveSession(t.db, admin.token))).toMatchObject({ role: "admin" });
+    await t.run(`update app_user set role = 'manager' where id = '${admin.userId}'`);
+    expect(await asRuntime(() => resolveSession(t.db, admin.token))).toMatchObject({ role: "manager" });
     await t.run(`update app_user set role = 'student' where id = '${admin.userId}'`);
     expect(await asRuntime(() => resolveSession(t.db, admin.token))).toMatchObject({ role: "student" });
     await t.run(`delete from neon_auth.session where id = '${admin.sessionId}'`);
@@ -138,22 +138,22 @@ describe("S2.3: owner bootstrap from OWNER_EMAIL", () => {
       await resolveSession(t.db, owner.token);
       await resolveSession(t.db, impostor.token);
       await resolveSession(t.db, unverified.token);
-      expect(await bootstrapOwner(t.db, impostor.userId, "founder@example.test")).toBe(false);
-      expect(await bootstrapOwner(t.db, unverified.userId, "unverified-founder@example.test")).toBe(false);
-      expect(await bootstrapOwner(t.db, owner.userId, "")).toBe(false);
-      expect(await bootstrapOwner(t.db, owner.userId, "FOUNDER@example.test")).toBe(true); // email match ignores case
+      expect(await bootstrapAdmin(t.db, impostor.userId, "founder@example.test")).toBe(false);
+      expect(await bootstrapAdmin(t.db, unverified.userId, "unverified-founder@example.test")).toBe(false);
+      expect(await bootstrapAdmin(t.db, owner.userId, "")).toBe(false);
+      expect(await bootstrapAdmin(t.db, owner.userId, "FOUNDER@example.test")).toBe(true); // email match ignores case
     });
-    expect(await count("app_user", `id = '${owner.userId}' and role = 'owner'`)).toBe(1);
+    expect(await count("app_user", `id = '${owner.userId}' and role = 'admin'`)).toBe(1);
   });
 
   it("refuses a second owner even for the right email, and the runtime role cannot promote itself", async () => {
     const second = await t.signIn({ email: "second@example.test" });
     await asRuntime(async () => {
       await resolveSession(t.db, second.token);
-      expect(await bootstrapOwner(t.db, second.userId, "second@example.test")).toBe(false);
-      await expect(t.run(`update app_user set role = 'owner' where id = '${second.userId}'`)).resolves.toEqual([]); // RLS: no row visible to update
+      expect(await bootstrapAdmin(t.db, second.userId, "second@example.test")).toBe(false);
+      await expect(t.run(`update app_user set role = 'admin' where id = '${second.userId}'`)).resolves.toEqual([]); // RLS: no row visible to update
     });
-    expect(await count("app_user", "role = 'owner'")).toBe(1);
+    expect(await count("app_user", "role = 'admin'")).toBe(1);
   });
 });
 
@@ -168,7 +168,7 @@ describe("row level security: a second lock under the facade", () => {
       expect(own).toHaveLength(1);
       const [other] = await inContext(t.db, asUser(a), ownRowQuery(t.db, b.userId));
       expect(other).toHaveLength(0);
-      const [asStaff] = await inContext(t.db, asUser(a, "admin"), ownRowQuery(t.db, b.userId));
+      const [asStaff] = await inContext(t.db, asUser(a, "manager"), ownRowQuery(t.db, b.userId));
       expect(asStaff).toHaveLength(1);
       const [anon] = await inContext(t.db, ANONYMOUS, ownRowQuery(t.db, a.userId));
       expect(anon).toHaveLength(0);
@@ -179,7 +179,7 @@ describe("row level security: a second lock under the facade", () => {
     const a = await t.signIn();
     await asRuntime(async () => {
       await resolveSession(t.db, a.token);
-      await inContext(t.db, asUser(a, "admin"), ownRowQuery(t.db, a.userId));
+      await inContext(t.db, asUser(a, "manager"), ownRowQuery(t.db, a.userId));
       const rows = (await t.run(`select count(*)::int as n from app_user`)) as { n: number }[];
       expect(rows[0]?.n).toBe(0); // no context outside inContext: nothing visible
     });
@@ -191,14 +191,14 @@ describe("row level security: a second lock under the facade", () => {
     await asRuntime(async () => {
       await resolveSession(t.db, owner.token);
       await resolveSession(t.db, target.token);
-      const [byStudent] = await inContext(t.db, asUser(target, "student"), setRoleQuery(t.db, target.userId, "admin"));
-      const [byAdmin] = await inContext(t.db, asUser(target, "admin"), setRoleQuery(t.db, target.userId, "admin"));
+      const [byStudent] = await inContext(t.db, asUser(target, "student"), setRoleQuery(t.db, target.userId, "manager"));
+      const [byAdmin] = await inContext(t.db, asUser(target, "manager"), setRoleQuery(t.db, target.userId, "manager"));
       expect(byStudent).toHaveLength(0);
       expect(byAdmin).toHaveLength(0);
-      const [byOwner] = await inContext(t.db, asUser(owner, "owner"), setRoleQuery(t.db, target.userId, "admin"));
+      const [byOwner] = await inContext(t.db, asUser(owner, "admin"), setRoleQuery(t.db, target.userId, "manager"));
       expect(byOwner).toHaveLength(1);
     });
-    expect(await count("app_user", `id = '${target.userId}' and role = 'admin'`)).toBe(1);
+    expect(await count("app_user", `id = '${target.userId}' and role = 'manager'`)).toBe(1);
   });
 
   it("keeps the second factor of one user invisible and unwritable to another", async () => {
@@ -271,7 +271,7 @@ describe("row level security: a second lock under the facade", () => {
     const asset = { id: randomUUID(), kind: "photo" as const, width: 10, height: 10, bytes: 4, sha256: "e".repeat(64) };
     await asRuntime(async () => {
       await expect(inContext(t.db, ANONYMOUS, insertMediaAssetQuery(t.db, asset))).rejects.toThrow();
-      const [added] = await inContext(t.db, { userId: "s", role: "admin" }, insertMediaAssetQuery(t.db, asset));
+      const [added] = await inContext(t.db, { userId: "s", role: "manager" }, insertMediaAssetQuery(t.db, asset));
       expect(added).toHaveLength(1);
     });
   });
@@ -326,12 +326,12 @@ describe("ADR-037: the owner's second factor against the real tables", () => {
 describe("roles from the database always go through the same guards as the unit tests", () => {
   it("keeps the stored role values and the TypeScript role type in step", async () => {
     const [constraint] = (await t.run(`select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'app_user_role_check'`)) as { def: string }[];
-    for (const role of ["student", "admin", "owner"]) {
+    for (const role of ["student", "manager", "admin"]) {
       expect(constraint?.def).toContain(`'${role}'`);
       expect(isRole(role)).toBe(true);
     }
-    expect(effectiveRole("owner", null)).toBe("student");
-    expect(contextOf({ userId: "u", role: "admin" })).toEqual({ userId: "u", role: "admin" });
+    expect(effectiveRole("admin", null)).toBe("student");
+    expect(contextOf({ userId: "u", role: "manager" })).toEqual({ userId: "u", role: "manager" });
   });
 });
 

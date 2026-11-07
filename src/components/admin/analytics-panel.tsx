@@ -420,7 +420,7 @@ function Performance({ data }: { data: PerformanceData }) {
         ))}
       </ul>
       <p className="mt-4 text-sm text-fg-muted">{t("performance.basis")}</p>
-      {session.role === "owner" ? (
+      {session.role === "admin" ? (
         <p className="mt-2">
           <a href="/admin/analytics/performance" className="underline">
             {t("performance.seeAll")}

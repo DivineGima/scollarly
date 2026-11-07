@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest";
 import { auditQuery, watRange } from "@/modules/audit/schema";
 import { verifyResponse } from "@/modules/auth/endpoints";
 import { INVITE_TOKEN_PATTERN, landingPathFor } from "@/modules/auth/service";
-import { emailSchema, inviteBody, removeAdminBody, revokeInviteBody } from "@/modules/team/schema";
+import { emailSchema, inviteBody, removeManagerBody, revokeInviteBody } from "@/modules/team/schema";
 import { hashInviteToken, INVITE_TTL_MS, inviteExpiry, inviteLink, inviteState, isUniqueViolation, newInviteToken } from "@/modules/team/service";
 import { classifyAuthed } from "@/server/edge/authed";
 
 describe("landingPathFor: where each person goes after Google sign-in", () => {
   it.each([
     [{ storedRole: "student", twoFactorVerified: false, twoFactorEnrolled: false }, "/me"],
-    [{ storedRole: "admin", twoFactorVerified: false, twoFactorEnrolled: false }, "/admin"],
-    [{ storedRole: "owner", twoFactorVerified: false, twoFactorEnrolled: false }, "/two-factor/enrol"],
-    [{ storedRole: "owner", twoFactorVerified: false, twoFactorEnrolled: true }, "/two-factor/verify"],
-    [{ storedRole: "owner", twoFactorVerified: true, twoFactorEnrolled: true }, "/admin"],
+    [{ storedRole: "manager", twoFactorVerified: false, twoFactorEnrolled: false }, "/admin"],
+    [{ storedRole: "admin", twoFactorVerified: false, twoFactorEnrolled: false }, "/two-factor/enrol"],
+    [{ storedRole: "admin", twoFactorVerified: false, twoFactorEnrolled: true }, "/two-factor/verify"],
+    [{ storedRole: "admin", twoFactorVerified: true, twoFactorEnrolled: true }, "/admin"],
   ] as const)("%j goes to %s", (input, expected) => {
     expect(landingPathFor(input)).toBe(expected);
   });
@@ -52,8 +52,8 @@ describe("invite tokens", () => {
 
 describe("team schemas", () => {
   it("lower-case and trim the email, refuse a bad one, an unknown field and a long one", () => {
-    expect(inviteBody.parse({ email: "  A.B@Example.TEST " })).toEqual({ email: "a.b@example.test" });
-    for (const bad of [{ email: "nope" }, { email: "" }, {}, { email: "a@example.test", role: "owner" }, { email: `${"a".repeat(250)}@example.test` }]) {
+    expect(inviteBody.parse({ email: "  A.B@Example.TEST " })).toEqual({ email: "a.b@example.test", role: "manager" }); // the role defaults to manager (version 5)
+    for (const bad of [{ email: "nope" }, { email: "" }, {}, { email: "a@example.test", role: "owner" }, { email: "a@example.test", isAdmin: true }, { email: `${"a".repeat(250)}@example.test` }]) {
       expect(inviteBody.safeParse(bad).success, JSON.stringify(bad).slice(0, 40)).toBe(false);
     }
     expect(emailSchema.safeParse(42).success).toBe(false);
@@ -61,9 +61,9 @@ describe("team schemas", () => {
   it("need a uuid to revoke and a user id to remove", () => {
     expect(revokeInviteBody.safeParse({ id: "0194f3c2-8a4b-7c1d-9e2f-3a4b5c6d7e8f" }).success).toBe(true);
     expect(revokeInviteBody.safeParse({ id: "1; drop table admin_invite" }).success).toBe(false);
-    expect(removeAdminBody.safeParse({ userId: "u1" }).success).toBe(true);
-    expect(removeAdminBody.safeParse({ userId: "" }).success).toBe(false);
-    expect(removeAdminBody.safeParse({ userId: "u".repeat(65) }).success).toBe(false);
+    expect(removeManagerBody.safeParse({ userId: "u1" }).success).toBe(true);
+    expect(removeManagerBody.safeParse({ userId: "" }).success).toBe(false);
+    expect(removeManagerBody.safeParse({ userId: "u".repeat(65) }).success).toBe(false);
   });
 });
 
@@ -113,5 +113,12 @@ describe("the signed-in router now also covers the two-factor pages and data", (
     expect(classify("/api/v1/auth/two-factor-status")).toEqual({ kind: "api", area: "auth", name: "two-factor-status" });
     expect(classify("/api/v1/invites/check")).toBeNull();
     expect(classify("/two-factors")).toBeNull();
+  });
+});
+
+describe("version 5 team bodies", () => {
+  it("an invite names a manager (the default) or an admin, nothing else", () => {
+    expect(inviteBody.parse({ email: "a@example.test", role: "admin" })).toEqual({ email: "a@example.test", role: "admin" });
+    expect(inviteBody.safeParse({ email: "a@example.test", role: "student" }).success).toBe(false);
   });
 });

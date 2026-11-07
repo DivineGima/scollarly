@@ -28,7 +28,7 @@ const NOW = new Date("2026-10-26T12:00:00Z");
 
 const env = (): EndpointEnv => ({ db: t.db, ownerEmail: "", totpKey: "", now: () => NOW });
 
-async function actorOf(role: "admin" | "student"): Promise<Actor> {
+async function actorOf(role: "manager" | "admin" | "student"): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
   return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: null });
@@ -171,14 +171,14 @@ describe("S7.2 the funnel and the sources", () => {
 
   beforeAll(async () => {
     // Five leads in the last 30 days, one old, one merged, across stages, countries, universities and pages.
-    await leadRow(t, { received_at: at(1), country_code: "CM", stage_code: "share_results", source: { page: "/universities/alpha", university_id: universityA } });
-    await leadRow(t, { received_at: at(2), country_code: "CM", stage_code: "choose_course", source: { page: "/apply", university_id: universityA } });
+    await leadRow(t, { received_at: at(1), country_code: "CM", stage_code: "course_interest", source: { page: "/universities/alpha", university_id: universityA } });
+    await leadRow(t, { received_at: at(2), country_code: "CM", stage_code: "documents", source: { page: "/apply", university_id: universityA } });
     await leadRow(t, { received_at: at(3), country_code: "NG", stage_code: "offer_letter", source: { page: "/apply", university_id: universityB } });
     await leadRow(t, { received_at: at(4), country_code: "NG", stage_code: "arrived", source: { page: "/", university_id: universityB } });
     await leadRow(t, { received_at: at(5), country_code: "GH", stage_code: "visa", source: {} });
     await leadRow(t, { received_at: at(60), country_code: "GH", stage_code: "arrived", source: {} }); // outside the range
-    const keep = await leadRow(t, { received_at: at(6), country_code: "CM", stage_code: "share_results", source: { university_id: universityA } });
-    await leadRow(t, { received_at: at(6), country_code: "CM", stage_code: "share_results", source: { university_id: universityA }, merged_into_id: keep }); // a duplicate
+    const keep = await leadRow(t, { received_at: at(6), country_code: "CM", stage_code: "course_interest", source: { university_id: universityA } });
+    await leadRow(t, { received_at: at(6), country_code: "CM", stage_code: "course_interest", source: { university_id: universityA }, merged_into_id: keep }); // a duplicate
     await asRuntime(() =>
       saveAggregateRows(t.db, [
         { date: "2026-10-20", type: "page_view", country: "CM", universityId: universityA, pageGroup: "university", count: 100 },
@@ -200,17 +200,17 @@ describe("S7.2 the funnel and the sources", () => {
     expect(count("lead")).toBe(6);
     expect(json.totalLeads).toBe(6);
     // A stage's count is the leads that reached it (at it or later), so the counts only fall.
-    expect(count("stage:choose_course")).toBe(4);
+    expect(count("stage:documents")).toBe(4);
     expect(count("stage:offer_letter")).toBe(3);
-    expect(count("stage:confirm_admission")).toBe(2);
+    expect(count("stage:registration")).toBe(2);
     expect(count("stage:visa")).toBe(2);
     expect(count("stage:arrived")).toBe(1);
     const counts = json.funnel.filter((r: { key: string }) => r.key.startsWith("stage:")).map((r: { count: number }) => r.count);
     expect([...counts].sort((a, b) => b - a)).toEqual(counts);
     // The drop-off is the share kept from the step before.
-    const choose = json.funnel.find((r: { key: string }) => r.key === "stage:choose_course");
+    const choose = json.funnel.find((r: { key: string }) => r.key === "stage:documents");
     expect(choose.ratio).toBeCloseTo(4 / 6, 5);
-    expect(choose.label).toBe("Choose course");
+    expect(choose.label).toBe("Documents");
     expect(json.funnel[0].ratio).toBeNull();
   });
 
@@ -288,12 +288,12 @@ describe("S7.3 my performance", () => {
 
   beforeAll(async () => {
     const base = { received_at: minutes(0), country_code: "CM" };
-    await leadRow(t, { ...base, assigned_admin_id: admin.userId, first_response_at: minutes(10), sla_due_at: minutes(240) });
-    await leadRow(t, { ...base, assigned_admin_id: admin.userId, first_response_at: minutes(30), sla_due_at: minutes(240) });
-    await leadRow(t, { ...base, assigned_admin_id: admin.userId, first_response_at: minutes(80), sla_due_at: minutes(240) });
-    await leadRow(t, { ...base, assigned_admin_id: admin.userId, sla_due_at: minutes(240) }); // unanswered and past its target
-    await leadRow(t, { ...base, assigned_admin_id: admin.userId, sla_due_at: "2026-12-01T00:00:00Z" }); // unanswered, not due yet
-    await leadRow(t, { ...base, assigned_admin_id: admin2.userId, first_response_at: minutes(5), sla_due_at: minutes(240) });
+    await leadRow(t, { ...base, assigned_manager_id: admin.userId, first_response_at: minutes(10), sla_due_at: minutes(240) });
+    await leadRow(t, { ...base, assigned_manager_id: admin.userId, first_response_at: minutes(30), sla_due_at: minutes(240) });
+    await leadRow(t, { ...base, assigned_manager_id: admin.userId, first_response_at: minutes(80), sla_due_at: minutes(240) });
+    await leadRow(t, { ...base, assigned_manager_id: admin.userId, sla_due_at: minutes(240) }); // unanswered and past its target
+    await leadRow(t, { ...base, assigned_manager_id: admin.userId, sla_due_at: "2026-12-01T00:00:00Z" }); // unanswered, not due yet
+    await leadRow(t, { ...base, assigned_manager_id: admin2.userId, first_response_at: minutes(5), sla_due_at: minutes(240) });
     await leadRow(t, { ...base, sla_due_at: minutes(240) }); // unassigned
   });
 

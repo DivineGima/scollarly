@@ -28,24 +28,24 @@ describe("the tab bar config (21.10, ADR-041)", () => {
   });
 
   it("gives an admin and an owner the same four tabs: Home, Leads, Content, Insights", () => {
-    expect(tabsFor("admin").map((tab) => tab.key)).toEqual(["home", "leads", "content", "insights"]);
-    expect(tabsFor("owner")).toEqual(tabsFor("admin"));
+    expect(tabsFor("manager").map((tab) => tab.key)).toEqual(["home", "leads", "content", "insights"]);
+    expect(tabsFor("admin")).toEqual(tabsFor("manager"));
   });
 
   it("never offers an admin an owner-only row, and offers the owner all of them", () => {
-    const adminKeys = moreItemsFor("admin").map((item) => item.key);
+    const adminKeys = moreItemsFor("manager").map((item) => item.key);
     expect(adminKeys).toEqual(["profile"]);
-    expect(moreItemsFor("owner").map((item) => item.key)).toEqual(["profile", "team", "audit", "security", "settings", "health"]);
-    expect(moreItemsFor("student").map((item) => item.key)).toEqual(["profile", "data"]);
+    expect(moreItemsFor("admin").map((item) => item.key)).toEqual(["profile", "team", "audit", "security", "settings", "health"]);
+    expect(moreItemsFor("student").map((item) => item.key)).toEqual(["file", "profile", "data"]);
   });
 
   it("keeps a screen inside a tab lit under that tab, and the pages behind More under the round button", () => {
-    expect(activeItem("admin", "/admin")).toBe("home");
-    expect(activeItem("admin", "/en/admin/leads/")).toBe("leads");
-    expect(activeItem("admin", "/admin/leads/0190b6a4-0000-7000-8000-000000000000")).toBe("leads");
-    expect(activeItem("owner", "/admin/content/university/new")).toBe("content");
-    expect(activeItem("owner", "/admin/team")).toBe("more");
-    expect(activeItem("admin", "/admin/notifications")).toBe("more");
+    expect(activeItem("manager", "/admin")).toBe("home");
+    expect(activeItem("manager", "/en/admin/leads/")).toBe("leads");
+    expect(activeItem("manager", "/admin/leads/0190b6a4-0000-7000-8000-000000000000")).toBe("leads");
+    expect(activeItem("admin", "/admin/content/university/new")).toBe("content");
+    expect(activeItem("admin", "/admin/team")).toBe("more");
+    expect(activeItem("manager", "/admin/notifications")).toBe("more");
     expect(activeItem("student", "/me")).toBe("home");
     expect(activeItem("student", "/me/notifications")).toBe("more");
     expect(activeItem("student", "/me/progress")).toBe("progress");
@@ -54,7 +54,7 @@ describe("the tab bar config (21.10, ADR-041)", () => {
 
   it("lights Home only for the area's own address, not for every address under it", () => {
     expect(activeItem("student", "/me/profile")).toBe("more");
-    expect(activeItem("admin", "/admin/unknown-thing")).toBeNull();
+    expect(activeItem("manager", "/admin/unknown-thing")).toBeNull();
   });
 
   it("strips the locale prefix and trailing slashes", () => {
@@ -65,11 +65,11 @@ describe("the tab bar config (21.10, ADR-041)", () => {
 
   it("points each role's Notifications at its own area", () => {
     expect(notificationsHref("student")).toBe("/me/notifications");
-    expect(notificationsHref("owner")).toBe("/admin/notifications");
+    expect(notificationsHref("admin")).toBe("/admin/notifications");
   });
 
   it("allows a tour for every tab and nothing else", () => {
-    const tabs = new Set([...tabsFor("student"), ...tabsFor("admin")].map((tab) => tab.key));
+    const tabs = new Set([...tabsFor("student"), ...tabsFor("manager")].map((tab) => tab.key));
     expect([...tabs].sort()).toEqual([...TOUR_KEYS].sort());
   });
 });
@@ -83,13 +83,13 @@ const labels: AppNavLabels = {
     close: "Close",
     notifications: "Notifications",
     unreadCount: (n) => `${n} new`,
-    items: { profile: "Profile", data: "My data", team: "Team", audit: "Audit log", security: "Security", settings: "Settings", health: "Health" },
+    items: { file: "My file", profile: "Profile", data: "My data", team: "Team", audit: "Audit log", security: "Security", settings: "Settings", health: "Health" },
     signOut: "Sign out",
   },
 };
 
 describe("the tab bar HTML (FR-19)", () => {
-  const html = (role: "student" | "admin" | "owner", over: { unread?: number; path?: string } = {}) => renderToStaticMarkup(createElement(AppNav, { role, labels, path: over.path ?? "/me", unread: over.unread }));
+  const html = (role: "student" | "manager" | "admin", over: { unread?: number; path?: string } = {}) => renderToStaticMarkup(createElement(AppNav, { role, labels, path: over.path ?? "/me", unread: over.unread }));
 
   it("renders every tab as a link with its label, and a round More button", () => {
     const out = html("student");
@@ -99,7 +99,7 @@ describe("the tab bar HTML (FR-19)", () => {
   });
 
   it("marks the current tab, and only that one", () => {
-    const out = html("admin", { path: "/admin/leads" });
+    const out = html("manager", { path: "/admin/leads" });
     expect(out.match(/aria-current="page"/g)).toHaveLength(1);
     expect(out).toMatch(/aria-current="page"[^>]*class="app-nav-tab"[^>]*>.*?Leads|href="\/admin\/leads"[^>]*aria-current="page"/s);
   });
@@ -112,7 +112,7 @@ describe("the tab bar HTML (FR-19)", () => {
   });
 
   it("keeps the sheet closed until it is opened, so no owner-only row is in the HTML", () => {
-    const out = html("owner");
+    const out = html("admin");
     expect(out).not.toContain("Team");
     expect(out).not.toContain('role="dialog"');
   });
@@ -210,7 +210,7 @@ describe("the shell translations (FR-32)", () => {
   });
 
   it("names every tab and every More row the config can show", () => {
-    for (const role of ["student", "admin", "owner"] as const) {
+    for (const role of ["student", "manager", "admin"] as const) {
       for (const tab of tabsFor(role)) expect((en.shell.tabs as Record<string, string>)[tab.key]).toBeTruthy();
       for (const item of moreItemsFor(role)) expect((en.shell.sheet.items as Record<string, string>)[item.key]).toBeTruthy();
     }
@@ -269,7 +269,7 @@ describe("the account area and the confirmed flag (21.3, ADR-042)", () => {
 
   it("does not change what a role may do", () => {
     expect(effectiveRole("student", null)).toBe("student");
-    expect(effectiveRole("owner", null)).toBe("student");
+    expect(effectiveRole("admin", null)).toBe("student");
   });
 
   it("routes /account to its own area for any signed-in session, and never caches it", () => {

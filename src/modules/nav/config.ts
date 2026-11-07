@@ -4,11 +4,11 @@
  * row level security), so hiding an owner-only row here is a convenience, not a lock.
  */
 
-export type NavRole = "student" | "admin" | "owner";
+export type NavRole = "student" | "manager" | "admin";
 
 export type TabKey = "home" | "universities" | "progress" | "help" | "leads" | "content" | "insights";
 
-export type IconName = TabKey | "more" | "bell" | "profile" | "data" | "team" | "audit" | "security" | "settings" | "health" | "signOut";
+export type IconName = TabKey | "file" | "more" | "bell" | "profile" | "data" | "team" | "audit" | "security" | "settings" | "health" | "signOut";
 
 export interface NavTab {
   key: TabKey;
@@ -17,7 +17,7 @@ export interface NavTab {
 }
 
 export interface MoreItem {
-  key: "profile" | "data" | "team" | "audit" | "security" | "settings" | "health";
+  key: "file" | "profile" | "data" | "team" | "audit" | "security" | "settings" | "health";
   href: string;
   icon: IconName;
   /** Shown to the owner only (as today: team, audit, security, settings and health are owner pages). */
@@ -41,6 +41,7 @@ const STAFF_TABS: readonly NavTab[] = [
 ];
 
 const STUDENT_MORE: readonly MoreItem[] = [
+  { key: "file", href: "/me/file", icon: "file" },
   { key: "profile", href: "/me/profile", icon: "profile" },
   { key: "data", href: "/me/data", icon: "data" },
 ];
@@ -63,7 +64,7 @@ export function tabsFor(role: NavRole): readonly NavTab[] {
 /** The rows of the More sheet under Notifications and above Sign out. An admin never gets an owner-only row. */
 export function moreItemsFor(role: NavRole): readonly MoreItem[] {
   const items = role === "student" ? STUDENT_MORE : STAFF_MORE;
-  return items.filter((item) => item.ownerOnly !== true || role === "owner");
+  return items.filter((item) => item.ownerOnly !== true || role === "admin");
 }
 
 export function notificationsHref(role: NavRole): string {

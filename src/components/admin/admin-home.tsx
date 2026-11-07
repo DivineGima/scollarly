@@ -15,7 +15,7 @@ import "./charts/charts.css";
 
 interface HomeData {
   period: Period;
-  role: "admin" | "owner";
+  role: "manager" | "admin";
   days: number;
   series: { label: string; value: number }[];
   totals: HomeTotals;
@@ -34,7 +34,7 @@ interface TileSpec {
 /** Four tiles at most (ADR-046): the admin's working numbers, or the owner's. */
 export function tilesOf(data: Pick<HomeData, "role" | "totals">): TileSpec[] {
   const t = data.totals;
-  if (data.role === "owner") {
+  if (data.role === "admin") {
     return [
       { key: "newLeads", value: t.newLeads.value, previous: t.newLeads.previous, href: "/admin/leads" },
       { key: "overdue", value: t.overdue, previous: null, href: "/admin/leads?view=overdue" },

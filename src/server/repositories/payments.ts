@@ -10,7 +10,8 @@ import { teamMembersOf, teamQuery } from "./team";
  * (as themselves), and the database allows an UPDATE of the three void columns and nothing else (migration 0011), so a payment cannot
  * be edited, only voided. Nothing is deleted. Each write is ONE statement together with its audit row, so both commit or neither does.
  *
- * Totals count only payments that are not voided. Money is whole US cents.
+ * Totals count only payments that are not voided AND approved. A manager's entry is pending until the admin approves it (version 5, migration
+ * 0025, architecture 24.2); the list shows pending entries, no total does. Money is whole US cents.
  */
 
 export interface PaymentFilter {
@@ -18,7 +19,7 @@ export interface PaymentFilter {
   /** Dates received, inclusive. */
   from?: string;
   to?: string;
-  status?: "all" | "active" | "voided";
+  status?: "all" | "active" | "voided" | "pending";
 }
 
 export interface PaymentRow {
@@ -35,6 +36,8 @@ export interface PaymentRow {
   enteredAt: string;
   voidedAt: string | null;
   voidReason: string | null;
+  /** Null while a manager's entry waits for the admin. */
+  approvedAt: string | null;
 }
 
 export interface PaymentTotals {
@@ -79,15 +82,17 @@ interface RawPayment {
   entered_at: string | Date;
   voided_at: string | Date | null;
   void_reason: string | null;
+  approved_at: string | Date | null;
 }
 
 function rowsQuery(db: Db, f: PaymentFilter, limit: number) {
   const parts = rangeConditions(f);
   if (f.status === "active") parts.push(sql`p.voided_at is null`);
   if (f.status === "voided") parts.push(sql`p.voided_at is not null`);
+  if (f.status === "pending") parts.push(sql`p.approved_at is null and p.voided_at is null`);
   return db.execute(sql`
     select p.id, p.university_id, u.name as university_name, p.lead_id, l.ref as lead_ref, p.amount_usd_cents, p.received_on::text as received_on,
-           p.note, p.entered_by, p.entered_at, p.voided_at, p.void_reason
+           p.note, p.entered_by, p.entered_at, p.voided_at, p.void_reason, p.approved_at
       from placement_payment p
       join university u on u.id = p.university_id
       left join lead l on l.id = p.lead_id
@@ -114,6 +119,7 @@ function rowsOfPayments(result: unknown, team: Map<string, string>, limit: numbe
       enteredAt: new Date(r.entered_at).toISOString(),
       voidedAt: r.voided_at ? new Date(r.voided_at).toISOString() : null,
       voidReason: r.void_reason,
+      approvedAt: r.approved_at ? new Date(r.approved_at).toISOString() : null,
     })),
   };
 }
@@ -127,7 +133,7 @@ export async function listPayments(db: Db, actor: Actor, filter: PaymentFilter):
     db.execute(sql`
       select p.university_id, u.name, to_char(p.received_on, 'YYYY-MM') as month, sum(p.amount_usd_cents)::bigint as cents, count(*)::int as n
         from placement_payment p join university u on u.id = p.university_id
-        ${whereOf([...rangeConditions(filter), sql`p.voided_at is null`])}
+        ${whereOf([...rangeConditions(filter), sql`p.voided_at is null`, sql`p.approved_at is not null`])}
        group by p.university_id, u.name, month`),
     db.execute(sql`select id, name from university order by name`),
     teamQuery(db),
@@ -210,19 +216,22 @@ const existingByToken = (token: string) => sql`
     from placement_payment where submission_token = ${token}::uuid`;
 
 export async function recordPayment(db: Db, actor: Actor, p: NewPayment): Promise<RecordOutcome> {
+  // An admin's own entry is approved as it is made; a manager's waits for the admin (architecture 24.2).
+  const admin = actor.role === "admin";
   const [result] = await runAs(
     db,
     actor,
     db.execute(sql`
       with ins as (
-        insert into placement_payment (id, submission_token, university_id, lead_id, amount_usd_cents, received_on, note, entered_by)
-        values (${p.id}::uuid, ${p.submissionToken}::uuid, ${p.universityId}::uuid, ${p.leadId}::uuid, ${p.amountUsdCents}::bigint, ${p.receivedOn}::date, ${p.note}::text, ${actor.userId})
+        insert into placement_payment (id, submission_token, university_id, lead_id, amount_usd_cents, received_on, note, entered_by, approved_by, approved_at)
+        values (${p.id}::uuid, ${p.submissionToken}::uuid, ${p.universityId}::uuid, ${p.leadId}::uuid, ${p.amountUsdCents}::bigint, ${p.receivedOn}::date, ${p.note}::text, ${actor.userId},
+                ${admin ? actor.userId : null}::text, ${admin ? sql`now()` : sql`null`}::timestamptz)
         on conflict (submission_token) do nothing
         returning id, university_id, amount_usd_cents
       ), aud as (
         insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
         select gen_random_uuid(), ${actor.userId}, 'payments.record', 'placement_payment', ins.id::text,
-               jsonb_build_object('university_id', ins.university_id, 'amount_usd_cents', ins.amount_usd_cents)
+               jsonb_build_object('university_id', ins.university_id, 'amount_usd_cents', ins.amount_usd_cents, 'pending', ${!admin}::boolean)
           from ins
       )
       select (select id from ins) as inserted,
@@ -265,4 +274,30 @@ export async function voidPayment(db: Db, actor: Actor, id: string, reason: stri
   if (row && row.voided > 0) return "ok";
   if (!row || row.was_voided === null) return "not_found";
   return "already_voided";
+}
+
+export type ApproveOutcome = "ok" | "not_found" | "already_approved" | "voided";
+
+/** The admin approves a manager's entry; from then on it is in every total. One statement with its audit row. Only the admin may (policy and trigger, migration 0025). */
+export async function approvePayment(db: Db, actor: Actor, id: string): Promise<ApproveOutcome> {
+  const [result] = await runAs(
+    db,
+    actor,
+    db.execute(sql`
+      with upd as (
+        update placement_payment set approved_by = ${actor.userId}, approved_at = now()
+         where id = ${id}::uuid and approved_at is null and voided_at is null
+        returning id
+      ), aud as (
+        insert into audit_log (id, actor_id, action, entity_type, entity_id, meta)
+        select gen_random_uuid(), ${actor.userId}, 'payments.approve', 'placement_payment', upd.id::text, '{}'::jsonb from upd
+      )
+      select (select count(*) from upd)::int as approved,
+             (select approved_at is not null from placement_payment where id = ${id}::uuid) as was_approved,
+             (select voided_at is not null from placement_payment where id = ${id}::uuid) as was_voided`),
+  );
+  const row = rowsOf<{ approved: number; was_approved: boolean | null; was_voided: boolean | null }>(result)[0];
+  if (row && row.approved > 0) return "ok";
+  if (!row || row.was_approved === null) return "not_found";
+  return row.was_voided ? "voided" : "already_approved";
 }

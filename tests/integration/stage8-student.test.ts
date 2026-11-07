@@ -29,7 +29,7 @@ interface Student {
   actor: Actor;
 }
 
-async function makeStudent(options: { role?: "student" | "admin"; verified?: boolean } = {}): Promise<Student> {
+async function makeStudent(options: { role?: "student" | "manager"; verified?: boolean } = {}): Promise<Student> {
   const user = await t.signIn(options.verified === undefined ? {} : { verified: options.verified });
   const role = options.role ?? "student";
   await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
@@ -87,7 +87,7 @@ async function linkedLead(who: Student, overrides: Record<string, unknown> = {})
 
 beforeAll(async () => {
   t = await createTestDb();
-  admin = (await makeStudent({ role: "admin" })).actor;
+  admin = (await makeStudent({ role: "manager" })).actor;
   await t.run("update site_setting set value = '\"+919815725968\"'::jsonb where key = 'whatsapp_number_e164'");
 });
 
@@ -106,7 +106,7 @@ describe("S8.1 /me progress", () => {
     expect(answer.status).toBe(200);
     expect(answer.json).toMatchObject({ state: "matching", lead: null, pendingClaims: 0, otherLeads: 0 });
     expect(JSON.stringify(answer.json)).not.toContain("SC-");
-    expect(answer.json.stages.map((s: { code: string }) => s.code)).toEqual(["share_results", "choose_course", "offer_letter", "confirm_admission", "visa", "arrived"]);
+    expect(answer.json.stages.map((s: { code: string }) => s.code)).toEqual(["course_interest", "documents", "university_review", "offer_letter", "registration", "visa", "arrived"]);
     expect(answer.json.whatsappE164).toBe("+919815725968");
   });
 
@@ -152,7 +152,7 @@ describe("S8.1 /me progress", () => {
     const student = await makeStudent();
     const kept = await linkedLead(student);
     await linkedLead(student, { merged_into_id: kept.id });
-    const erased = await linkedLead(student);
+    const erased = await linkedLead(student, { status: "closed" });
     await t.run(`update lead set name = null, whatsapp_e164 = null, email = null, results = '[]', anonymised_at = now() where id = ${q(erased.id)}`);
     const answer = await get("progress", student);
     expect(answer.json.lead.ref).toBe(kept.ref);
@@ -202,7 +202,7 @@ describe("S8.2 linking", () => {
   });
 
   it("links nothing for an anonymous visitor, an unknown token or a staff member", async () => {
-    const staff = await makeStudent({ role: "admin" });
+    const staff = await makeStudent({ role: "manager" });
     for (const token of [null, "z".repeat(32), staff.user.token]) {
       const outcome = await asRuntime(() => insertLead(t.db, newLead(), token));
       expect(outcome.kind).toBe("created");
@@ -394,7 +394,7 @@ describe("S8.3 profile, export and erasure", () => {
     });
 
     it("is for students: a team account is told to ask the owner", async () => {
-      const staff = await makeStudent({ role: "admin" });
+      const staff = await makeStudent({ role: "manager" });
       const answer = await post("student.requestErasure", staff, { confirm: "DELETE" });
       expect(answer.status).toBe(409);
       expect(answer.json.error.fields.account).toBe("STAFF");
@@ -406,7 +406,7 @@ describe("S8.3 profile, export and erasure", () => {
       const bystander = await makeStudent();
       const university = await uni(t, { status: "published" });
       const first = await linkedLead(student, { name: "Ama Mensah", email: "ama@example.test", results: [{ subject: "Maths", grade: "A" }] });
-      const second = await linkedLead(student);
+      const second = await linkedLead(student, { status: "closed" });
       const merged = await leadRow(t, { merged_into_id: first.id, name: "Ama M." });
       await linkedLead(bystander, { name: "Bystander" });
       const payment = await paymentRow(t, university, { lead_id: first.id });

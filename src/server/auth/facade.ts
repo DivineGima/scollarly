@@ -43,7 +43,7 @@ export function createAuthFacade(resolveSession: ResolveSession) {
 
   /** Owner powers need a 2FA-verified session. Destructive owner actions also need a check inside the last 10 minutes. */
   async function requireOwner(headers: Headers, options: { stepUp?: boolean; now?: Date } = {}): Promise<Actor> {
-    const actor = await requireRole(headers, "owner");
+    const actor = await requireRole(headers, "admin");
     if (options.stepUp && !isStepUpFresh(actor, options.now)) {
       throw new AuthError("STEP_UP_REQUIRED", "Confirm your authenticator code to continue.");
     }

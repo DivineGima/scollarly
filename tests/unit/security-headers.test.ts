@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TOUR_FRAME_ORIGINS } from "@/lib/tour-hosts";
-import { applySecurityHeaders, CSP, SECURITY_HEADERS, securityHeaderList } from "@/lib/security-headers";
+import { applySecurityHeaders, CSP, DOCUMENT_UPLOAD_ORIGIN, SECURITY_HEADERS, securityHeaderList } from "@/lib/security-headers";
 
 describe("security headers (architecture 13.1)", () => {
   it("has every header the architecture lists", () => {
@@ -20,7 +20,8 @@ describe("security headers (architecture 13.1)", () => {
 
   it("the policy matches the architecture: youtube-nocookie and Turnstile frames, same-origin connections, self, data and blob images", () => {
     const directives: Record<string, string[]> = Object.fromEntries(CSP.split("; ").map((d) => [d.split(" ")[0] ?? "", d.split(" ").slice(1)]));
-    expect(directives["connect-src"]).toEqual(["'self'"]);
+    // The site itself and the one storage cluster student documents are sent to (S17.1); nothing else.
+    expect(directives["connect-src"]).toEqual(["'self'", DOCUMENT_UPLOAD_ORIGIN]);
     expect(directives["img-src"]).toEqual(["'self'", "data:", "blob:"]);
     // Only YouTube's privacy domain, Turnstile and the listed 360 tour hosts may be framed (tracker F31): no bare `https:` any more.
     expect(directives["frame-src"]).toEqual(["https://www.youtube-nocookie.com", "https://challenges.cloudflare.com", ...TOUR_FRAME_ORIGINS]);

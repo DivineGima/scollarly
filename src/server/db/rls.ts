@@ -16,7 +16,7 @@ import type { Db } from "./client";
  *   const [rows] = await inContext(db, contextOf(actor), listLeadsQuery(db));
  */
 
-export type RlsRole = "anonymous" | "student" | "admin" | "owner";
+export type RlsRole = "anonymous" | "student" | "manager" | "admin";
 
 export interface RlsContext {
   userId: string | null;
@@ -25,7 +25,7 @@ export interface RlsContext {
 
 export const ANONYMOUS: RlsContext = { userId: null, role: "anonymous" };
 
-export function contextOf(actor: { userId: string; role: "student" | "admin" | "owner" }): RlsContext {
+export function contextOf(actor: { userId: string; role: "student" | "manager" | "admin" }): RlsContext {
   return { userId: actor.userId, role: actor.role };
 }
 

@@ -35,9 +35,9 @@ describe("checkSession: one query per request, no cache (ADR-034, ADR-020)", () 
 
   it("trusts an unverified email for a student only (email and password sign-up, PRD_3 F21), never for staff", async () => {
     expect(await facadeFor(session({ emailVerified: false })).checkSession(withSession())).toMatchObject({ storedRole: "student" });
+    expect(await facadeFor(session({ emailVerified: false, role: "manager" })).checkSession(withSession())).toBeNull();
     expect(await facadeFor(session({ emailVerified: false, role: "admin" })).checkSession(withSession())).toBeNull();
-    expect(await facadeFor(session({ emailVerified: false, role: "owner" })).checkSession(withSession())).toBeNull();
-    expect(await facadeFor(session({ emailVerified: true, role: "owner" })).checkSession(withSession())).toMatchObject({ storedRole: "owner" });
+    expect(await facadeFor(session({ emailVerified: true, role: "admin" })).checkSession(withSession())).toMatchObject({ storedRole: "admin" });
   });
 
   it("asks the database once per call and passes only the token, never the signature", async () => {
@@ -49,8 +49,8 @@ describe("checkSession: one query per request, no cache (ADR-034, ADR-020)", () 
   });
 
   it("mints an actor from what the database says, so a role change shows on the very next request", async () => {
-    const actor = await facadeFor(session({ role: "admin" })).checkSession(withSession());
-    expect(actor).toMatchObject({ userId: "u-1", sessionId: "s-1", storedRole: "admin", role: "admin", twoFactorVerifiedAt: null });
+    const actor = await facadeFor(session({ role: "manager" })).checkSession(withSession());
+    expect(actor).toMatchObject({ userId: "u-1", sessionId: "s-1", storedRole: "manager", role: "manager", twoFactorVerifiedAt: null });
     const demoted = await facadeFor(session({ role: "student" })).checkSession(withSession());
     expect(demoted?.role).toBe("student");
   });
@@ -60,29 +60,29 @@ describe("checkSession: one query per request, no cache (ADR-034, ADR-020)", () 
   });
 
   it("gives an owner without a second-factor check student powers, and owner powers after it", async () => {
-    expect((await facadeFor(session({ role: "owner" })).checkSession(withSession()))?.role).toBe("student");
+    expect((await facadeFor(session({ role: "admin" })).checkSession(withSession()))?.role).toBe("student");
     const verified = new Date();
-    const actor = await facadeFor(session({ role: "owner", stepUpAt: verified })).checkSession(withSession());
-    expect(actor).toMatchObject({ storedRole: "owner", role: "owner", twoFactorVerifiedAt: verified });
+    const actor = await facadeFor(session({ role: "admin", stepUpAt: verified })).checkSession(withSession());
+    expect(actor).toMatchObject({ storedRole: "admin", role: "admin", twoFactorVerifiedAt: verified });
   });
 });
 
 describe("requireRole and requireOwner", () => {
   it("throws UNAUTHENTICATED without a session and FORBIDDEN for too low a role", async () => {
     await expect(facadeFor(null).requireRole(withSession(), "student")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
-    await expect(facadeFor(session()).requireRole(withSession(), "admin")).rejects.toMatchObject({ code: "FORBIDDEN" });
-    await expect(facadeFor(session()).requireRole(withSession(), "admin")).rejects.toBeInstanceOf(AuthError);
+    await expect(facadeFor(session()).requireRole(withSession(), "manager")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(facadeFor(session()).requireRole(withSession(), "manager")).rejects.toBeInstanceOf(AuthError);
   });
 
   it("lets admins and the verified owner in, and refuses an owner who has not passed 2FA", async () => {
-    await expect(facadeFor(session({ role: "admin" })).requireRole(withSession(), "admin")).resolves.toMatchObject({ role: "admin" });
-    await expect(facadeFor(session({ role: "owner", stepUpAt: new Date() })).requireOwner(withSession())).resolves.toMatchObject({ role: "owner" });
-    await expect(facadeFor(session({ role: "owner" })).requireOwner(withSession())).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(facadeFor(session({ role: "manager" })).requireRole(withSession(), "manager")).resolves.toMatchObject({ role: "manager" });
+    await expect(facadeFor(session({ role: "admin", stepUpAt: new Date() })).requireOwner(withSession())).resolves.toMatchObject({ role: "admin" });
+    await expect(facadeFor(session({ role: "admin" })).requireOwner(withSession())).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("requires a fresh second-factor check for destructive owner actions (10 minutes)", async () => {
     const verified = new Date("2026-10-24T10:00:00Z");
-    const f = facadeFor(session({ role: "owner", stepUpAt: verified }));
+    const f = facadeFor(session({ role: "admin", stepUpAt: verified }));
     await expect(f.requireOwner(withSession(), { stepUp: true, now: new Date(verified.getTime() + STEP_UP_WINDOW_MS) })).resolves.toBeDefined();
     await expect(f.requireOwner(withSession(), { stepUp: true, now: new Date(verified.getTime() + STEP_UP_WINDOW_MS + 1) })).rejects.toMatchObject({ code: "STEP_UP_REQUIRED" });
   });

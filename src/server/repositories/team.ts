@@ -15,7 +15,7 @@ export interface TeamMember {
   userId: string;
   email: string;
   name: string;
-  role: "admin" | "owner";
+  role: "manager" | "admin";
   leadsHeld: number;
   since: Date;
 }
@@ -30,7 +30,7 @@ export async function listTeam(db: Db, actor: Actor): Promise<TeamMember[]> {
 export const teamQuery = (db: Db) => db.execute(sql`select * from public.app_list_team()`);
 
 export function teamMembersOf(result: unknown): TeamMember[] {
-  return rowsOf<{ user_id: string; email: string; name: string; role: "admin" | "owner"; leads_held: string | number; since: string | Date }>(result).map((r) => ({
+  return rowsOf<{ user_id: string; email: string; name: string; role: "manager" | "admin"; leads_held: string | number; since: string | Date }>(result).map((r) => ({
     userId: r.user_id,
     email: r.email,
     name: r.name,
@@ -69,6 +69,8 @@ export interface NewInvite {
   /** SHA-256 hex of the token. The token itself is never stored. */
   tokenHash: string;
   expiresAt: Date;
+  /** The role the invite creates: a manager, or the second admin (version 5). */
+  role: "manager" | "admin";
 }
 
 /**
@@ -84,7 +86,7 @@ export async function createInvite(db: Db, actor: Actor, invite: NewInvite): Pro
       .update(adminInvite)
       .set({ revokedAt: sql`now()` })
       .where(and(sql`lower(${adminInvite.email}) = ${invite.email}`, isNull(adminInvite.acceptedAt), isNull(adminInvite.revokedAt))),
-    db.insert(adminInvite).values({ id: invite.id, email: invite.email, tokenHash: invite.tokenHash, invitedBy: actor.userId, expiresAt: invite.expiresAt }),
+    db.insert(adminInvite).values({ id: invite.id, email: invite.email, tokenHash: invite.tokenHash, invitedBy: actor.userId, expiresAt: invite.expiresAt, role: invite.role }),
     auditEntry(db, actor, { action: "team.invite", entityType: "admin_invite", entityId: invite.id }),
   );
 }
@@ -113,8 +115,33 @@ export async function revokeInvite(db: Db, actor: Actor, id: string, auditId: st
  * Removes an admin: role to student, sessions ended, leads back to the unassigned pool, audit row, in one transaction
  * (migration 0004). Returns the number of leads released, or null when the user is not an admin (owner included).
  */
-export async function removeAdmin(db: Db, actor: Actor, userId: string): Promise<number | null> {
-  const [result] = await runAs(db, actor, db.execute(sql`select public.app_remove_admin(${userId}) as released`));
+export async function removeManager(db: Db, actor: Actor, userId: string): Promise<number | null> {
+  const [result] = await runAs(db, actor, db.execute(sql`select public.app_remove_manager(${userId}) as released`));
   const released = rowsOf<{ released: number }>(result)[0]?.released;
   return released === undefined || released < 0 ? null : released;
+}
+
+export type ReassignOutcome = "moved" | "unchanged" | "no_student" | "not_a_manager";
+
+/** Version 5 (architecture 24.3): an admin moves a student, and the student's open application, to another manager (or to nobody). One transaction in the database function. */
+export async function reassignManager(db: Db, actor: Actor, studentId: string, managerId: string | null): Promise<ReassignOutcome> {
+  const [result] = await runAs(db, actor, db.execute(sql`select public.app_reassign_manager(${studentId}, ${managerId}) as outcome`));
+  const outcome = rowsOf<{ outcome: string }>(result)[0]?.outcome;
+  if (outcome === "moved" || outcome === "unchanged" || outcome === "no_student" || outcome === "not_a_manager") return outcome;
+  throw new Error("app_reassign_manager returned an unexpected value");
+}
+
+/** A manager's or admin's own away switch and WhatsApp number. `whatsapp` undefined keeps the number; null clears it. Returns false when the number was refused. */
+export async function setStaffSettings(db: Db, actor: Actor, settings: { away?: boolean; whatsapp?: string | null }): Promise<boolean> {
+  const keepNumber = settings.whatsapp === undefined;
+  const [result] = await runAs(
+    db,
+    actor,
+    db.execute(sql`
+      select public.app_set_staff_settings(
+        ${settings.away ?? null}::boolean,
+        case when ${keepNumber} then (select a.whatsapp_number from public.app_user a where a.id = public.app_current_user_id()) else ${settings.whatsapp ?? null}::text end
+      ) as ok`),
+  );
+  return rowsOf<{ ok: boolean }>(result)[0]?.ok === true;
 }

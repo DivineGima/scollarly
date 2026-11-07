@@ -86,7 +86,7 @@ export async function funnelData(db: Db, actor: Actor, f: AnalyticsFilter): Prom
     db.execute(sql`
       select p.university_id, u.name, sum(p.amount_usd_cents)::bigint as cents, count(*)::int as n
         from placement_payment p join university u on u.id = p.university_id
-       where p.voided_at is null and p.received_on >= ${f.from}::date and p.received_on <= ${f.to}::date
+       where p.voided_at is null and p.approved_at is not null and p.received_on >= ${f.from}::date and p.received_on <= ${f.to}::date
          ${f.universityId ? sql`and p.university_id = ${f.universityId}::uuid` : sql``}
        group by p.university_id, u.name order by cents desc, u.name`),
   );
@@ -132,10 +132,10 @@ export async function performanceOf(db: Db, actor: Actor, f: Pick<AnalyticsFilte
              count(*) filter (where l.first_response_at is not null)::int as answered,
              percentile_cont(0.5) within group (order by extract(epoch from (l.first_response_at - l.received_at)) / 60.0) filter (where l.first_response_at is not null) as median_minutes,
              avg(extract(epoch from (l.first_response_at - l.received_at)) / 60.0) filter (where l.first_response_at is not null) as mean_minutes,
-             (select count(*)::int from lead o where o.assigned_admin_id = ${actor.userId} and o.merged_into_id is null and o.anonymised_at is null
+             (select count(*)::int from lead o where o.assigned_manager_id = ${actor.userId} and o.merged_into_id is null and o.anonymised_at is null
                  and o.first_response_at is null and o.sla_due_at < ${now.toISOString()}::timestamptz) as overdue
         from lead l
-       where l.assigned_admin_id = ${actor.userId} and l.merged_into_id is null
+       where l.assigned_manager_id = ${actor.userId} and l.merged_into_id is null
          and l.received_at >= ${f.start.toISOString()}::timestamptz and l.received_at < ${f.end.toISOString()}::timestamptz`),
   );
   const row = rowsOf<{ assigned: number; answered: number; median_minutes: string | number | null; mean_minutes: string | number | null; overdue: number }>(result)[0];
@@ -147,7 +147,7 @@ export interface AdminPerformance extends PerformanceData {
   userId: string;
   email: string;
   name: string;
-  role: "admin" | "owner";
+  role: "manager" | "admin";
 }
 
 /**
@@ -165,12 +165,12 @@ export async function performanceOfAll(db: Db, actor: Actor, f: Pick<AnalyticsFi
              count(l.id) filter (where l.first_response_at is not null)::int as answered,
              percentile_cont(0.5) within group (order by extract(epoch from (l.first_response_at - l.received_at)) / 60.0) filter (where l.first_response_at is not null) as median_minutes,
              avg(extract(epoch from (l.first_response_at - l.received_at)) / 60.0) filter (where l.first_response_at is not null) as mean_minutes,
-             (select count(*)::int from lead o where o.assigned_admin_id = a.id and o.merged_into_id is null and o.anonymised_at is null
+             (select count(*)::int from lead o where o.assigned_manager_id = a.id and o.merged_into_id is null and o.anonymised_at is null
                  and o.first_response_at is null and o.sla_due_at < ${now.toISOString()}::timestamptz) as overdue
         from app_user a
-        left join lead l on l.assigned_admin_id = a.id and l.merged_into_id is null
+        left join lead l on l.assigned_manager_id = a.id and l.merged_into_id is null
                         and l.received_at >= ${f.start.toISOString()}::timestamptz and l.received_at < ${f.end.toISOString()}::timestamptz
-       where a.role in ('admin', 'owner')
+       where a.role in ('manager', 'admin')
        group by a.id`),
     teamQuery(db),
   );

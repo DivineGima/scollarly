@@ -37,7 +37,7 @@ let admin2: Actor;
 let student: Actor;
 const NOW = new Date("2026-10-21T12:00:00Z");
 
-async function staff(role: "admin" | "owner" | "student"): Promise<Actor> {
+async function staff(role: "manager" | "admin" | "student"): Promise<Actor> {
   const user = await t.signIn();
   await t.run(`insert into app_user (id, role) values (${q(user.userId)}, ${q(role)})`);
   return mintActor({ userId: user.userId, sessionId: user.sessionId, storedRole: role, role, twoFactorVerifiedAt: null });
@@ -78,8 +78,8 @@ describe("S5.1 the list, its filters and search", () => {
     ids.uni = u;
     const at = (hoursAgo: number) => new Date(NOW.getTime() - hoursAgo * 3_600_000).toISOString();
     ids.ama = await leadRow(t, { name: "Ama Mensah", whatsapp_e164: "+233201111111", country_code: "GH", received_at: at(10), sla_due_at: at(6), source: { university_id: u } });
-    ids.kofi = await leadRow(t, { name: "Kofi Boateng", whatsapp_e164: "+233202222222", country_code: "GH", received_at: at(5), sla_due_at: at(1), assigned_admin_id: admin.userId });
-    ids.ngozi = await leadRow(t, { name: "Ngozi Eze", whatsapp_e164: "+2348033333333", country_code: "NG", received_at: at(2), sla_due_at: at(-2), stage_code: "choose_course" });
+    ids.kofi = await leadRow(t, { name: "Kofi Boateng", whatsapp_e164: "+233202222222", country_code: "GH", received_at: at(5), sla_due_at: at(1), assigned_manager_id: admin.userId });
+    ids.ngozi = await leadRow(t, { name: "Ngozi Eze", whatsapp_e164: "+2348033333333", country_code: "NG", received_at: at(2), sla_due_at: at(-2), stage_code: "university_review" });
     ids.answered = await leadRow(t, { name: "Answered Person", whatsapp_e164: "+237600000001", received_at: at(8), sla_due_at: at(4), first_response_at: at(7) });
     ids.merged = await leadRow(t, { name: "Merged Away", whatsapp_e164: "+233201111111", received_at: at(9), sla_due_at: at(5), merged_into_id: ids.ama });
   });
@@ -93,7 +93,7 @@ describe("S5.1 the list, its filters and search", () => {
   });
 
   it("filters by stage, country, assigned admin and university", async () => {
-    expect((await list({ stage: "choose_course" })).map((r) => r.id)).toEqual([ids.ngozi]);
+    expect((await list({ stage: "university_review" })).map((r) => r.id)).toEqual([ids.ngozi]);
     expect((await list({ country: "NG" })).map((r) => r.id)).toEqual([ids.ngozi]);
     expect((await list({ assigned: "me" })).map((r) => r.id)).toEqual([ids.kofi]);
     expect((await list({ assigned: admin.userId })).map((r) => r.id)).toEqual([ids.kofi]);
@@ -140,7 +140,7 @@ describe("S5.1 the list, its filters and search", () => {
     expect(counts.mine).toBe(1);
     expect(counts.unassigned).toBe(3);
     expect(counts.funnel.reduce((n, f) => n + f.count, 0)).toBe(4);
-    expect(counts.funnel.find((f) => f.stageCode === "choose_course")?.count).toBe(1);
+    expect(counts.funnel.find((f) => f.stageCode === "university_review")?.count).toBe(1);
   });
 
   it("a student and a visitor see no lead, because the policy says so, not because the screen hides them", async () => {
@@ -158,11 +158,11 @@ describe("S5.2 and S5.6 changes, activity and versions", () => {
   });
 
   it("changing the stage writes a stage_changed activity and an audit row, and moves the version", async () => {
-    const result = await asRuntime(() => changeStage(t.db, admin, { leadId: id, stage: "choose_course", version }));
-    expect(result).toMatchObject({ kind: "ok", from: "share_results" });
+    const result = await asRuntime(() => changeStage(t.db, admin, { leadId: id, stage: "documents", version }));
+    expect(result).toMatchObject({ kind: "ok", from: "course_interest" });
     const activity = await rows(`select type, actor_id, data from lead_activity where lead_id = ${q(id)}`);
     expect(activity).toHaveLength(1);
-    expect(activity[0]).toMatchObject({ type: "stage_changed", actor_id: admin.userId, data: { from: "share_results", to: "choose_course" } });
+    expect(activity[0]).toMatchObject({ type: "stage_changed", actor_id: admin.userId, data: { from: "course_interest", to: "documents" } });
     expect(await count(`select count(*) as n from audit_log where action = 'leads.changeStage' and entity_id = ${q(id)}`)).toBe(1);
     expect(result.kind === "ok" && result.version).toBe(await versionOf(id));
     expect(await versionOf(id)).not.toBe(version);
@@ -174,7 +174,7 @@ describe("S5.2 and S5.6 changes, activity and versions", () => {
     const before = await count(`select count(*) as n from lead_activity where lead_id = ${q(id)}`);
     const result = await asRuntime(() => changeStage(t.db, admin2, { leadId: id, stage: "offer_letter", version: stale }));
     expect(result.kind).toBe("conflict");
-    expect(await rows(`select stage_code from lead where id = ${q(id)}`)).toEqual([{ stage_code: "choose_course" }]);
+    expect(await rows(`select stage_code from lead where id = ${q(id)}`)).toEqual([{ stage_code: "documents" }]);
     expect(await count(`select count(*) as n from lead_activity where lead_id = ${q(id)}`)).toBe(before);
   });
 
@@ -183,13 +183,13 @@ describe("S5.2 and S5.6 changes, activity and versions", () => {
     expect(first.kind).toBe("ok");
     const second = await asRuntime(() => assignLead(t.db, admin2, { leadId: id, adminId: admin2.userId, version }));
     expect(second.kind).toBe("conflict");
-    expect(await rows(`select assigned_admin_id from lead where id = ${q(id)}`)).toEqual([{ assigned_admin_id: admin.userId }]);
+    expect(await rows(`select assigned_manager_id from lead where id = ${q(id)}`)).toEqual([{ assigned_manager_id: admin.userId }]);
     version = await versionOf(id);
   });
 
   it("the same stage again is 'unchanged', an unknown stage is refused, and neither writes anything", async () => {
     const before = await count(`select count(*) as n from lead_activity where lead_id = ${q(id)}`);
-    expect((await asRuntime(() => changeStage(t.db, admin, { leadId: id, stage: "choose_course", version }))).kind).toBe("unchanged");
+    expect((await asRuntime(() => changeStage(t.db, admin, { leadId: id, stage: "documents", version }))).kind).toBe("unchanged");
     expect((await asRuntime(() => changeStage(t.db, admin, { leadId: id, stage: "no_such_stage", version }))).kind).toBe("unknown_stage");
     expect(await count(`select count(*) as n from lead_activity where lead_id = ${q(id)}`)).toBe(before);
   });
@@ -570,7 +570,7 @@ describe("S5.5 data requests (B5)", () => {
   it("a portal request that names an account is done only when none of the account's leads is left", async () => {
     const owner = await staff("student");
     const l1 = await leadRow(t, { name: "Account Lead One", whatsapp_e164: "+237688800010", user_id: owner.userId });
-    const l2 = await leadRow(t, { name: "Account Lead Two", whatsapp_e164: "+237688800011", user_id: owner.userId });
+    const l2 = await leadRow(t, { name: "Account Lead Two", whatsapp_e164: "+237688800011", user_id: owner.userId, status: "closed" });
     const requestId = uuidv7();
     await t.run(`insert into data_request (id, kind, user_id, channel, status) values (${q(requestId)}, 'erasure', ${q(owner.userId)}, 'portal', 'open')`);
     const listed = (await asRuntime(() => listDataRequests(t.db, admin, "open"))).find((r) => r.id === requestId);

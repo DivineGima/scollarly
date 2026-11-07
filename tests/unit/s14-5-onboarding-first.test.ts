@@ -13,16 +13,16 @@ describe("S14.5: who has to finish onboarding", () => {
   it("asks only a student who has not finished, never staff or an owner without 2FA", () => {
     expect(needsOnboarding(actorOf("student", false))).toBe(true);
     expect(needsOnboarding(actorOf("student", true))).toBe(false);
+    expect(needsOnboarding(actorOf("manager", false))).toBe(false);
     expect(needsOnboarding(actorOf("admin", false))).toBe(false);
-    expect(needsOnboarding(actorOf("owner", false))).toBe(false);
   });
 
   it("is the same question for a session (the lead endpoint)", () => {
     expect(sessionNeedsOnboarding({ role: "student", onboardingDone: false })).toBe(true);
     expect(sessionNeedsOnboarding({ role: "student", onboardingDone: true })).toBe(false);
     expect(sessionNeedsOnboarding({ role: "student" })).toBe(false);
+    expect(sessionNeedsOnboarding({ role: "manager", onboardingDone: false })).toBe(false);
     expect(sessionNeedsOnboarding({ role: "admin", onboardingDone: false })).toBe(false);
-    expect(sessionNeedsOnboarding({ role: "owner", onboardingDone: false })).toBe(false);
   });
 
   it("is carried from the session into the actor, and an old resolver without it counts as done", async () => {
@@ -73,8 +73,8 @@ describe("S14.5: the student area before onboarding is finished (data calls and 
   it("changes nothing for a student who has finished, for staff, or for the admin area", async () => {
     expect((await authed(actorOf("student", true)).run("/api/v1/me/home"))?.status).toBe(200);
     expect((await authed(actorOf("student", true)).run("/me"))?.status).toBe(200);
-    expect((await authed(actorOf("admin", false)).run("/api/v1/admin/home"))?.status).toBe(200);
-    expect((await authed(actorOf("owner", false)).run("/me"))?.status).toBe(200);
+    expect((await authed(actorOf("manager", false)).run("/api/v1/admin/home"))?.status).toBe(200);
+    expect((await authed(actorOf("admin", false)).run("/me"))?.status).toBe(200);
   });
 });
 
@@ -83,7 +83,7 @@ describe("S14.5: student changes before onboarding is finished", () => {
   const mutations: Record<string, Mutation> = {
     "me/onboarding": { access: { kind: "signed-in" }, beforeOnboarding: true, handle },
     "me/profile.update": { access: { kind: "signed-in" }, handle },
-    "admin/anything": { access: { kind: "role", role: "admin" }, handle },
+    "admin/anything": { access: { kind: "role", role: "manager" }, handle },
   };
   const run = (actor: Actor, path: string) => {
     const deps = { checkSession: async () => actor, mutations, env: { now: () => new Date() }, limit: async () => ({ allowed: true, remaining: 1, retryAfterSeconds: 0 }) } as unknown as MutationDeps;
@@ -100,7 +100,7 @@ describe("S14.5: student changes before onboarding is finished", () => {
 
   it("does not touch a finished student or staff", async () => {
     expect((await run(actorOf("student", true), "me/profile.update"))?.status).toBe(200);
-    expect((await run(actorOf("admin", false), "admin/anything"))?.status).toBe(200);
+    expect((await run(actorOf("manager", false), "admin/anything"))?.status).toBe(200);
   });
 });
 

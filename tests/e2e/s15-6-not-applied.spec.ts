@@ -17,7 +17,7 @@ async function axe(page: Page) {
 }
 
 async function signIn(page: Page) {
-  await page.route("**/api/v1/admin/session", (route) => json(route, { role: "admin", name: "Priya Rao", email: "admin@example.test", stepUpFresh: false, toursSeen: ["home", "leads", "content", "insights"], userId: "admin-1" }));
+  await page.route("**/api/v1/admin/session", (route) => json(route, { role: "manager", name: "Priya Rao", email: "admin@example.test", stepUpFresh: false, toursSeen: ["home", "leads", "content", "insights"], userId: "admin-1" }));
   await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
 }
 

@@ -48,7 +48,8 @@ export async function progressOf(db: Db, actor: Actor): Promise<Progress> {
        order by l.received_at desc limit 5`),
     db.execute(sql`select code, position, name from pipeline_stage order by position`),
     db.execute(sql`select count(*)::int as n from lead_claim c where c.user_id = ${actor.userId} and c.status = 'pending'`),
-    db.execute(sql`select value from site_setting where key = 'whatsapp_number_e164'`),
+    // The assigned manager's own number when they have one (version 5, architecture 24.9), else the site's (one helper builds the link either way).
+    db.execute(sql`select coalesce(to_jsonb(public.app_my_manager_whatsapp()), (select value from site_setting where key = 'whatsapp_number_e164')) as value`),
   );
   const number = rowsOf<{ value: unknown }>(setting)[0]?.value;
   return {
