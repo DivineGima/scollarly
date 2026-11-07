@@ -433,7 +433,7 @@ test.describe("B3 Lead detail", () => {
     await page.getByRole("button", { name: "Message on WhatsApp" }).click();
     const dialog = page.getByRole("dialog");
     const box = dialog.getByLabel("Message");
-    await expect(box).toHaveValue(/Hello Ama, this is Scollarly\. Thank you for your request SC-ABCDE-FGHJK\./);
+    await expect(box).toHaveValue(/Hello Ama, this is Scollarly about your application SC-ABCDE-FGHJK\./);
     await box.fill("Hello Ama, can you send your results?");
     const popup = context.waitForEvent("page");
     await dialog.getByRole("link", { name: "Open WhatsApp" }).click();

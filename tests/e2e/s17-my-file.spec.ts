@@ -129,7 +129,7 @@ test("an upload that fails is tried again alone, with the same file and no new c
 
   await page.getByTestId("doc-id-retry").click();
   await expect(page.getByTestId("doc-id-error")).toHaveCount(0);
-  expect({ signs, puts, confirms }).toEqual({ signs: 2, puts: 2, confirms: 1 });
+  await expect.poll(() => ({ signs, puts, confirms })).toEqual({ signs: 2, puts: 2, confirms: 1 });
 });
 
 test("refuses a file that is too big or not an allowed type before sending anything", async ({ page }) => {

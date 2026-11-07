@@ -308,7 +308,7 @@ test.describe("offline: totals only (architecture 21.11)", () => {
             }),
         ),
       )
-      .toContain('"userId":"admin-1"');
+      .toContain('"userId":"manager-1"');
 
     const kept = await page.evaluate(
       () =>

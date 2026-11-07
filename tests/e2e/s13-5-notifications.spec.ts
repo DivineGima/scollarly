@@ -20,7 +20,7 @@ const iso = (minutesAgo: number) => new Date(now - minutesAgo * 60_000).toISOStr
 
 const studentItems = [
   { id: "reply", kind: "reply_logged", at: iso(5), unread: true, ref: "SC-ABCDE-FGHJK" },
-  { id: "stage", kind: "stage_changed", at: iso(60), unread: true, ref: "SC-ABCDE-FGHJK", stage: "choose_course" },
+  { id: "stage", kind: "stage_changed", at: iso(60), unread: true, ref: "SC-ABCDE-FGHJK", stage: "course_interest" },
   { id: "match", kind: "new_match", at: iso(60 * 24 * 3), unread: false, slug: "alpha-university", university: "Alpha University" },
 ];
 
@@ -58,7 +58,7 @@ test.describe("the student's Notifications", () => {
     const items = page.locator(".notif-item");
     await expect(items).toHaveCount(3);
     await expect(items.nth(0)).toContainText("Your adviser replied");
-    await expect(items.nth(1)).toContainText("Your application moved to Choose course.");
+    await expect(items.nth(1)).toContainText("Your application moved to Course interest.");
     await expect(items.nth(2)).toContainText("Alpha University now offers a course you chose.");
     await expect(items.nth(0).getByRole("link", { name: "Open My progress" })).toHaveAttribute("href", "/me/progress");
     await expect(items.nth(2).getByRole("link", { name: "View university" })).toHaveAttribute("href", "/universities/alpha-university");

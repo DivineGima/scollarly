@@ -549,11 +549,11 @@ test.describe("C5 audit log", () => {
   const AUDIT = (extra: Partial<{ nextBefore: string | null }> = {}) => ({
     entries: [
       { id: "e1", at: "2026-10-23T22:30:00.000Z", actorId: "o1", actorEmail: "boss@example.test", action: "team.invite", entityType: "admin_invite", entityId: "i1", meta: {} },
-      { id: "e2", at: "2026-10-23T10:00:00.000Z", actorId: "gone", actorEmail: null, action: "team.removeManager", entityType: "app_user", entityId: "gone", meta: {} },
+      { id: "e2", at: "2026-10-23T10:00:00.000Z", actorId: "gone", actorEmail: null, action: "team.removeAdmin", entityType: "app_user", entityId: "gone", meta: {} },
       { id: "e3", at: "2026-10-22T10:00:00.000Z", actorId: null, actorEmail: null, action: "brand.new.action", entityType: "thing", entityId: null, meta: {} },
     ],
     people: [{ id: "o1", email: "boss@example.test" }],
-    actions: ["team.invite", "team.removeManager"],
+    actions: ["team.invite", "team.removeAdmin"],
     nextBefore: null,
     ...extra,
   });
