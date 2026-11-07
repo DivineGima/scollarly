@@ -17,6 +17,9 @@ export function ProfilePanel() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [others, setOthers] = useState<string | null>(null);
+  const [away, setAway] = useState(session.away === true);
+  const [number, setNumber] = useState(session.whatsapp ?? "");
+  const [availability, setAvailability] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -27,6 +30,25 @@ export function ProfilePanel() {
     setBusy(false);
     if (result.ok) setMessage({ kind: "ok", text: t("saved") });
     else setMessage({ kind: "error", text: result.code === "VALIDATION" ? t("errorName") : t("errorGeneric") });
+  }
+
+  /** The away switch and the WhatsApp number (architecture 24.3). An empty number clears it; anything else must be a full international number. */
+  async function saveAvailability(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    const typed = number.replace(/[\s-]/g, "");
+    if (typed !== "" && !/^[+][1-9][0-9]{6,14}$/.test(typed)) {
+      setAvailability({ kind: "error", text: t("availability.errorNumber") });
+      return;
+    }
+    setBusy(true);
+    setAvailability(null);
+    const result = await api("POST", "/api/v1/admin/staff.settings", { away, whatsapp: typed === "" ? null : typed });
+    setBusy(false);
+    if (result.ok) {
+      setNumber(typed);
+      setAvailability({ kind: "ok", text: t("availability.saved") });
+    } else setAvailability({ kind: "error", text: result.fields.whatsapp ? t("availability.errorNumber") : t("errorGeneric") });
   }
 
   async function signOutOthers() {
@@ -57,6 +79,26 @@ export function ProfilePanel() {
         </Button>
         {message?.kind === "ok" ? <p role="status" className="text-success">{message.text}</p> : null}
         {message?.kind === "error" ? <FieldError>{message.text}</FieldError> : null}
+      </form>
+
+      <form onSubmit={(event) => void saveAvailability(event)} noValidate className="mt-10 max-w-md space-y-4" aria-labelledby={`${id}-availability`} data-testid="availability-form">
+        <h2 id={`${id}-availability`} className="text-xl font-semibold">
+          {t("availability.title")}
+        </h2>
+        <p className="text-fg-muted">{t("availability.about")}</p>
+        <label className="flex min-h-11 items-center gap-3">
+          <input type="checkbox" checked={away} onChange={(event) => setAway(event.target.checked)} disabled={busy} className="h-5 w-5" />
+          <span>{t("availability.away")}</span>
+        </label>
+        <div>
+          <Label htmlFor={`${id}-number`}>{t("availability.number")}</Label>
+          <Input id={`${id}-number`} type="tel" inputMode="tel" value={number} onChange={(event) => setNumber(event.target.value)} placeholder="+237..." autoComplete="tel" disabled={busy} aria-invalid={availability?.kind === "error" ? true : undefined} />
+        </div>
+        <Button type="submit" disabled={busy}>
+          {t("availability.save")}
+        </Button>
+        {availability?.kind === "ok" ? <p role="status" className="text-success">{availability.text}</p> : null}
+        {availability?.kind === "error" ? <FieldError>{availability.text}</FieldError> : null}
       </form>
 
       <div className="mt-10 flex max-w-md flex-col items-start gap-3">

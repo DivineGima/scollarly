@@ -63,6 +63,7 @@ interface LeadDetailData {
   duplicates: DuplicatePairData[];
   stages: StageOption[];
   admins: Person[];
+  managers: Person[];
   template: string | null;
   documents: FileDocument[];
   you: string;
@@ -312,15 +313,18 @@ function LeadDetail({ data, reload }: { data: LeadDetailData; reload: () => void
             </select>
           </div>
           ) : null}
+          {/* A student with an account is handed to a manager from the student file below (it moves the student and the application together). */}
+          {lead.studentId === null ? (
           <Button variant="outline" disabled={busy} onClick={() => setDialog("assign")}>
             {t("actions.assign")}
           </Button>
+          ) : null}
         </div>
       ) : null}
 
       {editable && lead.studentId !== null ? (
         <StudentFile
-          data={{ leadId: lead.id, version: lead.version, stage: lead.stage, status: lead.status, closedReason: lead.closedReason, studentId: lead.studentId, clock: lead.clock, quiet: lead.quiet, documents: data.documents }}
+          data={{ leadId: lead.id, version: lead.version, stage: lead.stage, status: lead.status, closedReason: lead.closedReason, studentId: lead.studentId, clock: lead.clock, quiet: lead.quiet, documents: data.documents, managers: data.managers, assignedId: lead.assigned?.id ?? null }}
           stageNames={(code) => stageName(data.stages, code)}
           reload={reload}
         />

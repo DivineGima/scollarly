@@ -237,7 +237,16 @@
       "signOut": "Se déconnecter",
       "roleAdmin": "Administrateur",
       "roleManager": "Gestionnaire",
-      "purpose": "Votre nom et les informations avec lesquelles vous vous connectez."
+      "purpose": "Votre nom et les informations avec lesquelles vous vous connectez.",
+      "availability": {
+        "title": "Disponibilité",
+        "about": "Quand vous êtes absent, on ne vous attribue pas de nouvel étudiant. Ceux que vous avez déjà restent avec vous. Le numéro est celui vers lequel les étudiants sont envoyés sur WhatsApp.",
+        "away": "Je suis absent : ne pas m'attribuer de nouveaux étudiants",
+        "number": "Mon numéro WhatsApp (avec l'indicatif du pays)",
+        "save": "Enregistrer ma disponibilité",
+        "saved": "Enregistré.",
+        "errorNumber": "Écrivez le numéro avec l'indicatif du pays, en commençant par +, ou laissez le champ vide."
+      }
     },
     "team": {
       "title": "Équipe",
@@ -271,7 +280,10 @@
       "errorAlreadyStaff": "Cette personne fait déjà partie de l'équipe.",
       "errorConflict": "Une invitation vient d'être créée pour cette adresse. Rechargez la page.",
       "errorGeneric": "Une erreur s'est produite. Veuillez réessayer.",
-      "purpose": "Qui peut travailler dans Scollarly, et ce que chacun peut faire."
+      "purpose": "Qui peut travailler dans Scollarly, et ce que chacun peut faire.",
+      "inviteRole": "Rôle",
+      "roleAdminBackup": "Administrateur (suppléant)",
+      "inviteRoleHelp": "Un responsable suit les étudiants qui lui sont attribués. Un second administrateur voit tout et a besoin du second facteur de connexion. Il ne peut y en avoir que deux, et un administrateur ne peut pas être retiré ici."
     },
     "audit": {
       "title": "Journal d'audit",
@@ -608,6 +620,12 @@
           "uploadTooLarge": "Ce fichier est trop volumineux. La limite est de 5 Mo.",
           "uploadPdfOnly": "Seul un PDF peut être envoyé comme lettre.",
           "uploadFailed": "L'envoi a échoué. Réessayez."
+        },
+        "reassign": {
+          "label": "Confier cet étudiant à",
+          "none": "Personne (l'administrateur garde le dossier)",
+          "button": "Réattribuer",
+          "current": "Chez {name}"
         }
       }
     },

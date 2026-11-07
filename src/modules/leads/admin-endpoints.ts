@@ -196,6 +196,8 @@ export function leadDataCalls(env: EndpointEnv): Record<string, DataCall> {
         duplicates: duplicates.map((d) => ({ a: { ...d.a, receivedAt: d.a.receivedAt.toISOString() }, b: { ...d.b, receivedAt: d.b.receivedAt.toISOString() } })),
         stages: stages.map((s) => ({ code: s.code, name: s.name })),
         admins: people.list.map((p) => ({ id: p.userId, label: p.name.trim() || p.email })),
+        /** Who a student can be handed to (the Admin's Reassign): managers only. */
+        managers: detail.team.filter((m) => m.role === "manager").map((m) => ({ id: m.userId, label: m.name.trim() || m.email })),
         /** The staff-written template for this stage and language, or null (the screen then uses its built-in text). */
         template,
         documents: detail.documents.map((d) => ({ ...d, createdAt: d.createdAt.toISOString(), reviewedAt: d.reviewedAt ? d.reviewedAt.toISOString() : null })),

@@ -32,6 +32,7 @@ export function TeamPanel() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"manager" | "admin">("manager");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export function TeamPanel() {
 
   function openInvite(prefill = "") {
     setEmail(prefill);
+    setInviteRole("manager");
     setError(null);
     setLink(null);
     setCopied(false);
@@ -58,7 +60,7 @@ export function TeamPanel() {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const result = await stepUp(() => api<{ link: string }>("POST", "/api/v1/admin/team.invite", { email: address }));
+    const result = await stepUp(() => api<{ link: string }>("POST", "/api/v1/admin/team.invite", { email: address, role: inviteRole }));
     setBusy(false);
     if (result.ok) setLink(result.data.link);
     else setError(errorText(result));
@@ -224,6 +226,14 @@ export function TeamPanel() {
               disabled={busy}
             />
             {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
+            <Label className="mt-4" htmlFor={`${id}-role`}>
+              {t("inviteRole")}
+            </Label>
+            <select id={`${id}-role`} className="min-h-11 w-full rounded-md border border-border bg-bg px-3" value={inviteRole} onChange={(event) => setInviteRole(event.target.value === "admin" ? "admin" : "manager")} disabled={busy}>
+              <option value="manager">{t("roleManager")}</option>
+              <option value="admin">{t("roleAdminBackup")}</option>
+            </select>
+            <p className="mt-1 text-sm text-fg-muted">{t("inviteRoleHelp")}</p>
             <div className="mt-4 flex gap-3">
               <Button type="submit" disabled={busy || email.trim() === ""}>
                 {t("sendInvite")}

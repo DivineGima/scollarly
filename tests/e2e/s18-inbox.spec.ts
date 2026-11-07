@@ -146,11 +146,11 @@ const doc = (kind: string, state: string, over: Record<string, unknown> = {}) =>
 const lead = (over: Record<string, unknown> = {}, documents: unknown[] = []) => ({
   lead: {
     id: A, ref: "SC-ABCDE-FGHJK", name: "Ada Eze", whatsapp: "+2348031234567", email: "ada@example.test", country: "NG", intakeKind: "full", qualificationType: "olevel_alevel", results: [], locale: "en",
-    stage: "documents", assigned: null, linkedAccount: true, studentId: "stu-1", status: "open", closedReason: null, clock: { state: "none" }, quiet: "active",
+    stage: "documents", assigned: { id: "mgr-a", label: "Priya Rao" }, linkedAccount: true, studentId: "stu-1", status: "open", closedReason: null, clock: { state: "none" }, quiet: "active",
     receivedAt: "2026-11-01T08:00:00.000Z", sla: { status: "ok", dueAt: "2026-11-02T08:00:00.000Z" }, slaHours: 4, firstResponseAt: null, erased: false, mergedInto: null,
     source: { page: null, university: null, contactName: null }, version: VERSION, ...over,
   },
-  prefs: [], timeline: [], pendingClaims: 0, duplicates: [], stages: STAGES, admins: [], template: null, documents, you: "manager-1",
+  prefs: [], timeline: [], pendingClaims: 0, duplicates: [], stages: STAGES, admins: [], managers: [{ id: "mgr-a", label: "Priya Rao" }, { id: "mgr-b", label: "Kofi Boateng" }], template: null, documents, you: "manager-1",
 });
 
 async function stubLead(page: Page, body: unknown) {
@@ -294,5 +294,79 @@ test.describe("the student screen", () => {
     await stubLead(none, lead({ studentId: null, linkedAccount: false }));
     await none.goto(`/admin/leads/${A}`);
     await expect(none.getByTestId("student-file")).toHaveCount(0);
+  });
+});
+
+// ---- S18.2: the Admin hands a student to a manager; a staff member sets their own availability; an invite names its role ---------------------
+
+test.describe("S18.2 team and availability", () => {
+  test("lets the Admin hand the student to another manager or to nobody, and gives a manager no such control", async ({ page }) => {
+    await signIn(page, "admin");
+    await stubLead(page, lead());
+    const sent: Record<string, unknown>[] = [];
+    await page.route("**/api/v1/admin/team.reassign", (route) => {
+      sent.push(route.request().postDataJSON() as Record<string, unknown>);
+      return json(route, { changed: true });
+    });
+    await page.goto(`/admin/leads/${A}`);
+    await expect(page.getByTestId("reassign-button")).toBeDisabled(); // already with this manager
+    await page.getByLabel("Give this student to").selectOption("mgr-b");
+    await page.getByTestId("reassign-button").click();
+    await expect.poll(() => sent).toEqual([{ studentId: "stu-1", managerId: "mgr-b" }]);
+    await page.getByLabel("Give this student to").selectOption("");
+    await page.getByTestId("reassign-button").click();
+    await expect.poll(() => sent.length).toBe(2);
+    expect(sent[1]).toEqual({ studentId: "stu-1", managerId: null });
+    // The older lead-only Assign button is not offered for a student with an account.
+    await expect(page.getByRole("button", { name: "Assign", exact: true })).toHaveCount(0);
+
+    const manager = await page.context().newPage();
+    await signIn(manager, "manager");
+    await stubLead(manager, lead());
+    await manager.goto(`/admin/leads/${A}`);
+    await expect(manager.getByTestId("reassign-button")).toHaveCount(0);
+  });
+
+  test("saves the away switch and a WhatsApp number from Profile, checks the number first, and starts from what is stored", async ({ page }) => {
+    await page.route("**/api/v1/admin/session", (route) => json(route, { role: "manager", name: "Priya Rao", email: "m@example.test", stepUpFresh: false, toursSeen: ["home", "leads", "content", "insights"], away: true, whatsapp: "+237612345678", userId: "m-1" }));
+    await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
+    const saved: Record<string, unknown>[] = [];
+    await page.route("**/api/v1/admin/staff.settings", (route) => {
+      saved.push(route.request().postDataJSON() as Record<string, unknown>);
+      return json(route, { saved: true });
+    });
+    await page.goto("/admin/profile");
+    const form = page.getByTestId("availability-form");
+    await expect(form.getByLabel("I am away")).toBeChecked();
+    await expect(form.getByLabel("My WhatsApp number")).toHaveValue("+237612345678");
+
+    await form.getByLabel("My WhatsApp number").fill("0612345678");
+    await form.getByRole("button", { name: "Save availability" }).click();
+    await expect(form.getByText("Write the number with the country code")).toBeVisible();
+    expect(saved).toEqual([]); // nothing sent for a number that is not international
+
+    await form.getByLabel("I am away").uncheck();
+    await form.getByLabel("My WhatsApp number").fill("+237 6 99 00 11 22");
+    await form.getByRole("button", { name: "Save availability" }).click();
+    await expect(form.getByText("Saved.")).toBeVisible();
+    expect(saved).toEqual([{ away: false, whatsapp: "+237699001122" }]);
+    await axe(page);
+  });
+
+  test("an invite names the role it creates: a manager by default, or a backup Admin", async ({ page }) => {
+    await page.route("**/api/v1/admin/session", (route) => json(route, { role: "admin", name: "Owner", email: "o@example.test", stepUpFresh: true, toursSeen: ["home", "leads", "content", "insights"], userId: "o-1" }));
+    await page.route("**/api/v1/admin/notifications*", (route) => json(route, { unread: 0, items: [] }));
+    await page.route("**/api/v1/admin/team", (route) => json(route, { members: [], invites: [] }));
+    const sent: Record<string, unknown>[] = [];
+    await page.route("**/api/v1/admin/team.invite", (route) => {
+      sent.push(route.request().postDataJSON() as Record<string, unknown>);
+      return json(route, { id: "i", email: "x", expiresAt: "2099-01-01T00:00:00.000Z", link: "https://scollarly.example/accept-invite/abc" }, 201);
+    });
+    await page.goto("/admin/team");
+    await page.getByRole("button", { name: "Invite admin" }).first().click();
+    await page.getByLabel("Google email address").fill("backup@example.test");
+    await page.getByLabel("Role").selectOption("admin");
+    await page.getByRole("button", { name: "Create invite link" }).click();
+    await expect.poll(() => sent).toEqual([{ email: "backup@example.test", role: "admin" }]);
   });
 });
