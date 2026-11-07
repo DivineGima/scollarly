@@ -109,9 +109,9 @@ test("an upload that fails is tried again alone, with the same file and no new c
   let confirms = 0;
   await page.route("**/api/v1/me/documents.sign", (route) => {
     signs += 1;
-    return json(route, { id: "doc-id", url: "https://x.storage.c-7.eu-central-1.aws.neon.tech/student-docs/s/d?sig=1", headers: { "content-type": "image/png" }, expiresInSeconds: 600 }, 201);
+    return json(route, { id: "doc-id", url: "https://br-shiny-resonance-b9kn9vx1.storage.c-7.eu-central-1.aws.neon.tech/student-docs/s/d?sig=1", headers: { "content-type": "image/png" }, expiresInSeconds: 600 }, 201);
   });
-  await page.route("https://x.storage.c-7.eu-central-1.aws.neon.tech/**", (route) => {
+  await page.route("https://br-shiny-resonance-b9kn9vx1.storage.c-7.eu-central-1.aws.neon.tech/**", (route) => {
     puts += 1;
     return puts === 1 ? route.abort("connectionfailed") : route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, body: "" });
   });

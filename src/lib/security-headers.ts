@@ -13,10 +13,10 @@ import { TOUR_FRAME_ORIGINS } from "./tour-hosts";
 /**
  * Where the browser may send a student document (S17.1, architecture 24.5, tracker_5 F42): straight to the private `student-docs` bucket with a
  * link the Worker signed, so a 5 MB file costs the Worker no CPU. This is the ONLY address besides the site itself that a page may connect to. The
- * link is short-lived and bound to one key and one content type, so the address alone gives nobody access to anything. It names the storage
- * cluster, not one branch; once the production branch's address is known, narrow it to that exact host (one line, here).
+ * link is short-lived and bound to one key and one content type, so the address alone gives nobody access to anything. It names the production
+ * branch's storage host and nothing wider (narrowed from the whole cluster on 2026-11-07, once the host was known).
  */
-export const DOCUMENT_UPLOAD_ORIGIN = "https://*.storage.c-7.eu-central-1.aws.neon.tech";
+export const DOCUMENT_UPLOAD_ORIGIN = "https://br-shiny-resonance-b9kn9vx1.storage.c-7.eu-central-1.aws.neon.tech";
 
 export const CSP = [
   "default-src 'self'",
