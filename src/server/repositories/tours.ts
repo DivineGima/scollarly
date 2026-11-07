@@ -14,6 +14,13 @@ export async function toursSeenOf(db: Db, actor: Actor): Promise<string[]> {
   return rowsOf<{ tours_seen: string[] | null }>(result)[0]?.tours_seen ?? [];
 }
 
+/** The caller's own staff row for the session payload, in one read: the tours seen, the away switch and the WhatsApp number (architecture 24.3). */
+export async function ownStaffRowOf(db: Db, actor: Actor): Promise<{ toursSeen: string[]; away: boolean; whatsapp: string | null }> {
+  const [result] = await runAs(db, actor, db.execute(sql`select tours_seen, away, whatsapp_number from app_user where id = ${actor.userId}`));
+  const row = rowsOf<{ tours_seen: string[] | null; away: boolean | null; whatsapp_number: string | null }>(result)[0];
+  return { toursSeen: row?.tours_seen ?? [], away: row?.away === true, whatsapp: row?.whatsapp_number ?? null };
+}
+
 export async function markTourSeen(db: Db, actor: Actor, tab: string): Promise<void> {
   await runAs(db, actor, db.execute(sql`select public.app_mark_tour_seen(${tab}::text)`));
 }

@@ -18,6 +18,9 @@ export interface AdminSession {
   name: string;
   email: string;
   stepUpFresh: boolean;
+  /** This person's own availability (architecture 24.3): the away switch skips them for new sign-ups, and the number is the one students are sent to. */
+  away?: boolean;
+  whatsapp?: string | null;
   /** The tabs whose first-visit tour this person has already seen (`app_user.tours_seen`). */
   toursSeen: string[];
   userId: string;

@@ -382,7 +382,7 @@ test.describe("S2.6 the admin shell", () => {
     await expect(page.getByLabel("Email (from Google)")).toHaveValue("priya@example.test");
     await expect(page.getByLabel("Email (from Google)")).toHaveAttribute("readonly", "");
     await page.getByLabel("Name").fill("Priya Nair");
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByRole("status")).toHaveText("Saved");
     expect(saved).toEqual({ name: "Priya Nair" });
     await page.getByRole("button", { name: "Sign out of other devices" }).click();
@@ -424,7 +424,7 @@ test.describe("C2 team", () => {
     let verifies = 0;
     await page.route("**/api/v1/admin/team.invite", (route) => {
       invites += 1;
-      expect(route.request().postDataJSON()).toEqual({ email: "fresh@example.test" });
+      expect(route.request().postDataJSON()).toEqual({ email: "fresh@example.test", role: "manager" });
       return invites === 1
         ? fail(route, 403, "STEP_UP_REQUIRED")
         : json(route, { id: "x", email: "fresh@example.test", expiresAt: "2099-01-01T00:00:00.000Z", link: `https://scollarly.example/accept-invite/${TOKEN}` }, 201);
@@ -510,7 +510,7 @@ test.describe("C2 team", () => {
 
     await row("new@example.test").getByRole("button", { name: "Resend" }).click();
     await expect(page.getByRole("dialog", { name: "Invite link" })).toBeVisible();
-    expect(posted).toEqual({ email: "new@example.test" });
+    expect(posted).toEqual({ email: "new@example.test", role: "manager" });
     await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
 
     const before = list;

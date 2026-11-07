@@ -33,6 +33,9 @@ export interface StudentFileData {
   clock: { state: "none" } | { state: "running" | "overdue"; dueAt: string };
   quiet: "active" | "quiet" | "suggest_close";
   documents: FileDocument[];
+  /** Who the Admin can hand the student to, and who holds the file now. */
+  managers: { id: string; label: string }[];
+  assignedId: string | null;
 }
 
 /** The key of the words a failed call should show, from the tokens the server sends (never sentences). */
@@ -76,6 +79,7 @@ export function StudentFile({ data, stageNames, reload }: { data: StudentFileDat
   const [rejectNote, setRejectNote] = useState("");
   const [backNote, setBackNote] = useState("");
   const [closeReason, setCloseReason] = useState("no_response");
+  const [handTo, setHandTo] = useState<string>(data.assignedId ?? "");
   const [letterKind, setLetterKind] = useState<(typeof LETTER_KINDS)[number]>("offer_letter");
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -100,6 +104,17 @@ export function StudentFile({ data, stageNames, reload }: { data: StudentFileDat
     if (result.status === 401) window.location.replace("/sign-in");
     setError(failureKeyOf(result));
     return false;
+  }
+
+  /** The Admin gives the student, and the open application with them, to a manager or to nobody (architecture 24.3). One call, one audit row. */
+  async function reassign() {
+    if (!data.studentId || busy) return;
+    setBusy(true);
+    setError(null);
+    const result = await api("POST", "/api/v1/admin/team.reassign", { studentId: data.studentId, managerId: handTo === "" ? null : handTo });
+    setBusy(false);
+    if (result.ok) reload();
+    else setError(failureKeyOf(result));
   }
 
   async function openFile(id: string) {
@@ -323,6 +338,31 @@ export function StudentFile({ data, stageNames, reload }: { data: StudentFileDat
                 {t("close.button")}
               </Button>
             </div>
+          ) : null}
+
+          {data.studentId !== null ? (
+            <form
+              className="flex flex-wrap items-end gap-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void reassign();
+              }}
+            >
+              <div>
+                <Label htmlFor="hand-to">{t("reassign.label")}</Label>
+                <select id="hand-to" className="min-h-11 rounded-md border border-border bg-bg px-3" value={handTo} onChange={(event) => setHandTo(event.target.value)} disabled={busy}>
+                  <option value="">{t("reassign.none")}</option>
+                  {data.managers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button type="submit" variant="outline" disabled={busy || handTo === (data.assignedId ?? "")} data-testid="reassign-button">
+                {t("reassign.button")}
+              </Button>
+            </form>
           ) : null}
 
           {data.status === "closed" ? (

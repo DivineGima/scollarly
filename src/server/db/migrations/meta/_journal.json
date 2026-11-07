@@ -183,6 +183,13 @@
       "when": 1794022789554,
       "tag": "0025_form_ledger_purge",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794053990631,
+      "tag": "0026_student_activity",
+      "breakpoints": true
     }
   ]
 }

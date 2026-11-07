@@ -53,7 +53,7 @@ Built by this file: section 24 (all of it). Rules obeyed, not rebuilt: sections 
 | ID | Module | What is built | Tests |
 |---|---|---|---|
 | S18.1 | Inbox and student screen | 24.9: the Inbox sections, the student screen, the Next step button, WhatsApp templates, alerts derived on read with the 120-second timer poll and Inbox refetch (24.10; no push, no notification table). | Integration role scoping; e2e at phone width; axe. |
-| S18.2 | Admin trim | The pages removed or merged (the `phase0` pages only unlinked, F44), 301 redirects, quiet and suggest-closing, `admin/leads/:id/close`, Team, Universities. | Redirect table test; e2e close a file. |
+| S18.2 | Admin trim | Migration `0026` (the student's last activity, so quiet files work); the pages removed or merged (the `phase0` pages only unlinked, F44), 301 redirects, quiet and suggest-closing, `admin/leads/:id/close`, Team, Universities. | Redirect table test; e2e close a file. |
 | S18.3 | Student and public text | Student Progress (seven steps) and alerts; the home steps and the fees wording (after the owner approves the words), English and French. | Unit: no old text in any public HTML; e2e signed-out pages; axe; public bundle check. |
 
 ### Stage 19: QA and release

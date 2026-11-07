@@ -237,7 +237,16 @@
       "signOut": "Sign out",
       "roleAdmin": "Admin",
       "roleManager": "Manager",
-      "purpose": "Your name and the details you sign in with."
+      "purpose": "Your name and the details you sign in with.",
+      "availability": {
+        "title": "Availability",
+        "about": "While you are away you are skipped when a new student is given a manager. Students you already have stay with you. The number is where students are sent on WhatsApp.",
+        "away": "I am away: do not give me new students",
+        "number": "My WhatsApp number (with the country code)",
+        "save": "Save availability",
+        "saved": "Saved.",
+        "errorNumber": "Write the number with the country code, starting with +, or leave it empty."
+      }
     },
     "team": {
       "title": "Team",
@@ -271,7 +280,10 @@
       "errorAlreadyStaff": "That person is already on the team.",
       "errorConflict": "An invite was just created for that email. Reload the page.",
       "errorGeneric": "Something went wrong. Please try again.",
-      "purpose": "Who can work in Scollarly, and what each person may do."
+      "purpose": "Who can work in Scollarly, and what each person may do.",
+      "inviteRole": "Role",
+      "roleAdminBackup": "Admin (backup)",
+      "inviteRoleHelp": "A manager works the students assigned to them. A second Admin sees everything and needs the second sign-in factor. There can be at most two, and an Admin cannot be removed here."
     },
     "audit": {
       "title": "Audit log",
@@ -608,6 +620,12 @@
           "uploadTooLarge": "That file is too big. The limit is 5 MB.",
           "uploadPdfOnly": "Only a PDF can be uploaded as a letter.",
           "uploadFailed": "The upload failed. Try again."
+        },
+        "reassign": {
+          "label": "Give this student to",
+          "none": "Nobody (the Admin holds the file)",
+          "button": "Reassign",
+          "current": "With {name}"
         }
       }
     },
