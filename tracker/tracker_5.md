@@ -11,8 +11,8 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 | Current PRD | `PRD_5.md` (2026-11-06, full copy: part A amendments, part B the whole of PRD_4) |
 | Current architecture | `system_architecture_5.md` (2026-11-06, derived from `PRD_5.md`; section 24 wins over older text) |
 | Essentials file | `essentials/system_architecture_essential_5.md` (Stages 16 to 19, at most three modules each) |
-| Phase | Stages 16 and 17 are built, CI is green and they are merged to `main` (pull request #89, 2026-11-07). **Stage 18 is next.** Deployed to production on 2026-11-07 (migrations 0022 to 0025 applied; the real-bucket smoke check is still for the owner). A review of S16 and S17 found four defects, fixed on branch `fix/s17-review-findings` (Session 7). |
-| Next module | S18.3 (pull request open), then Stage 19 (S19.1 QA and security). |
+| Phase | Stages 16, 17 and 18 are built, CI is green and they are merged to `main` (pull requests #89, #92, #93 and #94, 2026-11-07). **Stage 19 is next** (QA and security, speed and CPU, deploy and carry-over). Stages 16 and 17 are deployed to production (2026-11-07, migrations 0022 to 0025); migration 0026 and everything of Stage 18 wait for the next manual deploy. The real-bucket smoke check is still for the owner. |
+| Next module | S19.1 (QA and security). Stage 18 is complete. |
 | Blocked by | Nothing blocks S18. Owner items for the deploy: read the storage quota (F42, F43); the first deploy smoke check (upload one document, open one letter); decide how to follow up files that fail to delete after an erasure. |
 
 ## Start-of-task check results (CLAUDE.md steps 1 to 7), 2026-11-06
@@ -44,7 +44,7 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 | S17.3 | Letters, proof, ledger, purge | complete (CI green on pull request #89, merged 2026-11-07; see the Session 5 entry) |
 | S18.1 | Inbox and student screen | complete (CI green on pull request #92, merged 2026-11-07; see Session 8) |
 | S18.2 | Admin trim | complete (CI green on pull request #93, merged 2026-11-07; see Session 8) |
-| S18.3 | Student and public text | in-progress (pull request open; becomes complete when it is green in CI; see Session 8) |
+| S18.3 | Student and public text | complete (CI green on pull request #94; see Session 8) |
 | S19.1 | QA and security | not started |
 | S19.2 | Speed and CPU | not started |
 | S19.3 | Deploy and carry-over | not started |
