@@ -19,9 +19,9 @@ on:
         default: false
         type: boolean
       cpu_scenarios:
-        description: "Only these CPU scenarios, comma separated (for example: lead). The default is the version 5 calls (Inbox, the alert poll, the student screen, documents, the step-2 form); write all to run every scenario"
+        description: "Only these CPU scenarios, comma separated (for example: lead). The default is the version 5 calls (onboarding first, so the student scenarios have a finished student; Inbox, the alert poll, the student screen, documents, the step-2 form); write all to run every scenario"
         required: false
-        default: "admin-inbox,admin-notifications-count,admin-notifications,lead-detail,me-documents,me-application-form,me-documents-sign,me-home"
+        default: "admin-inbox,admin-notifications-count,admin-notifications,lead-detail,onboarding,me-documents,me-application-form,me-documents-sign,me-home"
         type: string
       lead_samples:
         description: "Lead requests to measure, sent 12.5 seconds apart (50 takes about 10 minutes; only used when the lead scenario is selected)"
