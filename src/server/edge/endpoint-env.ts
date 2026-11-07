@@ -19,3 +19,12 @@ export interface EndpointEnv {
   /** The private student-document store (architecture 24.5). Built on first use, like `media`. */
   documents?: () => DocumentStore;
 }
+
+/** The student-document store, or null when storage is not configured here (a test, a preview) or its secrets are missing. */
+export function documentStoreOf(env: EndpointEnv): DocumentStore | null {
+  try {
+    return env.documents ? env.documents() : null;
+  } catch {
+    return null;
+  }
+}

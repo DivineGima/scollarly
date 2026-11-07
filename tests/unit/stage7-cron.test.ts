@@ -10,6 +10,8 @@ vi.mock("@/server/repositories/rollup", () => ({
   rollRawEvents: vi.fn(async () => ({ counted: 0, purged: 0 })),
 }));
 
+vi.mock("@/server/repositories/documents", () => ({ purgeCandidates: vi.fn(async () => []), markPurged: vi.fn(async () => 0) }));
+
 import { runScheduled } from "@/server/edge/cron";
 
 /** A Worker environment whose collector is the given stub. */

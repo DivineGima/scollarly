@@ -11,7 +11,7 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 | Current PRD | `PRD_5.md` (2026-11-06, full copy: part A amendments, part B the whole of PRD_4) |
 | Current architecture | `system_architecture_5.md` (2026-11-06, derived from `PRD_5.md`; section 24 wins over older text) |
 | Essentials file | `essentials/system_architecture_essential_5.md` (Stages 16 to 19, at most three modules each) |
-| Phase | Stages 16 and 17 are built, CI is green and they are merged to `main` (pull request #89, 2026-11-07). **Stage 18 is next.** Nothing is deployed to production yet: migrations 0022 to 0025 wait for the manual deploy. |
+| Phase | Stages 16 and 17 are built, CI is green and they are merged to `main` (pull request #89, 2026-11-07). **Stage 18 is next.** Deployed to production on 2026-11-07 (migrations 0022 to 0025 applied; the real-bucket smoke check is still for the owner). A review of S16 and S17 found four defects, fixed on branch `fix/s17-review-findings` (Session 7). |
 | Next module | S18.1 (Inbox and student screen). |
 | Blocked by | Nothing blocks S18. Owner items for the deploy: read the storage quota (F42, F43); the first deploy smoke check (upload one document, open one letter); decide how to follow up files that fail to delete after an erasure. |
 
@@ -36,7 +36,7 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 
 | ID | Module | Status |
 |---|---|---|
-| S16.1 | Roles | complete (CI green on pull request #89, merged 2026-11-07; the F41 clean-out was run on production, see below; migrations 0022 and 0023 are NOT yet deployed) |
+| S16.1 | Roles | complete (CI green on pull request #89, merged 2026-11-07; the F41 clean-out was run on production, see below; migrations 0022 to 0025 deployed 2026-11-07) |
 | S16.2 | Assignment | complete (CI green on pull request #89, merged 2026-11-07) |
 | S16.3 | Seven steps | complete (CI green on pull request #89, merged 2026-11-07) |
 | S17.1 | Private documents | complete (CI green on pull request #89, merged 2026-11-07; the production `student-docs` bucket was created private on 2026-11-07 at the owner's instruction, see Session 6; not yet verified against the real bucket) |
@@ -87,7 +87,13 @@ Built against: essentials 5 and architecture 5. Pull request #89 (S16 and S17) w
 
 On the owner's instruction ("complete all the steps"): the private bucket `student-docs` was created on the production Neon branch `production` (br-shiny-resonance-b9kn9vx1); the existing public bucket `images` is untouched. The Neon API shows the project on the free plan (`free_v3`) and does not show an object storage quota, so the quota is still for the owner to read in the Neon console (F42, F43). The CSP `connect-src` is narrowed from the whole storage cluster to the production host `https://br-shiny-resonance-b9kn9vx1.storage.c-7.eu-central-1.aws.neon.tech` (decision 1 of Session 5 is closed).
 
-Still open and not done by Claude: deploy (manual workflow `Stage 0 deploy and measure`, from `main`) with migrations 0022 to 0025; the Worker needs the four `NEON_STORAGE_*` settings it already uses for `images`; the first smoke check must upload one document and open one letter against the real bucket; the owner reads the storage quota; the owner decides how to follow up files that fail to delete after an erasure (`filesNotDeleted`).
+Still open and not done by Claude (the deploy itself is recorded in Session 7): the Worker needs the four `NEON_STORAGE_*` settings it already uses for `images`; the first smoke check must upload one document and open one letter against the real bucket; the owner reads the storage quota; the owner decides how to follow up files that fail to delete after an erasure (`filesNotDeleted`).
+### 2026-11-07: Session 7 (deploy; review of S16 and S17)
+
+Built against: essentials 5 and architecture 5. On the owner's instruction the manual workflow `Stage 0 deploy and measure` was run from `main` (run 42359815858, no CPU measurement): build, size gate, deploy and secrets passed, `/api/v1/health` answers, and 26 migrations are recorded on production (0022 to 0025 included). The owner will do the real-bucket smoke check (upload one document, open one letter) when the app is complete; it is not done.
+
+Review of S16 and S17 (ten candidates checked against the code, four real, fixed with tests): (1) the upload link lived 10 minutes and the signature cannot bind the size, so it is now 180 seconds and every download link first measures the object and refuses a size that no longer matches the row; (2) the two erasure endpoints called the store after the erasure had committed without a guard, so a missing secret gave a 500 and lost the keys, now one shared `documentStoreOf` (`endpoint-env.ts`) is used everywhere; (3) two signs of one kind at once were reported as already approved, now only a real approved row gives that answer and the second attempt replaces the first pending row; (4) the daily purge reported success when storage was not configured even with files waiting, now it fails and shows on Health. Documents corrected to match the code: the `pending` state, the one-day purge of a stuck upload, the real endpoint names, the 180-second upload link, and the stale F45 sign-in text in essentials S16.1. Known and left as is: a same-size swap inside the 180-second window is not detected; migration 0022's old comment about F45 stays (applied migrations are not edited).
+
 ## Flags (need the owner)
 
 | # | Flag | Status |
