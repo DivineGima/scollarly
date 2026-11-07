@@ -522,6 +522,93 @@
         "notFound": "Ce dossier n’existe pas.",
         "forbidden": "Vous n’avez pas le droit de faire cela.",
         "generic": "Une erreur est survenue. Réessayez."
+      },
+      "file": {
+        "title": "Dossier de l'étudiant",
+        "reload": "Recharger",
+        "status": {
+          "open": "Ouvert",
+          "arrived": "Arrivé",
+          "closed": "Clôturé"
+        },
+        "closeReason": {
+          "no_response": "Sans réponse",
+          "refused": "Refus de l'université",
+          "withdrew": "L'étudiant s'est retiré",
+          "other": "Autre raison"
+        },
+        "clock": {
+          "running": "Réponse de l'université attendue le {when}",
+          "overdue": "Réponse de l'université en retard depuis le {when}"
+        },
+        "quiet": {
+          "quiet": "Sans nouvelles",
+          "suggestClose": "Sans nouvelles depuis longtemps : pensez à clôturer"
+        },
+        "nextStep": "Passer à : {step}",
+        "lastStep": "C'est la dernière étape.",
+        "documentsHint": "{approved} documents requis sur {total} sont approuvés. Approuvez-les pour continuer.",
+        "documents": {
+          "title": "Documents",
+          "noAccount": "Ce dossier n'a pas de compte étudiant, donc pas de documents.",
+          "none": "L'étudiant n'a encore envoyé aucun document.",
+          "reason": "Raison donnée : {note}",
+          "open": "Ouvrir",
+          "approve": "Approuver",
+          "reject": "Demander une copie plus claire",
+          "approveProof": "Approuver la preuve de paiement",
+          "proofAdmin": "Seul l'administrateur approuve une preuve de paiement.",
+          "rejectLabel": "Que doit corriger l'étudiant ? Il verra ce message.",
+          "rejectSend": "Envoyer"
+        },
+        "kinds": {
+          "results": "Résultats",
+          "id": "Pièce d'identité",
+          "birth_certificate": "Acte de naissance",
+          "signature": "Signature",
+          "passport": "Passeport",
+          "payment_proof": "Preuve de paiement",
+          "offer_letter": "Lettre d'offre",
+          "acceptance_letter": "Lettre d'acceptation"
+        },
+        "state": {
+          "pending": "Envoi en cours",
+          "uploaded": "En attente de vérification",
+          "approved": "Approuvé",
+          "rejected": "Copie plus claire demandée"
+        },
+        "letters": {
+          "title": "Déposer une lettre",
+          "about": "Déposez la lettre envoyée par l'université (un PDF). L'étudiant la télécharge dans l'application et le responsable l'envoie sur WhatsApp.",
+          "aboutMore": "Une lettre est déjà déposée. En déposer une autre l'ajoute à la liste de l'étudiant.",
+          "kind": "Quelle lettre",
+          "file": "Fichier PDF",
+          "uploading": "Envoi en cours…"
+        },
+        "back": {
+          "label": "Remettre le dossier à l'étape : {step}. Pourquoi ? (obligatoire)",
+          "button": "Revenir d'une étape"
+        },
+        "close": {
+          "reason": "Raison de la clôture",
+          "button": "Clôturer ce dossier"
+        },
+        "reopen": "Rouvrir ce dossier",
+        "errors": {
+          "network": "Pas de connexion. Vérifiez le réseau et réessayez.",
+          "forbidden": "Vous n'avez pas le droit de faire cela.",
+          "documentsMissing": "Les quatre documents requis doivent d'abord être approuvés.",
+          "noteRequired": "Dites pourquoi, pour que l'historique soit clair.",
+          "notAllowed": "Ce changement d'étape ne vous est pas permis.",
+          "stale": "Ce dossier a changé. Rechargez.",
+          "conflict": "Quelqu'un l'a déjà fait. Rechargez.",
+          "unavailable": "Veuillez réessayer dans un instant.",
+          "notFound": "Cela n'existe plus. Rechargez.",
+          "generic": "Une erreur est survenue. Réessayez.",
+          "uploadTooLarge": "Ce fichier est trop volumineux. La limite est de 5 Mo.",
+          "uploadPdfOnly": "Seul un PDF peut être envoyé comme lettre.",
+          "uploadFailed": "L'envoi a échoué. Réessayez."
+        }
       }
     },
     "notApplied": {
@@ -1392,7 +1479,9 @@
         "linkRequests": "Demandes de lien",
         "dataRequests": "Demandes de données",
         "pipeline": "Parcours",
-        "notApplied": "Pas encore candidats"
+        "notApplied": "Pas encore candidats",
+        "inbox": "Boîte de réception",
+        "all": "Tous les dossiers"
       },
       "content": {
         "overview": "Tout le contenu",
@@ -1559,6 +1648,48 @@
         "stale": "Quelqu'un a changé ce dossier avant vous. Le tableau a été actualisé.",
         "failed": "Cela n'a pas été enregistré. Réessayez.",
         "offline": "Il faut une connexion pour déplacer un dossier."
+      }
+    },
+    "inbox": {
+      "title": "Boîte de réception",
+      "purpose": "Les étudiants qui attendent quelque chose de vous, les plus anciens d'abord.",
+      "summary": "{count, plural, =0 {Rien à traiter aujourd'hui.} one {# étudiant attend votre action.} other {# étudiants attendent votre action.}}",
+      "sections": "Listes de la boîte de réception",
+      "section": {
+        "new": "Nouveaux",
+        "to_review": "À vérifier",
+        "overdue": "En retard",
+        "letter_ready": "Lettre prête",
+        "payment_proof": "Preuve de paiement",
+        "quiet": "Sans nouvelles",
+        "unassigned": "Non attribués"
+      },
+      "about": {
+        "new": "Personne n'a encore répondu à ces étudiants.",
+        "to_review": "Des documents attendent votre approbation ou une demande de copie plus claire.",
+        "overdue": "L'université a le dossier depuis plus de trois jours.",
+        "letter_ready": "Une lettre a été déposée. Envoyez-la à l'étudiant sur WhatsApp.",
+        "payment_proof": "L'étudiant a envoyé une preuve de paiement que l'administrateur doit approuver.",
+        "quiet": "Aucune action de l'étudiant depuis 14 jours ou plus.",
+        "unassigned": "Étudiants sans responsable. Ouvrez-en un pour l'attribuer."
+      },
+      "empty": "Rien ici. Bravo.",
+      "since": "Depuis le {when}",
+      "dueSince": "Échéance : {when}",
+      "waiting": "{count, plural, one {# document en attente} other {# documents en attente}}",
+      "idle": "Aucune action depuis {days} jours",
+      "suggestClose": "Pensez à clôturer ce dossier",
+      "noName": "Sans nom",
+      "more": "Les {shown} premiers sont affichés. Traitez-les et les autres suivront.",
+      "refresh": "Actualiser",
+      "step": {
+        "course_interest": "Choix de la filière",
+        "documents": "Documents",
+        "university_review": "Examen par l'université",
+        "offer_letter": "Lettre d'offre",
+        "registration": "Inscription",
+        "visa": "Visa et voyage",
+        "arrived": "Arrivée"
       }
     }
   },
@@ -2251,7 +2382,7 @@
       "universities": "Universités",
       "progress": "Ma progression",
       "help": "Aide",
-      "leads": "Candidats",
+      "leads": "Réception",
       "content": "Contenu",
       "insights": "Analyses"
     },
@@ -2541,7 +2672,12 @@
       "storage_database_warn": "La base de données dépasse 70 % de sa limite.",
       "storage_database_urgent": "La base de données dépasse 90 % de sa limite.",
       "storage_images_warn": "Le stockage des images dépasse 70 % de sa limite.",
-      "storage_images_urgent": "Le stockage des images dépasse 90 % de sa limite."
+      "storage_images_urgent": "Le stockage des images dépasse 90 % de sa limite.",
+      "docs_review": "{lead} : {count, plural, one {# document attend} other {# documents attendent}} votre vérification.",
+      "letter_ready": "{lead} : une lettre est prête. Envoyez-la à l'étudiant sur WhatsApp.",
+      "proof_waiting": "{lead} : une preuve de paiement attend l'approbation de l'administrateur.",
+      "overdue": "{lead} : l'université a le dossier depuis plus de trois jours.",
+      "unassigned": "{lead} n'a pas encore de responsable."
     },
     "actions": {
       "openProgress": "Ouvrir Mon suivi",

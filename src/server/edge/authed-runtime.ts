@@ -3,6 +3,7 @@ import { analyticsDataCalls } from "@/modules/analytics/endpoints";
 import { auditDataCalls } from "@/modules/audit/endpoints";
 import { contentDataCalls, contentMutations } from "@/modules/content-admin/endpoints";
 import { documentDataCalls, documentMutations } from "@/modules/documents/endpoints";
+import { inboxDataCalls } from "@/modules/inbox/endpoints";
 import { applicationFormDataCalls, applicationFormMutations } from "@/modules/application-form/endpoints";
 import { exportMutations } from "@/modules/export/endpoints";
 import { healthDataCalls } from "@/modules/health/endpoints";
@@ -66,6 +67,7 @@ export function authedDeps(env: CloudflareEnv, rest: Pick<AuthedDeps, "cache" | 
       ...homeDataCalls(endpoint),
       ...paymentDataCalls(endpoint),
       ...documentDataCalls(endpoint),
+      ...inboxDataCalls(endpoint),
       ...applicationFormDataCalls(endpoint),
       ...settingsDataCalls(endpoint),
       ...healthDataCalls(endpoint),

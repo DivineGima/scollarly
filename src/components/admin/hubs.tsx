@@ -8,6 +8,7 @@ import { ContentHub } from "./content/hub-panel";
 import { MediaPanel } from "./content/media-panel";
 import { StalePanel } from "./content/stale-panel";
 import { DataRequestsPanel } from "./data-requests-panel";
+import { InboxPanel } from "./inbox-panel";
 import { LeadsPanel } from "./leads-panel";
 import { LinkRequestsPanel } from "./link-requests-panel";
 import { CrmOverview } from "./crm/crm-overview";
@@ -57,7 +58,9 @@ export function LeadsHub() {
   const t = useTranslations("admin.hub");
   const view = useView();
   if (view === null) return <Loading />;
-  const current = view === "link-requests" || view === "data-requests" || view === "pipeline" || view === "not-applied" ? view : "leads";
+  // With no `?view=` and no list filter in the address the Inbox opens; a bookmarked list address (`?view=all`, a stage, a search) still opens the list.
+  const onlyInbox = view === "" && [...new URLSearchParams(window.location.search).keys()].every((key) => key === "section");
+  const current = view === "link-requests" || view === "data-requests" || view === "pipeline" || view === "not-applied" ? view : onlyInbox ? "inbox" : "all";
   return (
     <>
       <SectionTabs
@@ -65,14 +68,15 @@ export function LeadsHub() {
         base="/admin/leads"
         current={current}
         sections={[
-          { key: "leads", label: t("leads.leads") },
+          { key: "inbox", label: t("leads.inbox") },
+          { key: "all", label: t("leads.all") },
           { key: "pipeline", label: t("leads.pipeline") },
           { key: "not-applied", label: t("leads.notApplied") },
           { key: "link-requests", label: t("leads.linkRequests") },
           { key: "data-requests", label: t("leads.dataRequests") },
         ]}
       />
-      {current === "link-requests" ? <LinkRequestsPanel /> : current === "data-requests" ? <DataRequestsPanel /> : current === "pipeline" ? <PipelineBoard /> : current === "not-applied" ? <NotAppliedPanel /> : <LeadsPanel />}
+      {current === "link-requests" ? <LinkRequestsPanel /> : current === "data-requests" ? <DataRequestsPanel /> : current === "pipeline" ? <PipelineBoard /> : current === "not-applied" ? <NotAppliedPanel /> : current === "inbox" ? <InboxPanel /> : <LeadsPanel />}
     </>
   );
 }

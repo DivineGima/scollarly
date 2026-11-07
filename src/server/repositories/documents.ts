@@ -147,6 +147,20 @@ export async function discardPending(db: Db, actor: Actor, id: string): Promise<
   );
 }
 
+/**
+ * The same list as `listDocuments`, for the lead screen's single round trip: the student is taken from the lead through a sub-select, so it needs no
+ * read of its own. The caller runs it inside `runAs` with its other statements and maps the result with `documentViews`.
+ */
+export function documentsOfLeadQuery(db: Db, leadId: string) {
+  return db.execute(sql`
+    select id, kind, state, content_type, byte_size, rejection_note, created_at, reviewed_at
+      from student_document
+     where student_id = (select user_id from lead where id = ${leadId}::uuid) and state in ('pending', 'uploaded', 'approved', 'rejected')
+     order by created_at, id`);
+}
+
+export const documentViews = (result: unknown): DocumentView[] => rowsOf<RawDocument>(result).map(toView);
+
 /** What a screen shows about a student's documents (no key). Row level security scopes it: a student sees their own, a manager their students'. */
 export async function listDocuments(db: Db, actor: Actor, studentId: string): Promise<DocumentView[]> {
   const [result] = await runAs(

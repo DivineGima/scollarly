@@ -32,6 +32,8 @@ export const studentQuery = z.strictObject({ studentId: requiredText(64) });
 export const signLetterBody = z.strictObject({
   studentId: requiredText(64),
   kind: z.enum(LETTER_KINDS, { error: V.UNKNOWN_VALUE }),
+  /** The upload helper announces the type of the file it was given, as it does for a student; a letter is always a PDF, so anything else is refused here. */
+  contentType: z.literal("application/pdf", { error: V.UNKNOWN_VALUE }).optional(),
   byteSize: z.number({ error: V.INVALID }).int(V.INVALID).min(1, V.INVALID).max(MAX_DOCUMENT_BYTES, "TOO_LARGE"),
 });
 

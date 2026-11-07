@@ -7,8 +7,10 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { api } from "@/lib/client/api";
 import { formatWat } from "@/lib/time";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { useAdminSession } from "./admin-shell";
 import { DuplicateDialog } from "./leads/duplicate-dialog";
 import { type DuplicatePairData, failureKey, type Person, type Sla, SlaBadge, type StageOption, stageName } from "./leads/shared";
+import { type FileDocument, StudentFile, type StudentFileData } from "./leads/student-file";
 import { Badge } from "./ui/badge";
 import { buttonVariants } from "./ui/button";
 import { Button } from "./ui/button";
@@ -41,6 +43,11 @@ interface LeadDetailData {
     stage: string;
     assigned: Person | null;
     linkedAccount: boolean;
+    studentId: string | null;
+    status: string;
+    closedReason: string | null;
+    clock: StudentFileData["clock"];
+    quiet: StudentFileData["quiet"];
     receivedAt: string;
     sla: Sla;
     slaHours: number;
@@ -57,6 +64,7 @@ interface LeadDetailData {
   stages: StageOption[];
   admins: Person[];
   template: string | null;
+  documents: FileDocument[];
   you: string;
 }
 
@@ -99,6 +107,7 @@ function LeadDetail({ data, reload }: { data: LeadDetailData; reload: () => void
   const common = useTranslations("admin.common");
   const noteId = useId();
   const { lead } = data;
+  const session = useAdminSession();
   const editable = !lead.erased && lead.mergedInto === null;
 
   const [busy, setBusy] = useState(false);
@@ -280,6 +289,8 @@ function LeadDetail({ data, reload }: { data: LeadDetailData; reload: () => void
           >
             {t("actions.whatsapp")}
           </Button>
+          {/* A manager moves a file with the Next step button below; only the Admin may pick any step (architecture 24.4). */}
+          {session.role === "admin" ? (
           <div>
             <Label htmlFor={`${noteId}-stage`}>{t("actions.changeStage")}</Label>
             <select
@@ -300,10 +311,19 @@ function LeadDetail({ data, reload }: { data: LeadDetailData; reload: () => void
               ))}
             </select>
           </div>
+          ) : null}
           <Button variant="outline" disabled={busy} onClick={() => setDialog("assign")}>
             {t("actions.assign")}
           </Button>
         </div>
+      ) : null}
+
+      {editable && lead.studentId !== null ? (
+        <StudentFile
+          data={{ leadId: lead.id, version: lead.version, stage: lead.stage, status: lead.status, closedReason: lead.closedReason, studentId: lead.studentId, clock: lead.clock, quiet: lead.quiet, documents: data.documents }}
+          stageNames={(code) => stageName(data.stages, code)}
+          reload={reload}
+        />
       ) : null}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">

@@ -5,7 +5,7 @@ import { rowsOf } from "@/server/db/rows";
 import { lead, leadActivity, leadClaim, leadNote, leadProgrammePref, pipelineStage, programme, university } from "@/server/db/schema";
 import type { LeadCloseReason } from "@/lib/constants";
 import { uuidv7 } from "@/lib/uuid";
-import { documentsComplete } from "./documents";
+import { documentsComplete, documentsOfLeadQuery, documentViews, type DocumentView } from "./documents";
 import { decideMove, previousStep, type MoveRefusal } from "@/modules/pipeline/steps";
 import { runAs } from "./as-actor";
 import { leadInUniversity } from "./lead-filters";
@@ -288,6 +288,11 @@ export interface LeadDetailRow {
   stageCode: string;
   assignedManagerId: string | null;
   userId: string | null;
+  /** `open`, `arrived` or `closed` (architecture 24.2). */
+  status: string;
+  closedReason: string | null;
+  universitySubmittedAt: Date | null;
+  lastStudentActivityAt: Date;
   receivedAt: Date;
   slaDueAt: Date;
   slaHoursApplied: number;
@@ -314,6 +319,10 @@ const detailColumns = {
   stageCode: lead.stageCode,
   assignedManagerId: lead.assignedManagerId,
   userId: lead.userId,
+  status: lead.status,
+  closedReason: lead.closedReason,
+  universitySubmittedAt: lead.universitySubmittedAt,
+  lastStudentActivityAt: lead.lastStudentActivityAt,
   receivedAt: lead.receivedAt,
   slaDueAt: lead.slaDueAt,
   slaHoursApplied: lead.slaHoursApplied,
@@ -368,6 +377,8 @@ export interface LeadScreen extends LeadDetail {
   /** The published staff template for this lead's stage and language, or null. */
   template: string | null;
   duplicates: DuplicatePair[];
+  /** The student's documents (no key), read in the same round trip. */
+  documents: DocumentView[];
 }
 
 /**
@@ -377,7 +388,7 @@ export interface LeadScreen extends LeadDetail {
  * university it came from) take it through a sub-select instead of waiting for it.
  */
 export async function getLeadScreen(db: Db, actor: Actor, id: string): Promise<LeadScreen | null> {
-  const [leads, prefs, activities, notes, claims, stages, team, template, mergedTo, sourceUniversity, duplicates] = await runAs(
+  const [leads, prefs, activities, notes, claims, stages, team, template, mergedTo, sourceUniversity, duplicates, documents] = await runAs(
     db,
     actor,
     db.select(detailColumns).from(lead).where(eq(lead.id, id)).limit(1),
@@ -410,6 +421,7 @@ export async function getLeadScreen(db: Db, actor: Actor, id: string): Promise<L
     db.execute(sql`select ref from lead where id = (select merged_into_id from lead where id = ${id}::uuid)`),
     db.execute(sql`select name from university where id::text = (select source->>'university_id' from lead where id = ${id}::uuid)`),
     duplicatePairsQuery(db, { leadId: id, limit: 5 }),
+    documentsOfLeadQuery(db, id),
   );
   const row = leads[0];
   if (!row) return null;
@@ -425,6 +437,7 @@ export async function getLeadScreen(db: Db, actor: Actor, id: string): Promise<L
     team: teamMembersOf(team),
     template: rowsOf<{ body: string }>(template)[0]?.body ?? null,
     duplicates: rowsOf<PairRow>(duplicates).map(toPair),
+    documents: documentViews(documents),
   };
 }
 

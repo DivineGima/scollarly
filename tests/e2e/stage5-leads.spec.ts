@@ -61,6 +61,7 @@ interface DetailData {
   stages: unknown[];
   admins: unknown[];
   template: string | null;
+  documents?: unknown[];
   you: string;
 }
 
@@ -79,6 +80,12 @@ const detail = (over: Partial<DetailData> = {}, leadOver: Record<string, unknown
     stage: "share_results",
     assigned: null,
     linkedAccount: false,
+    // A lead with no account has no student file (S18.1): the screen shows the older parts only.
+    studentId: null,
+    status: "open",
+    closedReason: null,
+    clock: { state: "none" },
+    quiet: "active",
     receivedAt: "2026-10-21T08:00:00.000Z",
     sla: { status: "open", dueAt: "2026-10-22T10:00:00.000Z" },
     slaHours: 4,
@@ -99,6 +106,7 @@ const detail = (over: Partial<DetailData> = {}, leadOver: Record<string, unknown
     { id: "admin-2", label: "Kofi" },
   ],
   template: null,
+  documents: [],
   you: ME,
   ...over,
 });
@@ -187,7 +195,7 @@ test.describe("B2 Leads list", () => {
     await signIn(page);
     const seen: URL[] = [];
     await serve(page, rows, seen);
-    await page.goto("/admin/leads");
+    await page.goto("/admin/leads?view=all"); // the list (the Inbox opens at /admin/leads)
     const table = page.getByRole("region", { name: "Leads" });
     await expect(table.getByRole("row")).toHaveCount(3); // header + 2
     await expect(table.getByText("Overdue since 2026-10-21 05:00 WAT")).toBeVisible();
@@ -206,7 +214,7 @@ test.describe("B2 Leads list", () => {
     await signIn(page);
     const seen: URL[] = [];
     await serve(page, rows, seen);
-    await page.goto("/admin/leads");
+    await page.goto("/admin/leads?view=all"); // the list (the Inbox opens at /admin/leads)
     await page.getByLabel("Stage", { exact: true }).selectOption("choose_course");
     await page.getByRole("button", { name: "Apply filters" }).click();
     await expect(page).toHaveURL(/\/admin\/leads\?stage=choose_course$/);
@@ -232,7 +240,7 @@ test.describe("B2 Leads list", () => {
     await signIn(page);
     const seen: URL[] = [];
     await serve(page, [], seen);
-    await page.goto("/admin/leads");
+    await page.goto("/admin/leads?view=all"); // the list (the Inbox opens at /admin/leads)
     await page.getByRole("button", { name: "Overdue", exact: true }).click();
     await expect(page).toHaveURL(/\?view=overdue$/);
     await expect(page.getByText("Nothing is overdue.")).toBeVisible();
@@ -254,7 +262,7 @@ test.describe("B2 Leads list", () => {
       if (calls === 2) return json(route, { leads: [], nextBefore: null, stages: STAGES, universities, admins });
       return fail(route, 400, "VALIDATION");
     });
-    await page.goto("/admin/leads");
+    await page.goto("/admin/leads?view=all"); // the list (the Inbox opens at /admin/leads)
     await expect(alerts(page)).toContainText("We could not load this page.");
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.getByText("No leads match.")).toBeVisible();
@@ -333,7 +341,7 @@ test.describe("B3 Lead detail", () => {
   }
 
   test("shows the profile, results, programmes and timeline, and passes axe", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await expect(page.getByRole("heading", { level: 1, name: "Ama Mensah" })).toBeVisible();
@@ -347,7 +355,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("one tap on Log reply turns the SLA badge to Met", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await expect(page.getByText(/^Due /)).toBeVisible();
@@ -359,7 +367,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("changing the stage asks first, sends the version it read, and shows the new stage", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await page.getByRole("combobox", { name: "Change stage" }).selectOption("choose_course");
@@ -372,7 +380,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("cancelling the stage change sends nothing", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await page.getByRole("combobox", { name: "Change stage" }).selectOption("offer_letter");
@@ -381,7 +389,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("when someone else changed the lead the screen says so and a Reload shows their version", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     state.failNext = { status: 409, code: "CONFLICT", fields: { version: "STALE" } };
@@ -397,7 +405,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("assigns to me, to another admin, and back to nobody", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await page.getByRole("button", { name: "Assign", exact: true }).click();
@@ -411,7 +419,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("a note is added to the timeline and the box is cleared; a blank note cannot be sent", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     const add = page.getByRole("button", { name: "Add note" });
@@ -426,7 +434,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("the WhatsApp drawer opens the student's chat with the editable stage message, logs it, and then asks 'Did you send it?'", async ({ page, context }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     await context.route("https://wa.me/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>whatsapp</body></html>" }));
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
@@ -451,7 +459,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("a staff-written template for the stage replaces the built-in text", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     await lead(page, detail({ template: "Dear {name}, your file {ref} is ready for {university}." }));
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await page.getByRole("button", { name: "Message on WhatsApp" }).click();
@@ -459,14 +467,14 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("a lead with no number cannot be messaged", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     await lead(page, detail({}, { whatsapp: null }));
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await expect(page.getByRole("button", { name: "Message on WhatsApp" })).toBeDisabled();
   });
 
   test("a possible duplicate shows a banner that opens the comparison; nothing is merged until chosen", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const pair = {
       a: { id: LEAD_ID, ref: "SC-ABCDE-FGHJK", name: "Ama Mensah", receivedAt: "2026-10-21T08:00:00.000Z", stageCode: "share_results" },
       b: { id: OTHER_ID, ref: "SC-ZZZZZ-ZZZZ1", name: "Ama M.", receivedAt: "2026-10-21T10:00:00.000Z", stageCode: "share_results" },
@@ -485,7 +493,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("erasing needs the identity box ticked, then shows the erased lead with its history", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await page.getByRole("button", { name: "Erase personal data" }).click();
@@ -502,7 +510,7 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("a merged lead points to the one it was merged into and cannot be edited", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     await lead(page, detail({}, { mergedInto: { id: OTHER_ID, ref: "SC-ZZZZZ-ZZZZ1" } }));
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await expect(page.getByText("This lead was merged into SC-ZZZZZ-ZZZZ1.")).toBeVisible();
@@ -511,14 +519,14 @@ test.describe("B3 Lead detail", () => {
   });
 
   test("an unknown lead says so instead of showing a blank page", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     await page.route(ONE_LEAD, (route) => fail(route, 404, "NOT_FOUND"));
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await expect(alerts(page)).toHaveText("That lead does not exist.");
   });
 
   test("a change that cannot reach the server says so and keeps the page as it was", async ({ page }) => {
-    await signIn(page);
+    await signIn(page, "admin"); // the stage picker and the Assign button are the Admin's (a manager has the Next step button)
     const state = await lead(page);
     await page.goto(`/admin/leads/${LEAD_ID}`);
     await page.route(/\/api\/v1\/admin\/leads\.logReply$/, (route) => route.abort("failed"));
@@ -714,15 +722,15 @@ test.describe("B5 Data requests", () => {
 // ---- the menu ---------------------------------------------------------------------------------------------------------
 
 test.describe("the menu", () => {
-  test("keeps Leads lit on a lead's page and on the link requests page", async ({ page }) => {
+  test("keeps the Inbox tab lit on a lead's page and on the link requests page", async ({ page }) => {
     await signIn(page);
     await page.route(ONE_LEAD, (route) => json(route, detail()));
     await page.route("**/api/v1/admin/link-requests", (route) => json(route, { claims: [] }));
     const menu = page.getByRole("navigation", { name: "Main tabs" });
     await page.goto(`/admin/leads/${LEAD_ID}`);
-    await expect(menu.getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
+    await expect(menu.getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-current", "page");
     await expect(menu.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current", "page");
     await page.goto("/admin/leads?view=link-requests");
-    await expect(menu.getByRole("link", { name: "Leads" })).toHaveAttribute("aria-current", "page");
+    await expect(menu.getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-current", "page");
   });
 });

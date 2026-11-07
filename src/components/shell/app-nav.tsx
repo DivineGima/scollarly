@@ -18,6 +18,8 @@ export interface AppNavProps {
   labels: AppNavLabels;
   /** Unread notifications, once the screen has fetched the count. Zero or absent shows no dot. */
   unread?: number;
+  /** A small count on a tab (the staff Inbox tab shows how many things are new). Zero or absent shows none. */
+  badges?: Partial<Record<TabKey, number>>;
   /** The path to light a tab for. Defaults to the browser's own path after the page has loaded (the HTML is the same for everyone). */
   path?: string;
 }
@@ -27,7 +29,7 @@ export interface AppNavProps {
  * library, so it ships to students without weight. Tabs are links: each is its own cached shell (ADR-040). What a person may open is
  * decided by the server on every request; this component only decides what to show.
  */
-export function AppNav({ role, labels, unread = 0, path }: AppNavProps) {
+export function AppNav({ role, labels, unread = 0, badges, path }: AppNavProps) {
   const [current, setCurrent] = useState<string | null>(path ?? null);
   const [open, setOpen] = useState(false);
 
@@ -49,6 +51,12 @@ export function AppNav({ role, labels, unread = 0, path }: AppNavProps) {
                 <a href={tab.href} aria-current={lit === tab.key ? "page" : undefined} className="app-nav-tab">
                   <Icon name={tab.icon} />
                   <span>{labels.tabs[tab.key]}</span>
+                  {(badges?.[tab.key] ?? 0) > 0 ? (
+                    <span className="app-nav-badge" data-testid={`tab-badge-${tab.key}`}>
+                      <span aria-hidden="true">{(badges?.[tab.key] ?? 0) > 99 ? "99+" : badges?.[tab.key]}</span>
+                      <span className="sr-only">{` (${badges?.[tab.key]})`}</span>
+                    </span>
+                  ) : null}
                 </a>
               </li>
             ))}

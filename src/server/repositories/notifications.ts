@@ -4,6 +4,7 @@ import type { Actor } from "@/server/auth/actor";
 import type { Db } from "@/server/db/client";
 import { rowsOf } from "@/server/db/rows";
 import { runAs } from "./as-actor";
+import { UNIVERSITY_CLOCK_DAYS } from "@/modules/pipeline/steps";
 import { staleItemsOf, staleQuery } from "./content-admin";
 import { DEFAULT_MEDIA_BUDGET_BYTES } from "./media-admin";
 import { DATABASE_BUDGET_BYTES } from "@/modules/health/service";
@@ -91,6 +92,7 @@ export async function staffNotifications(db: Db, actor: Actor, now: Date = new D
   const lookback = sql.raw(`interval '${LOOKBACK_DAYS} days'`);
   const soon = sql.raw(`interval '${SLA_SOON_MINUTES} minutes'`);
   const waiting = sql.raw(`interval '${WAITING_DAYS} days'`);
+  const universityClock = sql.raw(`interval '${UNIVERSITY_CLOCK_DAYS} days'`);
   const queries = [
     db.execute(sql`select notifications_seen_at from app_user where id = ${actor.userId}`),
     db.execute(sql`
@@ -113,6 +115,28 @@ export async function staffNotifications(db: Db, actor: Actor, now: Date = new D
       select 'link_requests' as kind, count(*)::int as n, max(created_at) as at from lead_claim where status = 'pending'
       union all
       select 'data_requests', count(*)::int, max(created_at) from data_request where status = 'open'`),
+    // Version 5 (architecture 24.10): what is waiting on a staff member. Row level security limits a manager to their own students; the Admin sees all.
+    db.execute(sql`
+      with open_leads as (select l.id, l.user_id, l.ref, l.name, l.stage_code, l.university_submitted_at, l.received_at, l.assigned_manager_id from lead l where l.status = 'open' and ${live})
+      (select 'docs_review' as kind, o.id::text as lead_id, o.ref, o.name, max(d.created_at) as at, count(*)::int as n
+         from open_leads o join student_document d on d.student_id = o.user_id and d.state = 'uploaded' and d.kind in ('results', 'id', 'birth_certificate', 'signature', 'passport')
+        group by o.id, o.ref, o.name order by max(d.created_at) desc limit 20)
+      union all
+      (select 'letter_ready', o.id::text, o.ref, o.name, max(d.created_at), 1
+         from open_leads o join student_document d on d.student_id = o.user_id and d.state in ('uploaded', 'approved') and d.kind in ('offer_letter', 'acceptance_letter') and d.created_at > now() - ${lookback}
+        where d.created_at > coalesce((select max(a.created_at) from lead_activity a where a.lead_id = o.id and a.type in ('reply_logged', 'admin_wa_opened')), 'epoch'::timestamptz)
+        group by o.id, o.ref, o.name order by max(d.created_at) desc limit 20)
+      union all
+      (select 'proof_waiting', o.id::text, o.ref, o.name, max(d.created_at), 1
+         from open_leads o join student_document d on d.student_id = o.user_id and d.state = 'uploaded' and d.kind = 'payment_proof'
+        group by o.id, o.ref, o.name order by max(d.created_at) desc limit 20)
+      union all
+      (select 'overdue', o.id::text, o.ref, o.name, o.university_submitted_at + ${universityClock}, 1
+         from open_leads o where o.stage_code = 'university_review' and o.university_submitted_at is not null and o.university_submitted_at + ${universityClock} < now()
+        order by o.university_submitted_at desc limit 20)
+      union all
+      (select 'unassigned', o.id::text, o.ref, o.name, o.received_at, 1
+         from open_leads o where o.assigned_manager_id is null order by o.received_at desc limit 20)`),
     ...(owner
       ? [
           db.execute(sql`
@@ -127,7 +151,7 @@ export async function staffNotifications(db: Db, actor: Actor, now: Date = new D
       : []),
   ] as const;
 
-  const [seen, leads, requests, payments, stale, usage, budget] = await runAs(db, actor, ...(queries as unknown as [Promise<unknown>, ...Promise<unknown>[]]));
+  const [seen, leads, requests, waitingOnYou, payments, stale, usage, budget] = await runAs(db, actor, ...(queries as unknown as [Promise<unknown>, ...Promise<unknown>[]]));
   const seenAt = dateOrNull(rowsOf<{ notifications_seen_at: string | Date | null }>(seen)[0]?.notifications_seen_at);
   const items: NotificationItem[] = [];
 
@@ -146,6 +170,11 @@ export async function staffNotifications(db: Db, actor: Actor, now: Date = new D
       const at = new Date(row.at);
       items.push({ id: row.kind, kind: row.kind, at: at.toISOString(), unread: isUnread(at, seenAt), count: row.n });
     }
+  }
+
+  for (const row of rowsOf<{ kind: "docs_review" | "letter_ready" | "proof_waiting" | "overdue" | "unassigned"; lead_id: string; ref: string; name: string | null; at: string | Date; n: number }>(waitingOnYou)) {
+    const at = new Date(row.at);
+    items.push({ id: `${row.kind}:${row.lead_id}`, kind: row.kind, at: at.toISOString(), unread: isUnread(at, seenAt), leadId: row.lead_id, ref: row.ref, name: row.name, ...(row.kind === "docs_review" ? { count: Number(row.n) } : {}) });
   }
 
   if (owner) {
