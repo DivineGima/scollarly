@@ -51,7 +51,7 @@ test.describe("FR-1: with JavaScript off, every public page shows its main conte
     "/universities": ["Alpha University", "Beta University", "Gamma University"],
     "/universities/alpha-university": ["Alpha University is a test university", "B.Tech Computer Science", "Official prospectus"],
     "/campus-tours": ["Official campus tour"],
-    "/process": ["Share your results", "Pick at least three programmes."],
+    "/process": ["Tell us what you want to study", "Register to secure your place", "What does it cost?"], // the seven steps and the fees wording are translation keys (S18.3)
     "/visa": ["Collect your documents"],
     "/faq": ["Is Scollarly free for students?", "Yes. Students pay Scollarly nothing."],
     "/about": ["We want every student to study where they can thrive.", "Test Teammate"],
