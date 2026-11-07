@@ -45,7 +45,7 @@ This tracker starts version 5 (PRD_5, architecture 5, essentials 5). `tracker_4.
 | S18.1 | Inbox and student screen | complete (CI green on pull request #92, merged 2026-11-07; see Session 8) |
 | S18.2 | Admin trim | complete (CI green on pull request #93, merged 2026-11-07; see Session 8) |
 | S18.3 | Student and public text | complete (CI green on pull request #94; see Session 8) |
-| S19.1 | QA and security | S19_1_STATUS |
+| S19.1 | QA and security | complete (CI green on pull request #95, 2026-11-07; see Session 9) |
 | S19.2 | Speed and CPU | in-progress (timings, the new CPU rows and the F44 answer are done; the deploy workflow's CPU rows pass only after the deploy, S19.3) |
 | S19.3 | Deploy and carry-over | in-progress (`scripts/smoke.mjs` and the checklist are updated; the deploy waits for the owner's go-ahead; the Stage 15 owner items stay open) |
 
