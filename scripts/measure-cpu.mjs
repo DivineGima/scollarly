@@ -30,7 +30,7 @@ const token = args.token ?? process.env.PHASE0_PROBE_TOKEN ?? "";
 const worker = args.worker ?? "scollarly";
 const samples = Number.parseInt(args.samples ?? "50", 10);
 const warmup = Number.parseInt(args.warmup ?? "3", 10);
-const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,account-confirm,me-home,me-notifications,admin-home,admin-notifications,admin-tour,legacy-redirect,crm,pipeline,crm-export,admin-not-applied,account-route,me-application-context,lead,media,media-miss").split(","));
+const only = new Set((args.only ?? "public,admin-shell,admin-data,student-shell,student-data,overview,leads-list,lead-detail,lead-write,lead-merge,lead-erase,events,content-list,analytics,student-progress,payments,onboarding,account-confirm,me-home,me-notifications,admin-home,admin-notifications,admin-tour,legacy-redirect,crm,pipeline,crm-export,admin-not-applied,account-route,me-application-context,me-documents,me-application-form,me-documents-sign,admin-inbox,admin-notifications-count,lead,media,media-miss").split(","));
 const sessionsFile = args.sessions ?? "";
 const leadSamples = Number.parseInt(args["lead-samples"] ?? "50", 10);
 const leadIntervalMs = Number.parseInt(args["lead-interval-ms"] ?? "12500", 10); // the limiter allows 5 a minute per caller
@@ -44,7 +44,7 @@ if (!base || !token) {
 // Thresholds from architecture section 17 (proposed, [Mine, confirm]). `null` means record only.
 // The Google sign-in return trip is not scripted (it needs a person); it is read from the Worker log once, by hand.
 // Stage 5 adds the lead screens' data calls and one write (architecture 8.3: a stage that builds an operation builds its CPU row).
-const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, "account-confirm": 8, "me-home": 8, "me-notifications": 8, "admin-home": 8, "admin-notifications": 8, "admin-tour": 8, "legacy-redirect": 8, "crm": 8, "pipeline": 8, "crm-export": 8, "admin-not-applied": 8, "account-route": 8, "me-application-context": 8, media: 8, "media-miss": 8 };
+const LIMITS = { public: 5, "admin-shell": 8, "admin-data": 8, "student-shell": 8, "student-data": 8, overview: 8, "leads-list": 8, "lead-detail": 8, "lead-write": 8, "lead-merge": 8, "lead-erase": 8, events: 8, "content-list": 8, analytics: 8, "student-progress": 8, payments: 8, lead: 8, onboarding: 8, "account-confirm": 8, "me-home": 8, "me-notifications": 8, "admin-home": 8, "admin-notifications": 8, "admin-tour": 8, "legacy-redirect": 8, "crm": 8, "pipeline": 8, "crm-export": 8, "admin-not-applied": 8, "account-route": 8, "me-application-context": 8, "me-documents": 8, "me-application-form": 8, "me-documents-sign": 8, "admin-inbox": 8, "admin-notifications-count": 8, media: 8, "media-miss": 8 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
@@ -179,6 +179,10 @@ try {
     // calls take no marker. The tour mark is a tiny write of a fixed shape; it repeats safely, so one admin can send all of them.
     rows.push(await scenario("Staff Home: up to four aggregate reads in one transaction (week)", "admin-home", () => call("/api/v1/admin/home?period=week", staff), samples, 150, (url) => url.includes("/api/v1/admin/home")));
     rows.push(await scenario("Staff notifications: derived items for the caller", "admin-notifications", () => call("/api/v1/admin/notifications", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/notifications")));
+    // S19.2 (architecture 24.8): the Inbox (counts of every section and the rows of one, one round trip) and the staff alert poll that runs every
+    // 120 seconds in every open staff screen (`count=1`, the cheapest read of the notifications), the most frequent call of version 5.
+    rows.push(await scenario("Staff Inbox: counts of every section and the rows of one", "admin-inbox", () => call("/api/v1/admin/inbox?section=new", staff), samples, 150, (url) => url.includes("/api/v1/admin/inbox")));
+    rows.push(await scenario("Staff alert poll: the unread count only", "admin-notifications-count", () => call("/api/v1/admin/notifications?count=1", staff), samples, 150, (url) => url.endsWith("/api/v1/admin/notifications?count=1")));
     rows.push(
       await scenario(
         "Staff tour mark: one function call",
@@ -382,6 +386,22 @@ try {
     // watched in Workers Logs after the deploy, like the other writes of a measured shape.
     rows.push(await scenario("Student application context: profile and lead in one call", "me-application-context", () => call("/api/v1/me/application-context", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/application-context")));
     rows.push(await scenario("Student notifications: derived items for the caller", "me-notifications", () => call("/api/v1/me/notifications", { headers: { cookie: homeCookie } }), samples, 150, (url) => url.endsWith("/api/v1/me/notifications")));
+    // S19.2 (architecture 24.8): the version 5 calls. The student's file reads (documents with their states, the prefilled step-2 form) and the
+    // upload link (a signature computed in the Worker plus one insert; no file travels through it). The staff reads follow with the other staff scenarios.
+    const homeAs = { headers: { cookie: homeCookie } };
+    rows.push(await scenario("Student documents: own documents and their states", "me-documents", () => call("/api/v1/me/documents", homeAs), samples, 150, (url) => url.endsWith("/api/v1/me/documents")));
+    rows.push(await scenario("Student step-2 form: the prefilled form in one call", "me-application-form", () => call("/api/v1/me/application-form", homeAs), samples, 150, (url) => url.endsWith("/api/v1/me/application-form")));
+    const signPath = "/api/v1/me/documents.sign";
+    rows.push(
+      await scenario(
+        "Student upload link: sign a presigned PUT and make the pending row",
+        "me-documents-sign",
+        () => call(signPath, { method: "POST", headers: { "content-type": "application/json", origin: base, "idempotency-key": crypto.randomUUID(), cookie: homeCookie }, body: JSON.stringify({ kind: "results", contentType: "image/jpeg", byteSize: 200000 }) }),
+        samples,
+        150,
+        (url) => url.endsWith(signPath),
+      ),
+    );
   } else if ([...only].some((k) => /^(admin|student|me|account)-/.test(k))) {
     console.error("No --sessions file: the staff and student scenarios were skipped.");
   }

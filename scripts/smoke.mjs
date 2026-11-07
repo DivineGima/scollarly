@@ -29,6 +29,7 @@ const CLOSED_SHELLS = [
   "/me",
   "/me/universities",
   "/me/progress",
+  "/me/file",
   "/me/help",
   "/me/notifications",
   "/me/onboarding",
@@ -57,6 +58,14 @@ const CLOSED_DATA = [
   "/api/v1/me/home",
   "/api/v1/me/preferences",
   "/api/v1/me/notifications",
+  // Version 5 (S19.3): the Inbox, the student screen and every call that can open a student's file.
+  "/api/v1/admin/inbox",
+  "/api/v1/admin/lead",
+  "/api/v1/admin/student-documents",
+  "/api/v1/admin/document-link",
+  "/api/v1/me/documents",
+  "/api/v1/me/document-link",
+  "/api/v1/me/application-form",
 ];
 
 const results = [];
@@ -125,9 +134,17 @@ for (const path of CLOSED_DATA) {
     if (response.status !== 401) return `HTTP ${response.status}`;
   });
 }
+await check("a mutation on a student's documents refuses a visitor", async () => {
+  for (const path of ["/api/v1/me/documents.sign", "/api/v1/admin/documents.review", "/api/v1/admin/documents.sign", "/api/v1/admin/payments.proofApprove"]) {
+    const response = await get(path, { method: "POST", headers: { origin: base, "content-type": "application/json" }, body: "{}" });
+    if (![401, 403].includes(response.status)) return `${path}: HTTP ${response.status}`;
+  }
+});
 await check("a made-up session cookie is not a session", async () => {
-  const response = await get("/api/v1/admin/payments", { headers: { cookie: "__Secure-neon-auth.session_token=forged.forged" } });
-  if (![401, 403].includes(response.status)) return `HTTP ${response.status}`;
+  for (const path of ["/api/v1/admin/payments", "/api/v1/admin/inbox", "/api/v1/me/documents"]) {
+    const response = await get(path, { headers: { cookie: "__Secure-neon-auth.session_token=forged.forged" } });
+    if (![401, 403].includes(response.status)) return `${path}: HTTP ${response.status}`;
+  }
 });
 await check("a cross-origin POST to a mutation is refused", async () => {
   const response = await get("/api/v1/admin/payments.record", { method: "POST", headers: { origin: "https://evil.example", "content-type": "application/json" }, body: "{}" });
@@ -148,5 +165,5 @@ for (const r of results) {
   console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}${r.problem ? `  (${r.problem})` : ""}`);
 }
 console.log(`\n${results.length - failed} of ${results.length} checks passed against ${base}.`);
-console.log("Not covered here: signing in as a student, an admin and the owner. Do that with docs/pre-launch-checklist.md.");
+console.log("Not covered here: signing in as a student, a manager and an admin, and the real-bucket check (upload one document, open one letter). Do that with docs/pre-launch-checklist.md.");
 process.exit(failed === 0 ? 0 : 1);

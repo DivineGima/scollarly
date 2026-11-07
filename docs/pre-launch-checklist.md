@@ -109,6 +109,20 @@ Try these on the live site, on a phone:
 - [ ] Admin, Insights, Overview: the **Finished their profile** tile, **Applied, of those**, and the funnel's first step. With a Source or Assigned filter set, those two tiles are hidden (a profile has neither).
 - [ ] Owner action: run the **Stage 0 deploy and measure** workflow once with the CPU measurement on and send the table to Claude Code, which records the Stage 15 rows in `tracker/tracker_4.md`.
 
+## E5. Version 5 checks (S19.1, S19.3)
+
+Run `node scripts/smoke.mjs https://scollarly.gimafolabit.workers.dev` first: every check must pass after the deploy of Stage 18 (before it, the two `admin/inbox` checks fail because the call does not exist yet). Then try these on the live site, on a phone, signed in as each person. Only the owner records a box as done.
+
+- [ ] **Real bucket (owner, F42, F43).** As a student, upload one document (a photo of a page); it shows as waiting. As the Admin, open it from the student's file: it downloads, it does not open in the browser, and the link stops working after a few minutes. Read the Object storage quota in the Neon console and send it to Claude Code.
+- [ ] **Roles.** The Admin signs in with the second factor and sees every student. A Manager sees only the students given to them, in the Inbox counts as well as the list, and cannot open another student's address. A student sees only their own file. A third Admin cannot be invited.
+- [ ] **Assignment.** Create two accounts: each gets the next Manager in turn. Mark a Manager away: the next sign-up skips them and their existing students stay. With every Manager away, the new student waits in the Admin's **Unassigned**.
+- [ ] **Seven steps.** As a Manager, **Next step** on a student at step 2 stays held until the four documents are approved. At step 3 the three-day clock shows; after three days it shows overdue and sends nothing. Only the Admin can put a file back one step (with a note), close it and reopen it.
+- [ ] **Letters and proof.** The Admin uploads an offer letter (PDF): the student is alerted and downloads it in the app. The student sends proof of payment: only the Admin can approve it. The app never shows Momo details.
+- [ ] **Ledger.** A Manager's entry for the university's payment shows as **Pending approval** and is in no total; after the Admin approves it, it counts.
+- [ ] **Alerts.** With the Inbox open on a phone, a new upload by a student makes the count rise within two minutes without a reload. A student's alerts appear in the app.
+- [ ] **Public text.** `/process` and the home page show the seven steps and the fees wording you approved (fees are paid to the university, not to Scollarly), with nothing of the old six steps.
+- [ ] **Files deleted.** The daily job's record on Health shows a `purge` run and no failure. (Files are deleted three months after Arrived or Closed, so nothing is deleted yet.)
+
 ## F. Sign-off (H11)
 
 When A to E are done: write "I sign off the pre-launch checklist" to Claude Code, with the date. It records your words in the tracker (H11). Until then Stage 11 stays `in-progress`.

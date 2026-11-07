@@ -77,8 +77,17 @@ try {
       const token = randomBytes(24).toString("hex").slice(0, 32);
       const user = await client.query(`insert into neon_auth."user" (name, email, "emailVerified") values ($1, $2, true) returning id::text as id`, [`S010 probe ${who}`, email]);
       const userId = user.rows[0].id;
-      await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now())`, [token, userId]);
-      await client.query("insert into public.app_user (id, role, account_confirmed_at, onboarding_done_at) values ($1, $2, now(), now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at, onboarding_done_at = excluded.onboarding_done_at", [userId, role]);
+      const session = await client.query(`insert into neon_auth.session ("expiresAt", token, "userId", "updatedAt") values (now() + interval '2 hours', $1, $2::uuid, now()) returning id::text as id`, [token, userId]);
+      try {
+        await client.query("insert into public.app_user (id, role, account_confirmed_at, onboarding_done_at) values ($1, $2, now(), now()) on conflict (id) do update set role = excluded.role, account_confirmed_at = excluded.account_confirmed_at, onboarding_done_at = excluded.onboarding_done_at", [userId, role]);
+      } catch (error) {
+        // At most two admins exist (migration 0022). The measurement needs a throwaway one, so it cannot run while both places are taken.
+        if (role === "admin" && error?.code === "23514") throw new Error("The measurement needs a throwaway admin, but the database already has two admins. Run it before the backup Admin is added, or measure on a Neon branch.");
+        throw error;
+      }
+      // Since version 5 a stored admin whose session has not passed the second factor is treated as a student (`effectiveRole`), so the throwaway
+      // admin gets a verified step-up for its own session, as a real admin has after the second factor. The cleanup removes the row.
+      if (role === "admin") await client.query("insert into public.step_up (session_id, user_id, verified_at) values ($1, $2, now())", [session.rows[0].id, userId]);
       sessions[who] = { token, userId };
     }
     // S13.3: fresh confirmed students for the `POST me/onboarding` CPU row (an account can onboard once, so each request needs its own).
